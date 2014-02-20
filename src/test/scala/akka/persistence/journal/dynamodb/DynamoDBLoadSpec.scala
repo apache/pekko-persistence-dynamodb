@@ -12,11 +12,6 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest._
 
 object DynamoDBLoadSpec {
-  val config = ConfigFactory.parseString(
-    """
-      |akka.persistence.journal.plugin = "cassandra-journal"
-      |akka.persistence.snapshot-store.local.dir = "target/snapshots"
-    """.stripMargin)
 
   trait Measure extends { this: Actor ⇒
     val NanoToSecond = 1000.0 * 1000 * 1000
