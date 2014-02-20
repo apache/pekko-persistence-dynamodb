@@ -7,8 +7,10 @@ import akka.testkit.TestKit
 import com.amazonaws.services.dynamodbv2.model._
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import org.scalatest.{Suite, BeforeAndAfterEach}
 
-class DynamoDBJournalSpec extends TestKit(ActorSystem("test")) with JournalSpec {
+trait DynamoDBSpec extends BeforeAndAfterEach {
+  this:TestKit with Suite =>
   override def beforeEach(): Unit = {
     val config = system.settings.config.getConfig(Conf)
     val table = config.getString(JournalName)
@@ -39,3 +41,5 @@ class DynamoDBJournalSpec extends TestKit(ActorSystem("test")) with JournalSpec 
     super.afterEach()
   }
 }
+
+class DynamoDBJournalSpec extends TestKit(ActorSystem("test")) with JournalSpec with DynamoDBSpec
