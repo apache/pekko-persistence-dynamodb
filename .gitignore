@@ -1,0 +1,7 @@
+.idea
+.idea_modules
+dynamodb-local
+.env
+target
+project/target
+project/project/target
