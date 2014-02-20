@@ -7,8 +7,6 @@ import akka.actor._
 import akka.persistence._
 import akka.testkit._
 
-import com.typesafe.config.ConfigFactory
-
 import org.scalatest._
 
 object DynamoDBLoadSpec {
