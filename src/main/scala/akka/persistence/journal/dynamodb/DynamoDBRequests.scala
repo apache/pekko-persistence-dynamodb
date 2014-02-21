@@ -1,14 +1,11 @@
 package akka.persistence.journal.dynamodb
 
-import com.amazonaws.services.dynamodbv2.model._
 import DynamoDBJournal._
 import akka.persistence.{PersistentConfirmation, PersistentId, PersistentRepr}
-import scala.collection.{mutable, immutable}
-import java.util.{HashMap => JHMap, Map => JMap}
 import collection.JavaConverters._
+import com.amazonaws.services.dynamodbv2.model._
+import scala.collection.{mutable, immutable}
 import scala.concurrent.Future
-import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult
-import com.amazonaws.services.dynamodbv2.model.PutItemRequest
 
 
 trait DynamoDBRequests {
@@ -40,7 +37,7 @@ trait DynamoDBRequests {
 
   }
 
-  private [dynamodb] def sendUnprocessedItems(result: BatchWriteItemResult): Future[BatchWriteItemResult] = {
+  private[dynamodb] def sendUnprocessedItems(result: BatchWriteItemResult): Future[BatchWriteItemResult] = {
     val unprocessed: Int = result.getUnprocessedItems.size()
     if (unprocessed == 0) Future.successful(result)
     else {
@@ -59,9 +56,9 @@ trait DynamoDBRequests {
     }
   }
 
-  private [dynamodb] def sendUnprocessedItem(p: PutItemRequest, retries: Int = 5): Future[PutItemResult] = {
+  private[dynamodb] def sendUnprocessedItem(p: PutItemRequest, retries: Int = 5): Future[PutItemResult] = {
     //todo exponential backoff?
-    if (retries == 0)  Future.failed(new RuntimeException(s"couldnt put ${p.getItem.get(Key)} after 5 tries"))
+    if (retries == 0) Future.failed(new RuntimeException(s"couldnt put ${p.getItem.get(Key)} after 5 tries"))
     else dynamo.sendPutItem(p).fallbackTo(sendUnprocessedItem(p, retries - 1))
   }
 
@@ -98,31 +95,29 @@ trait DynamoDBRequests {
   }
 
 
-
-
-  def toMsgItem(repr:PersistentRepr):Item = fields(
+  def toMsgItem(repr: PersistentRepr): Item = fields(
     Key -> messageKey(repr.processorId, repr.sequenceNr),
     Payload -> B(serialization.serialize(repr).get),
     Deleted -> S(false)
   )
 
-  def toHSItem(repr:PersistentRepr):Item = fields(
+  def toHSItem(repr: PersistentRepr): Item = fields(
     Key -> highSeqKey(repr.processorId, repr.sequenceNr % sequenceShards),
     SequenceNr -> N(repr.sequenceNr)
   )
 
-  def toLSItem(id:PersistentId):Item = fields(
+  def toLSItem(id: PersistentId): Item = fields(
     Key -> lowSeqKey(id.processorId, id.sequenceNr % sequenceShards),
     SequenceNr -> N(id.sequenceNr)
   )
 
-  def put(item:Item):WriteRequest = new WriteRequest().withPutRequest(new PutRequest().withItem(item))
+  def put(item: Item): WriteRequest = new WriteRequest().withPutRequest(new PutRequest().withItem(item))
 
-  def delete(item:Item):WriteRequest = new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(item))
+  def delete(item: Item): WriteRequest = new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(item))
 
-  def updateItem(key:Item, updates:ItemUpdates):UpdateItemRequest = new UpdateItemRequest().withTableName(journalName).withKey(key).withAttributeUpdates(updates)
+  def updateItem(key: Item, updates: ItemUpdates): UpdateItemRequest = new UpdateItemRequest().withTableName(journalName).withKey(key).withAttributeUpdates(updates)
 
-  def setAdd(value:AttributeValue):AttributeValueUpdate = new AttributeValueUpdate().withAction(AttributeAction.ADD).withValue(value)
+  def setAdd(value: AttributeValue): AttributeValueUpdate = new AttributeValueUpdate().withAction(AttributeAction.ADD).withValue(value)
 
   def permanentDeleteToDelete(id: PersistentId): DeleteItemRequest = {
     log.debug("delete permanent {}", id)
@@ -137,6 +132,6 @@ trait DynamoDBRequests {
     new UpdateItemRequest().withTableName(journalName).withKey(key).withAttributeUpdates(updates)
   }
 
-  def unitSequence(seq:TraversableOnce[Future[Unit]]):Future[Unit] = Future.sequence(seq).map(_ => ())
+  def unitSequence(seq: TraversableOnce[Future[Unit]]): Future[Unit] = Future.sequence(seq).map(_ => ())
 
 }

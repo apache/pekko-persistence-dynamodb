@@ -57,8 +57,6 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
     map
   }
 
-
-
   def S(value: String): AttributeValue = new AttributeValue().withS(value)
 
   def S(value: Boolean): AttributeValue = new AttributeValue().withS(value.toString)
@@ -75,11 +73,9 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
 
   def messageKey(procesorId: String, sequenceNr: Long) = S(str("P-", procesorId, "-", sequenceNr))
 
-  //dont remove those dashes or else keys will be funky
   def highSeqKey(procesorId: String, sequenceNr: Long) = S(str("SH-", procesorId, "-", sequenceNr))
 
-  //dont remove those dashes or else keys will be funky
-  def lowSeqKey(procesorId: String, sequenceNr: Long) = S(str("SL-", procesorId, "-", sequenceNr)) //dont remove those dashes or else keys will be funky
+  def lowSeqKey(procesorId: String, sequenceNr: Long) = S(str("SL-", procesorId, "-", sequenceNr))
 
   def str(ss: Any*): String = ss.foldLeft(new StringBuilder)(_.append(_)).toString()
 
