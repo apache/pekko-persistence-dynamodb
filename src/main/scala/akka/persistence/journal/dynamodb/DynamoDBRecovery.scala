@@ -20,19 +20,12 @@ trait DynamoDBRecovery extends AsyncRecovery {
     if (fromSequenceNr > toSequenceNr) return Future.successful(())
     var delivered = 0L
     var maxDeliveredSeq = 0L
-    val keys = Stream.iterate(fromSequenceNr, maxDynamoBatchGet)(_ + 1).map(s => s -> fields(Key -> messageKey(processorId, s)))
-    val ka = new KeysAndAttributes().withKeys(keys.map(_._2).asJava).withConsistentRead(true).withAttributesToGet(Key, Payload, Deleted, Confirmations)
-    val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
-    log.debug("in=replay at=batch-request keys={}", keys.size)
-    //todo send 10 concurrent batch gets
-    dynamo.sendBatchGetItem(get).flatMap(getUnprocessedItems).map {
-      result =>
-        val batchMap = mapBatch(result.getResponses.get(journalName))
-        log.debug("in=replay at=batch-response responses={}", batchMap.keySet().toString)
-        keys.foreach {
+    getReplayBatch(processorId, fromSequenceNr).map {
+      replayBatch =>
+        replayBatch.keys.foreach {
           case (sequenceNr, key) =>
             val k = key.get(Key)
-            Option(batchMap.get(k)).map {
+            Option(replayBatch.batch.get(k)).map {
               item =>
                 val repr = readPersistentRepr(item)
                 repr.foreach {
@@ -46,15 +39,40 @@ trait DynamoDBRecovery extends AsyncRecovery {
                 }
             }
         }
-        batchMap.size()
+        replayBatch.batch.size()
     }.flatMap {
       last =>
-        if (last < maxDynamoBatchGet || delivered >= max || maxDeliveredSeq >= toSequenceNr) {
+        if (last < maxDynamoBatchGet * replayParallelism || delivered >= max || maxDeliveredSeq >= toSequenceNr) {
           Future.successful(())
         } else {
-          val from = fromSequenceNr + maxDynamoBatchGet
+          val from = fromSequenceNr + maxDynamoBatchGet * replayParallelism
           asyncReplayMessages(processorId, from, toSequenceNr, max - delivered)(replayCallback)
         }
+    }
+  }
+
+  case class ReplayBatch(keys: Stream[(Long, Item)], batch: JMap[AttributeValue, Item])
+
+  def getReplayBatch(processorId: String, fromSequenceNr: Long): Future[ReplayBatch] = {
+    val batchKeys = Stream.iterate(fromSequenceNr, maxDynamoBatchGet * replayParallelism)(_ + 1).map(s => s -> fields(Key -> messageKey(processorId, s)))
+    //there will be replayParallelism number of gets
+    val gets = batchKeys.grouped(maxDynamoBatchGet).map {
+      keys =>
+        val ka = new KeysAndAttributes().withKeys(keys.map(_._2).asJava).withConsistentRead(true).withAttributesToGet(Key, Payload, Deleted, Confirmations)
+        val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
+        dynamo.sendBatchGetItem(get).flatMap(getUnprocessedItems).map {
+          result => mapBatch(result.getResponses.get(journalName))
+        }
+    }
+
+    Future.sequence(gets).map {
+      responses =>
+        val batch = responses.foldLeft(mapBatch(Collections.emptyList())) {
+          case (all, one) =>
+            all.putAll(one)
+            all
+        }
+        ReplayBatch(batchKeys, batch)
     }
   }
 
@@ -149,7 +167,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
     dynamo.sendGetItem(g).fallbackTo(getUnprocessedItem(g, retries - 1))
   }
 
-  def mapBatch(b: JList[Item]) = {
+  def mapBatch(b: JList[Item]): JMap[AttributeValue, Item] = {
     val map = new JHMap[AttributeValue, JMap[String, AttributeValue]]
     b.asScala.foreach {
       item => map.put(item.get(Key), item)

@@ -26,6 +26,7 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
   val journalName = config.getString(JournalName)
   val sequenceShards = 1000
   val maxDynamoBatchGet = 100
+  val replayParallelism = 10
 
   type Item = JMap[String, AttributeValue]
   type ItemUpdates = JMap[String, AttributeValueUpdate]
