@@ -16,19 +16,19 @@ trait DynamoDBRecovery extends AsyncRecovery {
 
   implicit lazy val replayDispatcher = context.system.dispatchers.lookup(config.getString(ReplayDispatcher))
 
- def asyncReplayMessages(processorId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(replayCallback: (PersistentRepr) => Unit): Future[Unit] = logging {
+  def asyncReplayMessages(processorId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(replayCallback: (PersistentRepr) => Unit): Future[Unit] = logging {
     if (fromSequenceNr > toSequenceNr) return Future.successful(())
     var delivered = 0L
     var maxDeliveredSeq = 0L
-    val keys = Stream.iterate(fromSequenceNr, 100)(_ + 1).map(s => s -> fields(Key -> messageKey(processorId, s)))
+    val keys = Stream.iterate(fromSequenceNr, maxDynamoBatchGet)(_ + 1).map(s => s -> fields(Key -> messageKey(processorId, s)))
     val ka = new KeysAndAttributes().withKeys(keys.map(_._2).asJava).withConsistentRead(true).withAttributesToGet(Key, Payload, Deleted, Confirmations)
     val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
-    log.debug("replay at=batch-request keys={}", keys.size)
+    log.debug("in=replay at=batch-request keys={}", keys.size)
     //todo send 10 concurrent batch gets
     dynamo.sendBatchGetItem(get).flatMap(getUnprocessedItems).map {
       result =>
         val batchMap = mapBatch(result.getResponses.get(journalName))
-        log.debug("replay at=batch-response responses={}", batchMap.keySet().toString)
+        log.debug("in=replay at=batch-response responses={}", batchMap.keySet().toString)
         keys.foreach {
           case (sequenceNr, key) =>
             val k = key.get(Key)
@@ -41,7 +41,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
                       replayCallback(r)
                       delivered += 1
                       maxDeliveredSeq = r.sequenceNr
-                      log.debug("deliver {} {}", processorId, sequenceNr)
+                      log.debug("in=replay at=deliver {} {}", processorId, sequenceNr)
                     }
                 }
             }
@@ -49,10 +49,10 @@ trait DynamoDBRecovery extends AsyncRecovery {
         batchMap.size()
     }.flatMap {
       last =>
-        if (last < 100 || delivered >= max || maxDeliveredSeq >= toSequenceNr) {
+        if (last < maxDynamoBatchGet || delivered >= max || maxDeliveredSeq >= toSequenceNr) {
           Future.successful(())
         } else {
-          val from = fromSequenceNr + 100
+          val from = fromSequenceNr + maxDynamoBatchGet
           asyncReplayMessages(processorId, from, toSequenceNr, max - delivered)(replayCallback)
         }
     }
