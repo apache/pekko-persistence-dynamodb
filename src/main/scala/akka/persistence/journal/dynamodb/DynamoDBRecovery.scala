@@ -59,8 +59,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
   }
 
   def readPersistentRepr(item: JMap[String, AttributeValue]): Option[PersistentRepr] = {
-    import collection.JavaConverters._
-    item.asScala.get(Payload).map {
+    Option(item.get(Payload)).map {
       payload =>
         val repr = persistentFromByteBuffer(payload.getB)
         val isDeleted = item.get(Deleted).getS == "true"
@@ -72,17 +71,17 @@ trait DynamoDBRecovery extends AsyncRecovery {
   }
 
   def asyncReadHighestSequenceNr(processorId: String, fromSequenceNr: Long): Future[Long] = {
-    log.debug("at=read-high-sequence processorId={} from={}", processorId, fromSequenceNr)
+    log.debug("in=read-highest processorId={} from={}", processorId, fromSequenceNr)
     Future.sequence {
       Stream.iterate(0L, sequenceShards)(_ + 1).map(l => highSeqKey(processorId, l)).grouped(100).map {
         keys =>
           val keyColl = keys.map(k => fields(Key -> k)).toSeq.asJava
           val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
           val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
-          log.debug("highest at=batch-request")
+          log.debug("in=read-highest at=batch-request")
           dynamo.sendBatchGetItem(get).flatMap(getUnprocessedItems).map {
             resp =>
-              log.debug("highest at=batch-response")
+              log.debug("in=read-highest at=batch-response")
               val batchMap = mapBatch(resp.getResponses.get(journalName))
               keys.map {
                 key =>
@@ -146,7 +145,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
   }
 
   def getUnprocessedItem(g: GetItemRequest, retries: Int = 5): Future[GetItemResult] = {
-    if (retries == 0) throw new RuntimeException(s"couldnt get ${g.getKey} after 5 tries")
+    if (retries == 0) Future.failed(new RuntimeException(s"couldnt get ${g.getKey} after 5 tries"))
     dynamo.sendGetItem(g).fallbackTo(getUnprocessedItem(g, retries - 1))
   }
 
