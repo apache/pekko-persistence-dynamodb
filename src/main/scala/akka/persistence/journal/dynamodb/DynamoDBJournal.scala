@@ -22,45 +22,23 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
   val config = context.system.settings.config.getConfig(Conf)
   val extension = Persistence(context.system)
   val serialization = SerializationExtension(context.system)
-  val client = dynamoClient(context.system, context, config)
+  val dynamo = dynamoClient(context.system, context, config)
   val journalName = config.getString(JournalName)
+  val sequenceShards = 1000
+  val maxDynamoBatchGet = 100
 
-  def asyncWriteMessages(messages: immutable.Seq[PersistentRepr]): Future[Unit] = Future.sequence {
-    messages.map {
-      msg =>
-        client.sendPutItem(persistentToPut(msg)).map(_ => (msg.processorId, msg.sequenceNr))
-    }
-  }.map {
-    msgs => log.debug("wroteMessages {}", msgs)
-  }
+  type Item = JMap[String, AttributeValue]
+  type ItemUpdates = JMap[String, AttributeValueUpdate]
 
-  def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = Future.sequence {
-    confirmations.map {
-      msg =>
-        client.sendUpdateItem(confirmationToUpdate(msg))
-    }
-  }.map {
-    _ => log.debug("wroteConfirmations {}", confirmations)
-  }
+  def asyncWriteMessages(messages: immutable.Seq[PersistentRepr]): Future[Unit] = writeMessages(messages)
 
+  //do we need to store the confirmations in a separate key to avoid hot keys?
+  def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = writeConfirmations(confirmations)
 
-  def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean): Future[Unit] = logging {
-    Future.sequence {
-      messageIds.map {
-        msg =>
-          if (permanent) {
-            client.sendDeleteItem(permanentDeleteToDelete(msg)).map(_ => msg)
-          } else {
-            client.sendUpdateItem(impermanentDeleteToUpdate(msg)).map(_ => msg)
-          }
-      }
-    }.map {
-      ids =>
-        log.debug("deleted {}", messageIds)
-    }
-  }
+  def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean): Future[Unit] = deleteMessages(messageIds, permanent)
 
-  def asyncDeleteMessagesTo(processorId: String, toSequenceNr: Long, permanent: Boolean): Future[Unit] = logging {
+  def asyncDeleteMessagesTo(processorId: String, toSequenceNr: Long, permanent: Boolean): Future[Unit] =  {
+    log.debug("at=delete-messages-to processorId={} to={} perm={}", processorId, toSequenceNr, permanent)
     readLowestSequenceNr(processorId).flatMap {
       fromSequenceNr =>
         val asyncDeletions = (fromSequenceNr to toSequenceNr).grouped(extension.settings.journal.maxDeletionBatchSize).map {
@@ -71,7 +49,6 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
     }
   }
 
-
   def fields[T](fs: (String, T)*): JMap[String, T] = {
     val map = new JHMap[String, T]()
     fs.foreach {
@@ -80,17 +57,29 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
     map
   }
 
+
+
   def S(value: String): AttributeValue = new AttributeValue().withS(value)
 
   def S(value: Boolean): AttributeValue = new AttributeValue().withS(value.toString)
 
   def N(value: Long): AttributeValue = new AttributeValue().withN(value.toString)
 
-  def SS(value: String): AttributeValue = new AttributeValue().withSS(value.toString)
+  def SS(value: String): AttributeValue = new AttributeValue().withSS(value)
+
+  def SS(values: Seq[String]): AttributeValue = new AttributeValue().withSS(values: _*)
 
   def B(value: Array[Byte]): AttributeValue = new AttributeValue().withB(ByteBuffer.wrap(value))
 
   def US(value: String): AttributeValueUpdate = new AttributeValueUpdate().withAction(AttributeAction.ADD).withValue(SS(value))
+
+  def messageKey(procesorId: String, sequenceNr: Long) = S(str("P-", procesorId, "-", sequenceNr))
+
+  //dont remove those dashes or else keys will be funky
+  def highSeqKey(procesorId: String, sequenceNr: Long) = S(str("SH-", procesorId, "-", sequenceNr))
+
+  //dont remove those dashes or else keys will be funky
+  def lowSeqKey(procesorId: String, sequenceNr: Long) = S(str("SL-", procesorId, "-", sequenceNr)) //dont remove those dashes or else keys will be funky
 
   def str(ss: Any*): String = ss.foldLeft(new StringBuilder)(_.append(_)).toString()
 
@@ -103,15 +92,40 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
 
   def logging[T](f: Future[T]): Future[T] = {
     f.onFailure {
-      case e: Exception => log.error(e, "error in async op")
+      case e: Exception =>
+        log.error(e, "error in async op")
+        e.printStackTrace
     }
     f
   }
 
 }
 
+class InstrumentedDynamoDBClient(props: DynamoDBClientProps) extends DynamoDBClient(props) {
+  def logging[T](op: String)(f: Future[T]): Future[T] = {
+    f.onFailure {
+      case e: Exception => props.system.log.error(e, "error in async op {}", op)
+    }
+    f
+  }
+
+  override def sendBatchWriteItem(awsWrite: BatchWriteItemRequest): Future[BatchWriteItemResult] =
+    logging("sendBatchWriteItem")(super.sendBatchWriteItem(awsWrite))
+
+  override def sendBatchGetItem(awsWrite: BatchGetItemRequest): Future[BatchGetItemResult] =
+    logging("sendBatchWriteItem")(super.sendBatchGetItem( awsWrite))
+
+  override def sendUpdateItem(aws: UpdateItemRequest): Future[UpdateItemResult] =
+    logging("sendBatchWriteItem")(super.sendUpdateItem(aws))
+
+  override def sendPutItem(aws: PutItemRequest): Future[PutItemResult] =
+    logging("sendBatchWriteItem")(super.sendPutItem(aws))
+
+}
+
 object DynamoDBJournal {
   // field names
+  val Key = "key"
   val ProcessorId = "processorId"
   val SequenceNr = "sequenceNr"
   val Confirmations = "confirmations"
@@ -128,8 +142,8 @@ object DynamoDBJournal {
 
   import collection.JavaConverters._
 
-  val schema = Seq(new KeySchemaElement().withKeyType(KeyType.HASH).withAttributeName(ProcessorId), new KeySchemaElement().withKeyType(KeyType.RANGE).withAttributeName(SequenceNr)).asJava
-  val schemaAttributes = Seq(new AttributeDefinition().withAttributeName(ProcessorId).withAttributeType("S"), new AttributeDefinition().withAttributeName(SequenceNr).withAttributeType("N")).asJava
+  val schema = Seq(new KeySchemaElement().withKeyType(KeyType.HASH).withAttributeName(Key)).asJava
+  val schemaAttributes = Seq(new AttributeDefinition().withAttributeName(Key).withAttributeType("S")).asJava
 
   def dynamoClient(system: ActorSystem, context: ActorRefFactory, config: Config): DynamoDBClient = {
     val props = DynamoDBClientProps(
@@ -140,7 +154,7 @@ object DynamoDBJournal {
       context,
       config.getString(Endpoint)
     )
-    new DynamoDBClient(props)
+    new InstrumentedDynamoDBClient(props)
   }
 
 
