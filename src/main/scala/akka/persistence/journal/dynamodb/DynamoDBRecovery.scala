@@ -164,7 +164,11 @@ trait DynamoDBRecovery extends AsyncRecovery {
 
   def getUnprocessedItem(g: GetItemRequest, retries: Int = 5): Future[GetItemResult] = {
     if (retries == 0) Future.failed(new RuntimeException(s"couldnt get ${g.getKey} after 5 tries"))
-    dynamo.sendGetItem(g).fallbackTo(getUnprocessedItem(g, retries - 1))
+    dynamo.sendGetItem(g).fallbackTo{
+      val sleep = (6 - retries) * 100
+      Thread.sleep(sleep)
+      getUnprocessedItem(g, retries - 1)
+    }
   }
 
   def mapBatch(b: JList[Item]): JMap[AttributeValue, Item] = {
