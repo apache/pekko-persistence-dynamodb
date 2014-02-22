@@ -97,12 +97,14 @@ P -> PersistentRepr
 SH -> SequenceHigh
 SL -> SequenceLow
 
+Persistent Data
+
 "P"-processorId-sequenceNr  : S : HashKey
 deleted                     : S
 confirmations               : SS
 payload                     : B
 
-or
+High and Low Sequence Numbers
 
 "SH"-processorId-(sequenceNr % sequenceShards): S : HashKey
 sequenceNr                                    : N
@@ -111,7 +113,7 @@ sequenceNr                                    : N
 sequenceNr                                    : N
 ```
 
-This is somewhat more difficult to code, but offers higher throughput possibilities. Notice that the items that hold the high counter are sharded,
+This is somewhat more difficult to code, but offers higher throughput possibilities. Notice that the items that hold the high and low sequence are sharded,
 rather than using a single item to store the counter. If we only used a single item, we would suffer from the same hot key problems as our
 first structure.
 
@@ -120,8 +122,8 @@ writeMessage      -> BatchPutItem (P and SH)
 writeConfirmation -> UpdateItem with set add
 deleteMessage     -> BatchPutItem (mark deleted, set SL) or BatchPutItem (permanent delete, set SL)
 replayMessages    -> Parallel BatchGet all P items for the processor
-highCounter       -> Parallel BatchGet all SH shards (keys are known) , find max.
-lowCounter        -> Parallel BatchGet all SL shards (keys are known) , find min.
+highCounter       -> Parallel BatchGet all SH shards for the processor, find max.
+lowCounter        -> Parallel BatchGet all SL shards for the processor, find min.
 ```
 
 
