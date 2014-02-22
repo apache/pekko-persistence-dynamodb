@@ -10,6 +10,8 @@ parallelExecution in Test := false
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
+resolvers += "spray repo" at "http://repo.spray.io"
+
 libraryDependencies += "com.sclasen" %% "spray-dynamodb" % "0.2.4-SNAPSHOT" % "compile"
 
 libraryDependencies += "com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.0-RC4" % "compile"
