@@ -4,6 +4,8 @@ DynamoDBJournal for Akka Persistence
 A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.3.0-RC3/scala/persistence.html) journal backed by
 [Amazon DynamoDB](http://aws.amazon.com/dynamodb/).
 
+Scala: `2.10.3`  Akka: `2.3.0-RC4`
+
 Installation
 ------------
 
