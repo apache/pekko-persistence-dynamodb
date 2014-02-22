@@ -9,7 +9,7 @@ Installation
 
 ```scala
 
-//build.sbt
+// build.sbt
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
@@ -21,7 +21,7 @@ Configuration
 -------------
 
 ```
-//all config except endpoint is required
+// application.conf - all config except endpoint is required
 
 akka.persistence.journal.plugin = "dynamodb-journal"
 
