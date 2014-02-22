@@ -14,11 +14,11 @@ libraryDependencies += "com.sclasen" %% "spray-dynamodb" % "0.2.4-SNAPSHOT" % "c
 
 libraryDependencies += "com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.0-RC4" % "compile"
 
-libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.3.0-RC4" % "test"
+libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.3.0-RC4" % "test,it"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.0" % "test"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.0" % "test,it"
 
-libraryDependencies += "commons-io" % "commons-io" % "2.4" % "test"
+libraryDependencies += "commons-io" % "commons-io" % "2.4" % "test,it"
 
 parallelExecution in Test := false
 
@@ -28,3 +28,6 @@ publishTo <<= version {
     if (v.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
     else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
+
+
+
