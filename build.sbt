@@ -21,3 +21,10 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "2.0" % "test"
 libraryDependencies += "commons-io" % "commons-io" % "2.4" % "test"
 
 parallelExecution in Test := false
+
+publishTo <<= version {
+  (v: String) =>
+    val nexus = "https://oss.sonatype.org/"
+    if (v.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
+    else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+}

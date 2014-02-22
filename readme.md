@@ -1,3 +1,43 @@
+DynamoDBJournal for Akka Persistence
+====================================
+
+A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.3.0-RC3/scala/persistence.html) journal backed by
+[Amazon DynamoDB](http://aws.amazon.com/dynamodb/).
+
+Installation
+------------
+
+```scala
+
+//build.sbt
+
+resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+
+libraryDependencies += "com.sclasen" %% "akka-persistence-dynamodb" % "0.1-SNAPSHOT" % "compile"
+
+```
+
+Configuration
+-------------
+
+```
+//all config except endpoint is required
+
+akka.persistence.journal.plugin = "dynamodb-journal"
+
+dynamodb-journal {
+    journal-name =  "the name of a dynamodb table you create with hash key: `key`"
+    aws-access-key-id =  "yourKey"
+    aws-secret-access-key =  "yourSecret"
+    operation-timeout =  10 seconds
+    # endpoint =  "defaults to https://dynamodb.us-east-1.amazonaws.com"
+}
+
+```
+
+Development
+-----------
+
 ### dev setup
 
 * install [forego](https://github.com/ddollar/forego) if you dont have it.
