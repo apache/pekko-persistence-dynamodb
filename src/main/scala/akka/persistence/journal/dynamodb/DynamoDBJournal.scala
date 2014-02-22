@@ -118,6 +118,9 @@ class InstrumentedDynamoDBClient(props: DynamoDBClientProps) extends DynamoDBCli
   override def sendPutItem(aws: PutItemRequest): Future[PutItemResult] =
     logging("sendBatchWriteItem")(super.sendPutItem(aws))
 
+  override def sendGetItem(aws: GetItemRequest): Future[GetItemResult] =
+    logging("sendGetItem")(super.sendGetItem(aws))
+
 }
 
 object DynamoDBJournal {
