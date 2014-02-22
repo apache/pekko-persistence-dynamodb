@@ -12,9 +12,9 @@ resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repos
 
 libraryDependencies += "com.sclasen" %% "spray-dynamodb" % "0.2.4-SNAPSHOT" % "compile"
 
-libraryDependencies += "com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.0-RC2" % "compile"
+libraryDependencies += "com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.0-RC4" % "compile"
 
-libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.3.0-RC2" % "test"
+libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.3.0-RC4" % "test"
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "2.0" % "test"
 
