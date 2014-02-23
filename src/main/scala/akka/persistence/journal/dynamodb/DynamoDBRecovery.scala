@@ -122,7 +122,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
           val keyColl = keys.map(k => fields(Key -> k)).toSeq.asJava
           val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
           val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
-          dynamo.sendBatchGetItem(get).flatMap(r => getUnprocessedItems(r)).map {
+          batchGet(get).flatMap(r => getUnprocessedItems(r)).map {
             resp =>
               log.debug("at=read-lowest-sequence-batch-response processorId={}", processorId)
               val batchMap = mapBatch(resp.getResponses.get(journalName))
@@ -149,7 +149,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
       log.warning("at=get-unprocessed-items")
       backoff(10-retriesRemaining)
       val rest = new BatchGetItemRequest().withRequestItems(result.getUnprocessedKeys)
-      dynamo.sendBatchGetItem(rest).flatMap(r => getUnprocessedItems(r, retriesRemaining - 1)).map {
+      batchGet(rest, retriesRemaining - 1).map{
         rr =>
           val items = rr.getResponses.get(journalName)
           val responses = result.getResponses.get(journalName)
@@ -161,12 +161,15 @@ trait DynamoDBRecovery extends AsyncRecovery {
     }
   }
 
-  def getUnprocessedItem(g: GetItemRequest, retries: Int = 5): Future[GetItemResult] = {
-    if (retries == 0) Future.failed(new RuntimeException(s"couldnt get ${g.getKey} after 5 tries"))
-    dynamo.sendGetItem(g).fallbackTo{
-      val sleep = (6 - retries) * 100
-      Thread.sleep(sleep)
-      getUnprocessedItem(g, retries - 1)
+  def batchGet(r:BatchGetItemRequest, retriesRemaining:Int=10):Future[BatchGetItemResult]={
+    dynamo.batchGetItem(r).flatMap{
+      case Left(t:ProvisionedThroughputExceededException) =>
+         backoff(retriesRemaining)
+         batchGet(r,retriesRemaining-1)
+      case Left(e) =>
+        throw e
+      case Right(resp) =>
+        Future.successful(resp)
     }
   }
 

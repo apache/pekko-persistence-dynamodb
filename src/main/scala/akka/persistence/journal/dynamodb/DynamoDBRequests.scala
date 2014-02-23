@@ -28,7 +28,7 @@ trait DynamoDBRequests {
 
     writes.map {
       write =>
-        dynamo.sendBatchWriteItem(write).flatMap(r => sendUnprocessedItems(r)).map {
+        batchWrite(write).flatMap(r => sendUnprocessedItems(r)).map {
           _ => if (log.isDebugEnabled) {
             log.debug("at=batch-write-finish writes={}", write.getRequestItems.get(journalName).size())
           } else ()
@@ -46,7 +46,19 @@ trait DynamoDBRequests {
       log.warning("at=unprocessed-items unprocessed={}", unprocessed)
       backoff(10 - retriesRemaining)
       val rest = new BatchWriteItemRequest().withRequestItems(result.getUnprocessedItems)
-      dynamo.sendBatchWriteItem(rest).flatMap(r => sendUnprocessedItems(r, retriesRemaining - 1))
+      batchWrite(rest, retriesRemaining - 1).flatMap(r => sendUnprocessedItems(r, retriesRemaining - 1))
+    }
+  }
+
+  def batchWrite(r:BatchWriteItemRequest, retriesRemaining:Int=10):Future[BatchWriteItemResult]={
+    dynamo.batchWriteItem(r).flatMap{
+      case Left(t:ProvisionedThroughputExceededException) =>
+        backoff(retriesRemaining)
+        batchWrite(r,retriesRemaining-1)
+      case Left(e) =>
+        throw e
+      case Right(resp) =>
+        Future.successful(resp)
     }
   }
 
