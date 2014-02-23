@@ -28,7 +28,7 @@ trait DynamoDBRequests {
 
     writes.map {
       write =>
-        dynamo.sendBatchWriteItem(write).flatMap(sendUnprocessedItems).map {
+        dynamo.sendBatchWriteItem(write).flatMap(r => sendUnprocessedItems(r)).map {
           _ => if (log.isDebugEnabled) {
             log.debug("at=batch-write-finish writes={}", write.getRequestItems.get(journalName).size())
           } else ()
@@ -37,30 +37,19 @@ trait DynamoDBRequests {
 
   }
 
-  private[dynamodb] def sendUnprocessedItems(result: BatchWriteItemResult): Future[BatchWriteItemResult] = {
+  private[dynamodb] def sendUnprocessedItems(result: BatchWriteItemResult, retriesRemaining:Int=10): Future[BatchWriteItemResult] = {
     val unprocessed: Int = result.getUnprocessedItems.size()
     if (unprocessed == 0) Future.successful(result)
-    else {
+    else if(retriesRemaining == 0) {
+      throw new RuntimeException(s"unable to batch write ${result} after 10 tries")
+    } else {
       log.warning("at=unprocessed-items unprocessed={}", unprocessed)
-      Future.sequence {
-        result.getUnprocessedItems.get(journalName).asScala.map {
-          w =>
-            val p = new PutItemRequest().withTableName(journalName).withItem(w.getPutRequest.getItem)
-            sendUnprocessedItem(p)
-        }
-      }.map {
-        results =>
-          result.getUnprocessedItems.clear()
-          result //just return the original result
-      }
+      backoff(10 - retriesRemaining)
+      val rest = new BatchWriteItemRequest().withRequestItems(result.getUnprocessedItems)
+      dynamo.sendBatchWriteItem(rest).flatMap(r => sendUnprocessedItems(r, retriesRemaining - 1))
     }
   }
 
-  private[dynamodb] def sendUnprocessedItem(p: PutItemRequest, retries: Int = 5): Future[PutItemResult] = {
-    //todo exponential backoff?
-    if (retries == 0) Future.failed(new RuntimeException(s"couldnt put ${p.getItem.get(Key)} after 5 tries"))
-    else dynamo.sendPutItem(p).fallbackTo(sendUnprocessedItem(p, retries - 1))
-  }
 
 
   def writeConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = unitSequence {

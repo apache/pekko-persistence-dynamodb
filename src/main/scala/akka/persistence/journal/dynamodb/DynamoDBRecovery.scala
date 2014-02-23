@@ -60,7 +60,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
       keys =>
         val ka = new KeysAndAttributes().withKeys(keys.map(_._2).asJava).withConsistentRead(true).withAttributesToGet(Key, Payload, Deleted, Confirmations)
         val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
-        dynamo.sendBatchGetItem(get).flatMap(getUnprocessedItems).map {
+        dynamo.sendBatchGetItem(get).flatMap(r => getUnprocessedItems(r)).map {
           result => mapBatch(result.getResponses.get(journalName))
         }
     }
@@ -97,7 +97,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
           val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
           val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
           log.debug("in=read-highest at=batch-request")
-          dynamo.sendBatchGetItem(get).flatMap(getUnprocessedItems).map {
+          dynamo.sendBatchGetItem(get).flatMap(r => getUnprocessedItems(r)).map {
             resp =>
               log.debug("in=read-highest at=batch-response")
               val batchMap = mapBatch(resp.getResponses.get(journalName))
@@ -122,7 +122,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
           val keyColl = keys.map(k => fields(Key -> k)).toSeq.asJava
           val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
           val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
-          dynamo.sendBatchGetItem(get).flatMap(getUnprocessedItems).map {
+          dynamo.sendBatchGetItem(get).flatMap(r => getUnprocessedItems(r)).map {
             resp =>
               log.debug("at=read-lowest-sequence-batch-response processorId={}", processorId)
               val batchMap = mapBatch(resp.getResponses.get(journalName))
@@ -141,21 +141,20 @@ trait DynamoDBRecovery extends AsyncRecovery {
     }
   }
 
-  def getUnprocessedItems(result: BatchGetItemResult): Future[BatchGetItemResult] = {
+  def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int=10): Future[BatchGetItemResult] = {
     if (result.getUnprocessedKeys.size() == 0) Future.successful(result)
-    else {
+    else if(retriesRemaining == 0) {
+      throw new RuntimeException(s"unable to batch write ${result} after 10 tries")
+    } else {
       log.warning("at=get-unprocessed-items")
-      Future.sequence {
-        result.getUnprocessedKeys.get(journalName).getKeys.asScala.map {
-          k =>
-            val g = new GetItemRequest().withTableName(journalName).withKey(k).withConsistentRead(true)
-            getUnprocessedItem(g)
-        }
-      }.map {
-        results =>
-          val items = result.getResponses.get(journalName)
-          results.foreach {
-            i => items.add(i.getItem)
+      backoff(10-retriesRemaining)
+      val rest = new BatchGetItemRequest().withRequestItems(result.getUnprocessedKeys)
+      dynamo.sendBatchGetItem(rest).flatMap(r => getUnprocessedItems(r, retriesRemaining - 1)).map {
+        rr =>
+          val items = rr.getResponses.get(journalName)
+          val responses = result.getResponses.get(journalName)
+          items.asScala.foreach {
+            i => responses.add(i)
           }
           result
       }

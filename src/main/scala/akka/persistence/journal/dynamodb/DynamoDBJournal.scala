@@ -58,6 +58,13 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
     map
   }
 
+  def backoff(retries:Int){
+    val exp = math.min(retries, 3)
+    val sleep = math.pow(10, exp).toLong   //(1,10,100,1000,1000...)
+    log.warning("at=backoff sleep={}",sleep)
+    Thread.sleep(sleep)
+  }
+
   def S(value: String): AttributeValue = new AttributeValue().withS(value)
 
   def S(value: Boolean): AttributeValue = new AttributeValue().withS(value.toString)
@@ -120,6 +127,8 @@ class InstrumentedDynamoDBClient(props: DynamoDBClientProps) extends DynamoDBCli
 
   override def sendGetItem(aws: GetItemRequest): Future[GetItemResult] =
     logging("sendGetItem")(super.sendGetItem(aws))
+
+
 
 }
 
