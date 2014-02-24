@@ -63,7 +63,7 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
   def withBackoff[I, O](i: I, retriesRemaining: Int = 10)(op: I => Future[Either[AmazonServiceException, O]]): Future[O] = {
     op(i).flatMap {
       case Left(t: ProvisionedThroughputExceededException) =>
-        backoff(10 - retriesRemaining)
+        backoff(10 - retriesRemaining, i.getClass.getSimpleName)
         withBackoff(i, retriesRemaining - 1)(op)
       case Left(e) =>
         log.error(e, "exception in withBackoff")
@@ -73,10 +73,10 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
     }
   }
 
-  def backoff(retries:Int){
+  def backoff(retries:Int, what:String){
     val exp = math.min(retries, 3)
     val sleep = math.pow(10, exp).toLong   //(1,10,100,1000,1000...)
-    log.warning("at=backoff sleep={}",sleep)
+    log.warning("at=backoff request={} sleep={}", what, sleep)
     Thread.sleep(sleep)
   }
 

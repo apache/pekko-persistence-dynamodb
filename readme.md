@@ -44,6 +44,13 @@ be set to as least as high as the write throughput of your table.
 The trade off with a higher number of shards is the number of requests needed to find the high or low sequence number for a processor.
 We can read the value of 100 shards per request to dynamodb, so reading 1000 shards takes 10 (parallel) requests, 10000 takes 100, etc.
 
+The reference.conf for this journal also contains the following settings for spray and akka.
+
+```
+spray.can.host-connector.max-connections = 600
+akka.persistence.journal.max-message-batch-size = 4000
+```
+
 ```
 
 Development

@@ -66,18 +66,31 @@ object DynamoDBIntegrationLoadSpec {
 
 import DynamoDBIntegrationLoadSpec._
 
+class Listener extends Actor {
+  def receive = {
+    case d: DeadLetter => println(d)
+  }
+}
+
 class DynamoDBIntegrationLoadSpec extends TestKit(ActorSystem("test", config)) with ImplicitSender with WordSpecLike with Matchers  {
   "A DynamoDB journal" should {
     "have some reasonable write throughput" in {
-      val warmCycles = 1000L
-      val loadCycles = 10000L
+      val warmCycles = 10000L
+      val loadCycles = 1000000L
+
+      val listener = system.actorOf(Props(classOf[Listener]))
+      //println dead letters to see what timesout/fails
+      system.eventStream.subscribe(listener, classOf[DeadLetter])
 
       val processor1 = system.actorOf(Props(classOf[ProcessorA], "p1a"))
       1L to warmCycles foreach { i => processor1 ! Persistent("a") }
       processor1 ! "start"
       1L to loadCycles foreach { i =>
         processor1 ! Persistent("a")
-        if(i % 1000 == 0 ) Thread.sleep(100)
+        if(i % 1000 == 0 ) {
+          Thread.sleep(100)
+          println(i)
+        }
       }
       processor1 ! "stop"
       expectMsgPF(1000 seconds) { case throughput: Double ⇒ println(f"\nthroughput = $throughput%.2f persistent commands per second") }

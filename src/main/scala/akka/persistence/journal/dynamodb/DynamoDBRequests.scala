@@ -45,7 +45,7 @@ trait DynamoDBRequests {
       throw new RuntimeException(s"unable to batch write ${result} after 10 tries")
     } else {
       log.warning("at=unprocessed-writes unprocessed={}", unprocessed)
-      backoff(10 - retriesRemaining)
+      backoff(10 - retriesRemaining, classOf[BatchWriteItemRequest].getSimpleName)
       val rest = new BatchWriteItemRequest().withRequestItems(result.getUnprocessedItems)
       batchWrite(rest, retriesRemaining - 1).flatMap(r => sendUnprocessedItems(r, retriesRemaining - 1))
     }
