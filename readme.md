@@ -23,7 +23,7 @@ Configuration
 -------------
 
 ```
-// application.conf - all config except endpoint, journal-nam is required
+// application.conf - all config except endpoint, journal-name is required
 
 akka.persistence.journal.plugin = "dynamodb-journal"
 
