@@ -88,7 +88,7 @@ class DynamoDBIntegrationLoadSpec extends TestKit(ActorSystem("test", config)) w
       1L to loadCycles foreach { i =>
         processor1 ! Persistent("a")
         if(i % 1000 == 0 ) {
-          Thread.sleep(100)
+          Thread.sleep(10)
           println(i)
         }
       }
