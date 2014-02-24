@@ -60,7 +60,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
       keys =>
         val ka = new KeysAndAttributes().withKeys(keys.map(_._2).asJava).withConsistentRead(true).withAttributesToGet(Key, Payload, Deleted, Confirmations)
         val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalTable, ka))
-        dynamo.sendBatchGetItem(get).flatMap(r => getUnprocessedItems(r)).map {
+        batchGet(get).flatMap(r => getUnprocessedItems(r)).map {
           result => mapBatch(result.getResponses.get(journalTable))
         }
     }
@@ -97,7 +97,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
           val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
           val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalTable, ka))
           log.debug("in=read-highest at=batch-request")
-          dynamo.sendBatchGetItem(get).flatMap(r => getUnprocessedItems(r)).map {
+          batchGet(get).flatMap(r => getUnprocessedItems(r)).map {
             resp =>
               log.debug("in=read-highest at=batch-response")
               val batchMap = mapBatch(resp.getResponses.get(journalTable))
@@ -142,7 +142,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
   }
 
   def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int=10): Future[BatchGetItemResult] = {
-    val unprocessed = result.getUnprocessedKeys.size()
+    val unprocessed = Option(result.getUnprocessedKeys.get(journalTable)).map(_.getKeys.size()).getOrElse(0)
     if (unprocessed == 0) Future.successful(result)
     else if(retriesRemaining == 0) {
       throw new RuntimeException(s"unable to batch write ${result} after 10 tries")
@@ -162,17 +162,7 @@ trait DynamoDBRecovery extends AsyncRecovery {
     }
   }
 
-  def batchGet(r:BatchGetItemRequest, retriesRemaining:Int=10):Future[BatchGetItemResult]={
-    dynamo.batchGetItem(r).flatMap{
-      case Left(t:ProvisionedThroughputExceededException) =>
-         backoff(retriesRemaining)
-         batchGet(r,retriesRemaining-1)
-      case Left(e) =>
-        throw e
-      case Right(resp) =>
-        Future.successful(resp)
-    }
-  }
+  def batchGet(r:BatchGetItemRequest, retriesRemaining:Int=10):Future[BatchGetItemResult]= withBackoff(r,retriesRemaining)(dynamo.batchGetItem)
 
   def mapBatch(b: JList[Item]): JMap[AttributeValue, Item] = {
     val map = new JHMap[AttributeValue, JMap[String, AttributeValue]]

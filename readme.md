@@ -23,7 +23,7 @@ Configuration
 -------------
 
 ```
-// application.conf - all config except endpoint, journal-name is required
+// application.conf - all config except endpoint, journal-name, sequence-shards is required
 
 akka.persistence.journal.plugin = "dynamodb-journal"
 
@@ -34,7 +34,15 @@ dynamodb-journal {
     aws-secret-access-key =  "yourSecret"
     operation-timeout =  10 seconds
     # endpoint =  "defaults to https://dynamodb.us-east-1.amazonaws.com"
+    sequence-shards = 1000
 }
+
+Note on `sequence-shards`: the high and low sequence numbers are stored across `sequence-shards` number of keys.
+The more shards used, the less likely that throttling will occur when writing at a high rate.  Sequence shards should
+be set to as least as high as the write throughput of your table.
+
+The trade off with a higher number of shards is the number of requests needed to find the high or low sequence number for a processor.
+We can read the value of 100 shards per request to dynamodb, so reading 1000 shards takes 10 (parallel) requests, 10000 takes 100, etc.
 
 ```
 

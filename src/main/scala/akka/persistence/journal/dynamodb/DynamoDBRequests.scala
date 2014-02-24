@@ -6,6 +6,7 @@ import collection.JavaConverters._
 import com.amazonaws.services.dynamodbv2.model._
 import scala.collection.{mutable, immutable}
 import scala.concurrent.Future
+import com.amazonaws.AmazonServiceException
 
 
 trait DynamoDBRequests {
@@ -18,8 +19,8 @@ trait DynamoDBRequests {
       msgs =>
         val writes = msgs.foldLeft(new mutable.ArrayBuffer[WriteRequest](messages.length)) {
           case (ws, repr) =>
-            ws += put(toMsgItem(repr))
-            ws += put(toHSItem(repr))
+            ws += putReq(toMsgItem(repr))
+            ws += putReq(toHSItem(repr))
             ws
         }
         val reqItems = fields(journalTable -> writes.asJava)
@@ -38,7 +39,7 @@ trait DynamoDBRequests {
   }
 
   private[dynamodb] def sendUnprocessedItems(result: BatchWriteItemResult, retriesRemaining:Int=10): Future[BatchWriteItemResult] = {
-    val unprocessed: Int = result.getUnprocessedItems.size()
+    val unprocessed: Int = Option(result.getUnprocessedItems.get(JournalTable)).map(_.size()).getOrElse(0)
     if (unprocessed == 0) Future.successful(result)
     else if(retriesRemaining == 0) {
       throw new RuntimeException(s"unable to batch write ${result} after 10 tries")
@@ -50,26 +51,20 @@ trait DynamoDBRequests {
     }
   }
 
-  def batchWrite(r:BatchWriteItemRequest, retriesRemaining:Int=10):Future[BatchWriteItemResult]={
-    dynamo.batchWriteItem(r).flatMap{
-      case Left(t:ProvisionedThroughputExceededException) =>
-        backoff(retriesRemaining)
-        batchWrite(r,retriesRemaining-1)
-      case Left(e) =>
-        throw e
-      case Right(resp) =>
-        Future.successful(resp)
-    }
-  }
+  def putItem(r:PutItemRequest):Future[PutItemResult]=withBackoff(r)(dynamo.putItem)
 
+  def deleteItem(r:DeleteItemRequest):Future[DeleteItemResult]= withBackoff(r)(dynamo.deleteItem)
 
+  def updateItem(r:UpdateItemRequest):Future[UpdateItemResult] = withBackoff(r)(dynamo.updateItem)
+
+  def batchWrite(r:BatchWriteItemRequest, retriesRemaining:Int=10):Future[BatchWriteItemResult] = withBackoff(r,retriesRemaining)(dynamo.batchWriteItem)
 
   def writeConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = unitSequence {
     confirmations.groupBy(c => (c.processorId, c.sequenceNr)).map {
       case ((processorId, sequenceNr), confirms) =>
         val key = fields(Key -> messageKey(processorId, sequenceNr))
         val update = fields(Confirmations -> setAdd(SS(confirmations.map(_.channelId))))
-        dynamo.sendUpdateItem(updateItem(key, update)).map {
+        updateItem(updateReq(key, update)).map {
           result => log.debug("at=confirmed key={} update={}", key, update)
         }
     }
@@ -79,18 +74,18 @@ trait DynamoDBRequests {
     messageIds.map {
       msg =>
         if (permanent) {
-          dynamo.sendDeleteItem(permanentDeleteToDelete(msg)).map {
+          deleteItem(permanentDeleteToDelete(msg)).map {
             _ => log.debug("at=permanent-delete-item  processorId={} sequenceId={}", msg.processorId, msg.sequenceNr)
           }
         } else {
-          dynamo.sendUpdateItem(impermanentDeleteToUpdate(msg)).map {
+          updateItem(impermanentDeleteToUpdate(msg)).map {
             _ => log.debug("at=mark-delete-item  processorId={} sequenceId={}", msg.processorId, msg.sequenceNr)
           }
         }.flatMap {
           _ =>
             val item = toLSItem(msg)
             val put = new PutItemRequest().withTableName(journalTable).withItem(item)
-            dynamo.sendPutItem(put).map(_ => log.debug("at=update-sequence-low-shard processorId={} sequenceId={}", msg.processorId, msg.sequenceNr))
+            putItem(put).map(_ => log.debug("at=update-sequence-low-shard processorId={} sequenceId={}", msg.processorId, msg.sequenceNr))
         }
     }
   }
@@ -112,11 +107,11 @@ trait DynamoDBRequests {
     SequenceNr -> N(id.sequenceNr)
   )
 
-  def put(item: Item): WriteRequest = new WriteRequest().withPutRequest(new PutRequest().withItem(item))
+  def putReq(item: Item): WriteRequest = new WriteRequest().withPutRequest(new PutRequest().withItem(item))
 
-  def delete(item: Item): WriteRequest = new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(item))
+  def deleteReq(item: Item): WriteRequest = new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(item))
 
-  def updateItem(key: Item, updates: ItemUpdates): UpdateItemRequest = new UpdateItemRequest().withTableName(journalTable).withKey(key).withAttributeUpdates(updates)
+  def updateReq(key: Item, updates: ItemUpdates): UpdateItemRequest = new UpdateItemRequest().withTableName(journalTable).withKey(key).withAttributeUpdates(updates)
 
   def setAdd(value: AttributeValue): AttributeValueUpdate = new AttributeValueUpdate().withAction(AttributeAction.ADD).withValue(value)
 

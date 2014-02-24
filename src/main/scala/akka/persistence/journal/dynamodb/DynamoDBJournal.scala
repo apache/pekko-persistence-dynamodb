@@ -16,6 +16,7 @@ import java.util.{HashMap => JHMap, Map => JMap}
 import scala.collection.immutable
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import com.amazonaws.AmazonServiceException
 
 class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with DynamoDBRequests with ActorLogging {
 
@@ -25,7 +26,7 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
   val dynamo = dynamoClient(context.system, context, config)
   val journalTable = config.getString(JournalTable)
   val journalName = config.getString(JournalName)
-  val sequenceShards = 1000
+  val sequenceShards = config.getInt(SequenceShards)
   val maxDynamoBatchGet = 100
   val replayParallelism = 10
 
@@ -57,6 +58,19 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
       case (k, v) => map.put(k, v)
     }
     map
+  }
+
+  def withBackoff[I, O](i: I, retriesRemaining: Int = 10)(op: I => Future[Either[AmazonServiceException, O]]): Future[O] = {
+    op(i).flatMap {
+      case Left(t: ProvisionedThroughputExceededException) =>
+        backoff(10 - retriesRemaining)
+        withBackoff(i, retriesRemaining - 1)(op)
+      case Left(e) =>
+        log.error(e, "exception in withBackoff")
+        throw e
+      case Right(resp) =>
+        Future.successful(resp)
+    }
   }
 
   def backoff(retries:Int){
@@ -118,13 +132,13 @@ class InstrumentedDynamoDBClient(props: DynamoDBClientProps) extends DynamoDBCli
     logging("sendBatchWriteItem")(super.sendBatchWriteItem(awsWrite))
 
   override def sendBatchGetItem(awsWrite: BatchGetItemRequest): Future[BatchGetItemResult] =
-    logging("sendBatchWriteItem")(super.sendBatchGetItem( awsWrite))
+    logging("sendBatchGetItem")(super.sendBatchGetItem( awsWrite))
 
   override def sendUpdateItem(aws: UpdateItemRequest): Future[UpdateItemResult] =
-    logging("sendBatchWriteItem")(super.sendUpdateItem(aws))
+    logging("sendUpdateItem")(super.sendUpdateItem(aws))
 
   override def sendPutItem(aws: PutItemRequest): Future[PutItemResult] =
-    logging("sendBatchWriteItem")(super.sendPutItem(aws))
+    logging("sendPutItem")(super.sendPutItem(aws))
 
   override def sendGetItem(aws: GetItemRequest): Future[GetItemResult] =
     logging("sendGetItem")(super.sendGetItem(aws))
@@ -150,6 +164,7 @@ object DynamoDBJournal {
   val OpTimeout = "operation-timeout"
   val Endpoint = "endpoint"
   val ReplayDispatcher = "replay-dispatcher"
+  val SequenceShards = "sequence-shards"
 
   import collection.JavaConverters._
 
