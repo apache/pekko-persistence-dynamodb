@@ -8,6 +8,7 @@ import akka.persistence._
 import akka.testkit._
 
 import org.scalatest._
+import com.typesafe.config.{ConfigValueFactory, ConfigValue, ConfigFactory, Config}
 
 object DynamoDBIntegrationLoadSpec {
 
@@ -57,11 +58,15 @@ object DynamoDBIntegrationLoadSpec {
       super.preRestart(reason, message)
     }
   }
+
+  def config:Config = {
+    ConfigFactory.load(ActorSystem.findClassLoader()).withValue("dynamodb-journal.journal-name", ConfigValueFactory.fromAnyRef(System.currentTimeMillis().toString))
+  }
 }
 
 import DynamoDBIntegrationLoadSpec._
 
-class DynamoDBIntegrationLoadSpec extends TestKit(ActorSystem("test")) with ImplicitSender with WordSpecLike with Matchers  {
+class DynamoDBIntegrationLoadSpec extends TestKit(ActorSystem("test", config)) with ImplicitSender with WordSpecLike with Matchers  {
   "A DynamoDB journal" should {
     "have some reasonable write throughput" in {
       val warmCycles = 1000L

@@ -23,6 +23,7 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
   val extension = Persistence(context.system)
   val serialization = SerializationExtension(context.system)
   val dynamo = dynamoClient(context.system, context, config)
+  val journalTable = config.getString(JournalTable)
   val journalName = config.getString(JournalName)
   val sequenceShards = 1000
   val maxDynamoBatchGet = 100
@@ -79,11 +80,11 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
 
   def US(value: String): AttributeValueUpdate = new AttributeValueUpdate().withAction(AttributeAction.ADD).withValue(SS(value))
 
-  def messageKey(procesorId: String, sequenceNr: Long) = S(str("P-", procesorId, "-", sequenceNr))
+  def messageKey(procesorId: String, sequenceNr: Long) = S(str(journalName, "-P-", procesorId, "-", sequenceNr))
 
-  def highSeqKey(procesorId: String, sequenceNr: Long) = S(str("SH-", procesorId, "-", sequenceNr))
+  def highSeqKey(procesorId: String, sequenceNr: Long) = S(str(journalName, "-SH-", procesorId, "-", sequenceNr))
 
-  def lowSeqKey(procesorId: String, sequenceNr: Long) = S(str("SL-", procesorId, "-", sequenceNr))
+  def lowSeqKey(procesorId: String, sequenceNr: Long) = S(str(journalName, "-SL-", procesorId, "-", sequenceNr))
 
   def str(ss: Any*): String = ss.foldLeft(new StringBuilder)(_.append(_)).toString()
 
@@ -142,6 +143,7 @@ object DynamoDBJournal {
   val Payload = "payload"
   // config names
   val Conf = "dynamodb-journal"
+  val JournalTable = "journal-table"
   val JournalName = "journal-name"
   val AwsKey = "aws-access-key-id"
   val AwsSecret = "aws-secret-access-key"

@@ -59,9 +59,9 @@ trait DynamoDBRecovery extends AsyncRecovery {
     val gets = batchKeys.grouped(maxDynamoBatchGet).map {
       keys =>
         val ka = new KeysAndAttributes().withKeys(keys.map(_._2).asJava).withConsistentRead(true).withAttributesToGet(Key, Payload, Deleted, Confirmations)
-        val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
+        val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalTable, ka))
         dynamo.sendBatchGetItem(get).flatMap(r => getUnprocessedItems(r)).map {
-          result => mapBatch(result.getResponses.get(journalName))
+          result => mapBatch(result.getResponses.get(journalTable))
         }
     }
 
@@ -95,12 +95,12 @@ trait DynamoDBRecovery extends AsyncRecovery {
         keys =>
           val keyColl = keys.map(k => fields(Key -> k)).toSeq.asJava
           val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
-          val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
+          val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalTable, ka))
           log.debug("in=read-highest at=batch-request")
           dynamo.sendBatchGetItem(get).flatMap(r => getUnprocessedItems(r)).map {
             resp =>
               log.debug("in=read-highest at=batch-response")
-              val batchMap = mapBatch(resp.getResponses.get(journalName))
+              val batchMap = mapBatch(resp.getResponses.get(journalTable))
               keys.map {
                 key =>
                   Option(batchMap.get(key)).map(item => item.get(SequenceNr).getN.toLong)
@@ -121,11 +121,11 @@ trait DynamoDBRecovery extends AsyncRecovery {
         keys =>
           val keyColl = keys.map(k => fields(Key -> k)).toSeq.asJava
           val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
-          val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalName, ka))
+          val get = new BatchGetItemRequest().withRequestItems(Collections.singletonMap(journalTable, ka))
           batchGet(get).flatMap(r => getUnprocessedItems(r)).map {
             resp =>
               log.debug("at=read-lowest-sequence-batch-response processorId={}", processorId)
-              val batchMap = mapBatch(resp.getResponses.get(journalName))
+              val batchMap = mapBatch(resp.getResponses.get(journalTable))
               val min: Long = keys.map {
                 key =>
                   Option(batchMap.get(key)).map(item => item.get(SequenceNr).getN.toLong)
@@ -151,8 +151,8 @@ trait DynamoDBRecovery extends AsyncRecovery {
       val rest = new BatchGetItemRequest().withRequestItems(result.getUnprocessedKeys)
       batchGet(rest, retriesRemaining - 1).map{
         rr =>
-          val items = rr.getResponses.get(journalName)
-          val responses = result.getResponses.get(journalName)
+          val items = rr.getResponses.get(journalTable)
+          val responses = result.getResponses.get(journalTable)
           items.asScala.foreach {
             i => responses.add(i)
           }

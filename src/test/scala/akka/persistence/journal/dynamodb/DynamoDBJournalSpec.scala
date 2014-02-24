@@ -13,7 +13,7 @@ trait DynamoDBSpec extends BeforeAndAfterEach {
   this:TestKit with Suite =>
   override def beforeEach(): Unit = {
     val config = system.settings.config.getConfig(Conf)
-    val table = config.getString(JournalName)
+    val table = config.getString(JournalTable)
     val client = dynamoClient(system, system, config)
     val create = new CreateTableRequest()
       .withTableName(table)

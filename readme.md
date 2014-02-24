@@ -23,12 +23,13 @@ Configuration
 -------------
 
 ```
-// application.conf - all config except endpoint is required
+// application.conf - all config except endpoint, journal-nam is required
 
 akka.persistence.journal.plugin = "dynamodb-journal"
 
 dynamodb-journal {
-    journal-name =  "the name of a dynamodb table you create with hash key: `key`"
+    journal-table =  "the name of a dynamodb table you create with hash key: `key`"
+    # journal-name =  "prefixes all keys, allows multiple journals per table, default: `journal`"
     aws-access-key-id =  "yourKey"
     aws-secret-access-key =  "yourSecret"
     operation-timeout =  10 seconds
@@ -101,17 +102,17 @@ SL -> SequenceLow
 
 Persistent Data
 
-"P"-processorId-sequenceNr  : S : HashKey
+journalName"-P"-processorId-sequenceNr  : S : HashKey
 deleted                     : S
 confirmations               : SS
 payload                     : B
 
 High and Low Sequence Numbers
 
-"SH"-processorId-(sequenceNr % sequenceShards): S : HashKey
+journalName"-SH"-processorId-(sequenceNr % sequenceShards): S : HashKey
 sequenceNr                                    : N
 
-"SL"-processorId-(sequenceNr % sequenceShards): S : HashKey
+journalName"-SL"-processorId-(sequenceNr % sequenceShards): S : HashKey
 sequenceNr                                    : N
 ```
 
