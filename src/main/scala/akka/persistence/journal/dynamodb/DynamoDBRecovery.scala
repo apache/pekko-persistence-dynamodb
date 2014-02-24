@@ -142,11 +142,12 @@ trait DynamoDBRecovery extends AsyncRecovery {
   }
 
   def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int=10): Future[BatchGetItemResult] = {
-    if (result.getUnprocessedKeys.size() == 0) Future.successful(result)
+    val unprocessed = result.getUnprocessedKeys.size()
+    if (unprocessed == 0) Future.successful(result)
     else if(retriesRemaining == 0) {
       throw new RuntimeException(s"unable to batch write ${result} after 10 tries")
     } else {
-      log.warning("at=get-unprocessed-items")
+      log.warning("at=unprocessed-reads, unprocessed={}", unprocessed)
       backoff(10-retriesRemaining)
       val rest = new BatchGetItemRequest().withRequestItems(result.getUnprocessedKeys)
       batchGet(rest, retriesRemaining - 1).map{
