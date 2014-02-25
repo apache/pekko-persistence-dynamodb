@@ -32,4 +32,4 @@ publishTo <<= version {
 }
 
 
-
+val root = Project("akka-persistence-dynamodb", file(".")).configs(IntegrationTest).settings(Defaults.itSettings:_*)
