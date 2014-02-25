@@ -6,6 +6,7 @@ import akka.persistence._
 import akka.persistence.journal.AsyncWriteJournal
 import akka.serialization.SerializationExtension
 import akka.util.ByteString
+import com.amazonaws.AmazonServiceException
 import com.amazonaws.services.dynamodbv2.model._
 import com.sclasen.spray.aws.dynamodb.DynamoDBClient
 import com.sclasen.spray.aws.dynamodb.DynamoDBClientProps
@@ -16,7 +17,6 @@ import java.util.{HashMap => JHMap, Map => JMap}
 import scala.collection.immutable
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import com.amazonaws.AmazonServiceException
 
 class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with DynamoDBRequests with ActorLogging {
 
@@ -40,7 +40,7 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
 
   def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean): Future[Unit] = deleteMessages(messageIds, permanent)
 
-  def asyncDeleteMessagesTo(processorId: String, toSequenceNr: Long, permanent: Boolean): Future[Unit] =  {
+  def asyncDeleteMessagesTo(processorId: String, toSequenceNr: Long, permanent: Boolean): Future[Unit] = {
     log.debug("at=delete-messages-to processorId={} to={} perm={}", processorId, toSequenceNr, permanent)
     readLowestSequenceNr(processorId).flatMap {
       fromSequenceNr =>
@@ -73,9 +73,9 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
     }
   }
 
-  def backoff(retries:Int, what:String){
+  def backoff(retries: Int, what: String) {
     val exp = math.min(retries, 3)
-    val sleep = math.pow(10, exp).toLong   //(1,10,100,1000,1000...)
+    val sleep = math.pow(10, exp).toLong //(1,10,100,1000,1000...)
     log.warning("at=backoff request={} sleep={}", what, sleep)
     Thread.sleep(sleep)
   }
@@ -121,7 +121,7 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
 }
 
 class InstrumentedDynamoDBClient(props: DynamoDBClientProps) extends DynamoDBClient(props) {
-  def logging[T](op: String)(f:Future[Either[AmazonServiceException,T]]): Future[Either[AmazonServiceException,T]] = {
+  def logging[T](op: String)(f: Future[Either[AmazonServiceException, T]]): Future[Either[AmazonServiceException, T]] = {
     f.onFailure {
       case e: Exception => props.system.log.error(e, "error in async op {}", op)
     }

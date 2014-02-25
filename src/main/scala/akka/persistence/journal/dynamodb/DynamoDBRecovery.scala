@@ -141,16 +141,16 @@ trait DynamoDBRecovery extends AsyncRecovery {
     }
   }
 
-  def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int=10): Future[BatchGetItemResult] = {
+  def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int = 10): Future[BatchGetItemResult] = {
     val unprocessed = Option(result.getUnprocessedKeys.get(journalTable)).map(_.getKeys.size()).getOrElse(0)
     if (unprocessed == 0) Future.successful(result)
-    else if(retriesRemaining == 0) {
+    else if (retriesRemaining == 0) {
       throw new RuntimeException(s"unable to batch get ${result} after 10 tries")
     } else {
       log.warning("at=unprocessed-reads, unprocessed={}", unprocessed)
-      backoff(10-retriesRemaining, classOf[BatchGetItemRequest].getSimpleName)
+      backoff(10 - retriesRemaining, classOf[BatchGetItemRequest].getSimpleName)
       val rest = batchGetReq(result.getUnprocessedKeys)
-      batchGet(rest, retriesRemaining - 1).map{
+      batchGet(rest, retriesRemaining - 1).map {
         rr =>
           val items = rr.getResponses.get(journalTable)
           val responses = result.getResponses.get(journalTable)
@@ -162,9 +162,9 @@ trait DynamoDBRecovery extends AsyncRecovery {
     }
   }
 
-  def batchGet(r:BatchGetItemRequest, retriesRemaining:Int=10):Future[BatchGetItemResult]= withBackoff(r,retriesRemaining)(dynamo.batchGetItem)
+  def batchGet(r: BatchGetItemRequest, retriesRemaining: Int = 10): Future[BatchGetItemResult] = withBackoff(r, retriesRemaining)(dynamo.batchGetItem)
 
-  def batchGetReq(items:JMap[String, KeysAndAttributes]) = new BatchGetItemRequest()
+  def batchGetReq(items: JMap[String, KeysAndAttributes]) = new BatchGetItemRequest()
     .withRequestItems(items)
     .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
 

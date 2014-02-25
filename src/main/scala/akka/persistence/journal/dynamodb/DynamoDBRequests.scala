@@ -4,11 +4,9 @@ import DynamoDBJournal._
 import akka.persistence.{PersistentConfirmation, PersistentId, PersistentRepr}
 import collection.JavaConverters._
 import com.amazonaws.services.dynamodbv2.model._
+import java.util.{HashMap => JHMap, Map => JMap, List => JList}
 import scala.collection.{mutable, immutable}
 import scala.concurrent.Future
-import com.amazonaws.AmazonServiceException
-import java.util.{HashMap => JHMap, Map => JMap, List =>JList}
-
 
 
 trait DynamoDBRequests {
@@ -40,10 +38,10 @@ trait DynamoDBRequests {
 
   }
 
-  private[dynamodb] def sendUnprocessedItems(result: BatchWriteItemResult, retriesRemaining:Int=10): Future[BatchWriteItemResult] = {
+  private[dynamodb] def sendUnprocessedItems(result: BatchWriteItemResult, retriesRemaining: Int = 10): Future[BatchWriteItemResult] = {
     val unprocessed: Int = Option(result.getUnprocessedItems.get(JournalTable)).map(_.size()).getOrElse(0)
     if (unprocessed == 0) Future.successful(result)
-    else if(retriesRemaining == 0) {
+    else if (retriesRemaining == 0) {
       throw new RuntimeException(s"unable to batch write ${result} after 10 tries")
     } else {
       log.warning("at=unprocessed-writes unprocessed={}", unprocessed)
@@ -53,13 +51,13 @@ trait DynamoDBRequests {
     }
   }
 
-  def putItem(r:PutItemRequest):Future[PutItemResult]=withBackoff(r)(dynamo.putItem)
+  def putItem(r: PutItemRequest): Future[PutItemResult] = withBackoff(r)(dynamo.putItem)
 
-  def deleteItem(r:DeleteItemRequest):Future[DeleteItemResult]= withBackoff(r)(dynamo.deleteItem)
+  def deleteItem(r: DeleteItemRequest): Future[DeleteItemResult] = withBackoff(r)(dynamo.deleteItem)
 
-  def updateItem(r:UpdateItemRequest):Future[UpdateItemResult] = withBackoff(r)(dynamo.updateItem)
+  def updateItem(r: UpdateItemRequest): Future[UpdateItemResult] = withBackoff(r)(dynamo.updateItem)
 
-  def batchWrite(r:BatchWriteItemRequest, retriesRemaining:Int=10):Future[BatchWriteItemResult] = withBackoff(r,retriesRemaining)(dynamo.batchWriteItem)
+  def batchWrite(r: BatchWriteItemRequest, retriesRemaining: Int = 10): Future[BatchWriteItemResult] = withBackoff(r, retriesRemaining)(dynamo.batchWriteItem)
 
   def writeConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = unitSequence {
     confirmations.groupBy(c => (c.processorId, c.sequenceNr)).map {
@@ -121,7 +119,7 @@ trait DynamoDBRequests {
 
   def setAdd(value: AttributeValue): AttributeValueUpdate = new AttributeValueUpdate().withAction(AttributeAction.ADD).withValue(value)
 
-  def batchWriteReq(items:JMap[String,JList[WriteRequest]]) = new BatchWriteItemRequest()
+  def batchWriteReq(items: JMap[String, JList[WriteRequest]]) = new BatchWriteItemRequest()
     .withRequestItems(items)
     .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
 
