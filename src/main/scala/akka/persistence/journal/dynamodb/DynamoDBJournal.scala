@@ -121,30 +121,21 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
 }
 
 class InstrumentedDynamoDBClient(props: DynamoDBClientProps) extends DynamoDBClient(props) {
-  def logging[T](op: String)(f: Future[T]): Future[T] = {
+  def logging[T](op: String)(f:Future[Either[AmazonServiceException,T]]): Future[Either[AmazonServiceException,T]] = {
     f.onFailure {
       case e: Exception => props.system.log.error(e, "error in async op {}", op)
     }
     f
   }
 
-  override def sendBatchWriteItem(awsWrite: BatchWriteItemRequest): Future[BatchWriteItemResult] =
-    logging("sendBatchWriteItem")(super.sendBatchWriteItem(awsWrite))
+  override def batchWriteItem(awsWrite: BatchWriteItemRequest): Future[Either[AmazonServiceException, BatchWriteItemResult]] =
+    logging("batchWriteItem")(super.batchWriteItem(awsWrite))
 
-  override def sendBatchGetItem(awsWrite: BatchGetItemRequest): Future[BatchGetItemResult] =
-    logging("sendBatchGetItem")(super.sendBatchGetItem( awsWrite))
+  override def batchGetItem(awsGet: BatchGetItemRequest): Future[Either[AmazonServiceException, BatchGetItemResult]] =
+    logging("batchGetItem")(super.batchGetItem(awsGet))
 
-  override def sendUpdateItem(aws: UpdateItemRequest): Future[UpdateItemResult] =
-    logging("sendUpdateItem")(super.sendUpdateItem(aws))
-
-  override def sendPutItem(aws: PutItemRequest): Future[PutItemResult] =
-    logging("sendPutItem")(super.sendPutItem(aws))
-
-  override def sendGetItem(aws: GetItemRequest): Future[GetItemResult] =
-    logging("sendGetItem")(super.sendGetItem(aws))
-
-
-
+  override def updateItem(aws: UpdateItemRequest): Future[Either[AmazonServiceException, UpdateItemResult]] =
+    logging("updateItem")(super.updateItem(aws))
 }
 
 object DynamoDBJournal {

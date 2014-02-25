@@ -7,6 +7,8 @@ import com.amazonaws.services.dynamodbv2.model._
 import scala.collection.{mutable, immutable}
 import scala.concurrent.Future
 import com.amazonaws.AmazonServiceException
+import java.util.{HashMap => JHMap, Map => JMap, List =>JList}
+
 
 
 trait DynamoDBRequests {
@@ -24,7 +26,7 @@ trait DynamoDBRequests {
             ws
         }
         val reqItems = fields(journalTable -> writes.asJava)
-        new BatchWriteItemRequest().withRequestItems(reqItems)
+        batchWriteReq(reqItems)
     }
 
     writes.map {
@@ -46,7 +48,7 @@ trait DynamoDBRequests {
     } else {
       log.warning("at=unprocessed-writes unprocessed={}", unprocessed)
       backoff(10 - retriesRemaining, classOf[BatchWriteItemRequest].getSimpleName)
-      val rest = new BatchWriteItemRequest().withRequestItems(result.getUnprocessedItems)
+      val rest = batchWriteReq(result.getUnprocessedItems)
       batchWrite(rest, retriesRemaining - 1).flatMap(r => sendUnprocessedItems(r, retriesRemaining - 1))
     }
   }
@@ -111,9 +113,17 @@ trait DynamoDBRequests {
 
   def deleteReq(item: Item): WriteRequest = new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(item))
 
-  def updateReq(key: Item, updates: ItemUpdates): UpdateItemRequest = new UpdateItemRequest().withTableName(journalTable).withKey(key).withAttributeUpdates(updates)
+  def updateReq(key: Item, updates: ItemUpdates): UpdateItemRequest = new UpdateItemRequest()
+    .withTableName(journalTable)
+    .withKey(key)
+    .withAttributeUpdates(updates)
+    .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
 
   def setAdd(value: AttributeValue): AttributeValueUpdate = new AttributeValueUpdate().withAction(AttributeAction.ADD).withValue(value)
+
+  def batchWriteReq(items:JMap[String,JList[WriteRequest]]) = new BatchWriteItemRequest()
+    .withRequestItems(items)
+    .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
 
   def permanentDeleteToDelete(id: PersistentId): DeleteItemRequest = {
     log.debug("delete permanent {}", id)
