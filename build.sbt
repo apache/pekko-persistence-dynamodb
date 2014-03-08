@@ -25,7 +25,7 @@ libraryDependencies += "commons-io" % "commons-io" % "2.4" % "test,it"
 parallelExecution in Test := false
 
 pomExtra := (
-  <url>http://github.com/sclasen/spray-aws</url>
+  <url>http://github.com/sclasen/akka-persistence-dynamodb</url>
     <licenses>
       <license>
         <name>The Apache Software License, Version 2.0</name>
@@ -34,8 +34,8 @@ pomExtra := (
       </license>
     </licenses>
     <scm>
-      <url>git@github.com:sclasen/spray-aws.git</url>
-      <connection>scm:git:git@github.com:sclasen/spray-aws.git</connection>
+      <url>git@github.com:sclasen/akka-persistence-dynamodb.git</url>
+      <connection>scm:git:git@github.com:sclasen/akka-persistence-dynamodb.git</connection>
     </scm>
     <developers>
       <developer>
