@@ -74,9 +74,12 @@ class DynamoDBJournal extends AsyncWriteJournal with DynamoDBRecovery with Dynam
   }
 
   def backoff(retries: Int, what: String) {
-    val sleep = math.pow(2, retries).toLong
-    log.warning("at=backoff request={} sleep={}", what, sleep)
-    Thread.sleep(sleep)
+    if(retries == 0) Thread.`yield`()
+    else {
+      val sleep = math.pow(2, retries).toLong
+      log.warning("at=backoff request={} sleep={}", what, sleep)
+      Thread.sleep(sleep)
+    }
   }
 
   def S(value: String): AttributeValue = new AttributeValue().withS(value)
