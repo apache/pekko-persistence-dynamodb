@@ -2,9 +2,11 @@ organization := "com.sclasen"
 
 name := "akka-persistence-dynamodb"
 
-version := "0.1"
+version := "0.3.1"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.11.1"
+
+crossScalaVersions := Seq("2.11.1", "2.10.4")
 
 parallelExecution in Test := false
 
@@ -12,13 +14,13 @@ parallelExecution in Test := false
 
 resolvers += "spray repo" at "http://repo.spray.io"
 
-libraryDependencies += "com.sclasen" %% "spray-dynamodb" % "0.2.4" % "compile"
+libraryDependencies += "com.sclasen" %% "spray-dynamodb" % "0.3.1" % "compile"
 
-libraryDependencies += "com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.0" % "compile"
+libraryDependencies += "com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.3" % "compile"
 
-libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.3.0" % "test,it"
+libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.3.3" % "test,it"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.0" % "test,it"
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.1.7" % "test,it"
 
 libraryDependencies += "commons-io" % "commons-io" % "2.4" % "test,it"
 
