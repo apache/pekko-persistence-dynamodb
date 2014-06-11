@@ -2,7 +2,7 @@ organization := "com.sclasen"
 
 name := "akka-persistence-dynamodb"
 
-version := "0.3.1"
+version := "0.3.2"
 
 scalaVersion := "2.11.1"
 
@@ -14,7 +14,7 @@ parallelExecution in Test := false
 
 resolvers += "spray repo" at "http://repo.spray.io"
 
-libraryDependencies += "com.sclasen" %% "spray-dynamodb" % "0.3.1" % "compile"
+libraryDependencies += "com.sclasen" %% "spray-dynamodb" % "0.3.2" % "compile"
 
 libraryDependencies += "com.typesafe.akka" %% "akka-persistence-experimental" % "2.3.3" % "compile"
 
