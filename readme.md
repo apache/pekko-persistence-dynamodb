@@ -15,7 +15,7 @@ Installation
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
-libraryDependencies += "com.sclasen" %% "akka-persistence-dynamodb" % "0.3.1" % "compile"
+libraryDependencies += "com.sclasen" %% "akka-persistence-dynamodb" % "0.3.4" % "compile"
 
 ```
 
