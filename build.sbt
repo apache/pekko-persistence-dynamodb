@@ -1,16 +1,12 @@
-organization := "com.sclasen"
+organization := "com.typesafe.akka"
 
 name := "akka-persistence-dynamodb"
 
-version := "0.3.4-SNAPSHOT"
+version := "0.9-SNAPSHOT"
 
-scalaVersion := "2.11.1"
-
-crossScalaVersions := Seq("2.11.1", "2.10.4")
+scalaVersion := "2.11.7"
 
 parallelExecution in Test := false
-
-//resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
 resolvers += "spray repo" at "http://repo.spray.io"
 
@@ -40,14 +36,19 @@ pomExtra := (
       </license>
     </licenses>
     <scm>
-      <url>git@github.com:sclasen/akka-persistence-dynamodb.git</url>
-      <connection>scm:git:git@github.com:sclasen/akka-persistence-dynamodb.git</connection>
+      <url>git@github.com:akka/akka-persistence-dynamodb.git</url>
+      <connection>scm:git:git@github.com:akka/akka-persistence-dynamodb.git</connection>
     </scm>
     <developers>
       <developer>
         <id>sclasen</id>
         <name>Scott Clasen</name>
         <url>http://github.com/sclasen</url>
+      </developer>
+      <developer>
+        <id>akka</id>
+        <name>The Akka Team</name>
+        <url>http://github.com/akka</url>
       </developer>
     </developers>)
 
