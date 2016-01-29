@@ -6,6 +6,8 @@ A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.3.0-RC3/scala/per
 
 Scala: `2.10.4` and `2.11.1`  Akka: `2.3.3`
 
+[![Build Status](https://travis-ci.org/akka/akka-persistence-dynamodb.svg?branch=master)](https://travis-ci.org/akka/akka-persistence-dynamodb)
+
 Installation
 ------------
 
