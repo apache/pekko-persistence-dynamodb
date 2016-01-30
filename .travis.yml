@@ -15,3 +15,4 @@ script:
   - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M test
   - find $HOME/.sbt -name "*.lock" | xargs rm
   - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
+  - find $HOME/.ivy2 -name "ivydata-*.properties"
