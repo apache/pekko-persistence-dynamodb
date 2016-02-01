@@ -5,3 +5,7 @@ dynamodb-local
 target
 project/target
 project/project/target
+/bin/
+.classpath
+.project
+.settings/
