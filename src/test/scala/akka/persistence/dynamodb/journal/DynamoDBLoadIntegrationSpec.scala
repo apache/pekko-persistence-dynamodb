@@ -6,8 +6,8 @@ import akka.actor._
 import akka.persistence._
 import akka.persistence.journal.dynamodb.DynamoDBJournal._
 import akka.testkit._
-import com.amazonaws.services.dynamodbv2.model.{CreateTableRequest, DeleteTableRequest, ListTablesRequest, ProvisionedThroughput}
-import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
+import com.amazonaws.services.dynamodbv2.model.{ CreateTableRequest, DeleteTableRequest, ListTablesRequest, ProvisionedThroughput }
+import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
 import org.scalatest._
 
 import scala.concurrent.Await
@@ -187,6 +187,8 @@ class DynamoDBIntegrationLoadSpec
   }
 
   "A DynamoDB journal" should {
+    pending
+
     "write and replay messages" in {
       val persistenceId = UUID.randomUUID().toString
       val processor1 = system.actorOf(Props(classOf[ProcessorA], persistenceId, self), "p1")
