@@ -19,7 +19,7 @@ nohup java -Djava.library.path=./dynamodb-local -jar ./dynamodb-local/DynamoDBLo
 echo $! > ${PID_FILE}
 
 echo "Running load test"
-sbt it:test
+sbt test
 
 echo "Stopping dynamo"
 kill -9 `cat ${PID_FILE}`

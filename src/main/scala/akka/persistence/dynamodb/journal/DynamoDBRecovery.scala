@@ -1,24 +1,29 @@
-package akka.persistence.journal.dynamodb
+/**
+ * Copyright (C) 2016 Typesafe Inc. <http://www.typesafe.com>
+ */
+package akka.persistence.dynamodb.journal
 
-import java.util.{Collections, HashMap => JHMap, List => JList, Map => JMap}
+import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
 
 import akka.persistence.PersistentRepr
 import akka.persistence.journal.AsyncRecovery
-import akka.persistence.journal.dynamodb.DynamoDBJournal._
+import akka.persistence.dynamodb.journal.DynamoDBJournal._
 import com.amazonaws.services.dynamodbv2.model._
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.concurrent.Future
-import scala.{Stream => ScalaStream}
+import scala.{ Stream => ScalaStream }
 
 trait DynamoDBRecovery extends AsyncRecovery {
   this: DynamoDBJournal =>
 
-  implicit lazy val replayDispatcher = context.system.dispatchers.lookup(config.getString(ReplayDispatcher))
+  implicit lazy val replayDispatcher = context.system.dispatchers.lookup(settings.ReplayDispatcher)
 
-  def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)
-    (replayCallback: (PersistentRepr) => Unit): Future[Unit] = logging {
+  override def asyncReplayMessages(persistenceId: String,
+                                   fromSequenceNr: Long,
+                                   toSequenceNr: Long,
+                                   max: Long)(replayCallback: (PersistentRepr) => Unit): Future[Unit] = {
     if (fromSequenceNr > toSequenceNr) return Future.successful(())
     var delivered = 0L
     var maxDeliveredSeq = 0L
@@ -53,10 +58,10 @@ trait DynamoDBRecovery extends AsyncRecovery {
     }
   }
 
-  def asyncReadHighestSequenceNr(processorId: String, fromSequenceNr: Long): Future[Long] = {
-    log.debug("in=read-highest processorId={} from={}", processorId, fromSequenceNr)
+  override def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] = {
+    log.debug("in=read-highest persistenceId={} from={}", persistenceId, fromSequenceNr)
     Future.sequence {
-      ScalaStream.iterate(0L, sequenceShards)(_ + 1).map(l => highSeqKey(processorId, l)).grouped(100).map {
+      ScalaStream.iterate(0L, sequenceShards)(_ + 1).map(l => highSeqKey(persistenceId, l)).grouped(100).map {
         keys =>
           val keyColl = keys.map(k => fields(Key -> k)).toSeq.asJava
           val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
@@ -80,14 +85,14 @@ trait DynamoDBRecovery extends AsyncRecovery {
 
   case class ReplayBatch(keys: ScalaStream[(Long, Item)], batch: JMap[AttributeValue, Item])
 
-  def getReplayBatch(processorId: String, fromSequenceNr: Long): Future[ReplayBatch] = {
+  def getReplayBatch(persistenceId: String, fromSequenceNr: Long): Future[ReplayBatch] = {
     val batchKeys = ScalaStream.iterate(fromSequenceNr, maxDynamoBatchGet * replayParallelism)(_ + 1)
-      .map(s => s -> fields(Key -> messageKey(processorId, s)))
+      .map(s => s -> fields(Key -> messageKey(persistenceId, s)))
     //there will be replayParallelism number of gets
     val gets = batchKeys.grouped(maxDynamoBatchGet).map {
       keys =>
         val ka = new KeysAndAttributes().withKeys(keys.map(_._2).asJava).withConsistentRead(true)
-          .withAttributesToGet(Key, Payload, Deleted, Confirmations)
+          .withAttributesToGet(Key, Payload, Deleted)
         val get = batchGetReq(Collections.singletonMap(journalTable, ka))
         batchGet(get).flatMap(r => getUnprocessedItems(r)).map {
           result => mapBatch(result.getResponses.get(journalTable))
@@ -110,26 +115,21 @@ trait DynamoDBRecovery extends AsyncRecovery {
       payload =>
         val repr = persistentFromByteBuffer(payload.getB)
         val isDeleted = item.get(Deleted).getS == "true"
-        val confirmations = item.asScala.get(Confirmations).map { ca =>
-          ca.getSS.asScala.to[immutable.Seq]
-        }.getOrElse(immutable.Seq[String]())
-
-        // TODO: WHERE DID CONFIRMATIONS GO?
         repr.update(deleted = isDeleted)
     }
   }
 
-  def readLowestSequenceNr(processorId: String): Future[Long] = {
-    log.debug("at=read-lowest-sequence processorId={}", processorId)
+  def readLowestSequenceNr(persistenceId: String): Future[Long] = {
+    log.debug("at=read-lowest-sequence persistenceId={}", persistenceId)
     Future.sequence {
-      ScalaStream.iterate(0L, sequenceShards)(_ + 1).map(l => lowSeqKey(processorId, l)).grouped(100).map {
+      ScalaStream.iterate(0L, sequenceShards)(_ + 1).map(l => lowSeqKey(persistenceId, l)).grouped(100).map {
         keys =>
           val keyColl = keys.map(k => fields(Key -> k)).toSeq.asJava
           val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
           val get = batchGetReq(Collections.singletonMap(journalTable, ka))
           batchGet(get).flatMap(r => getUnprocessedItems(r)).map {
             resp =>
-              log.debug("at=read-lowest-sequence-batch-response processorId={}", processorId)
+              log.debug("at=read-lowest-sequence-batch-response persistenceId={}", persistenceId)
               val batchMap = mapBatch(resp.getResponses.get(journalTable))
               val min: Long = keys.flatMap { key =>
                 Option(batchMap.get(key)).map(item => item.get(SequenceNr).getN.toLong)
@@ -181,5 +181,3 @@ trait DynamoDBRecovery extends AsyncRecovery {
     map
   }
 }
-
-

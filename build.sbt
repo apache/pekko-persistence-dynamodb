@@ -1,30 +1,22 @@
 organization := "com.typesafe.akka"
-
 name := "akka-persistence-dynamodb"
-
 version := "0.9-SNAPSHOT"
 
 scalaVersion := "2.11.7"
 
-parallelExecution in Test := false
-
-resolvers += "spray repo" at "http://repo.spray.io"
-
-libraryDependencies += "com.amazonaws" % "aws-java-sdk-core" % "1.10.20"
-
-libraryDependencies += "com.amazonaws" % "aws-java-sdk-dynamodb" % "1.10.20"
-
-libraryDependencies += "com.typesafe.akka" %% "akka-persistence" % "2.4.0" % "compile"
-
-libraryDependencies += "com.typesafe.akka" %% "akka-persistence-tck" % "2.4.0" % "test,it"
-
-libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.4.0" % "test,it"
-
-libraryDependencies += "org.scalatest" %% "scalatest" % "2.1.7" % "test,it"
-
-libraryDependencies += "commons-io" % "commons-io" % "2.4" % "test,it"
+libraryDependencies ++= Seq(
+  "com.amazonaws" % "aws-java-sdk-core" % "1.10.50",
+  "com.amazonaws" % "aws-java-sdk-dynamodb" % "1.10.50",
+  "com.typesafe.akka" %% "akka-persistence" % "2.4.1",
+  "com.typesafe.akka" %% "akka-persistence-tck" % "2.4.1" % "test",
+  "com.typesafe.akka" %% "akka-testkit" % "2.4.0" % "test",
+  "org.scalatest" %% "scalatest" % "2.1.7" % "test",
+  "commons-io" % "commons-io" % "2.4" % "test"
+)
 
 parallelExecution in Test := false
+logBuffered := false
+testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 
 pomExtra := (
   <url>http://github.com/sclasen/akka-persistence-dynamodb</url>
@@ -53,12 +45,9 @@ pomExtra := (
     </developers>)
 
 
-publishTo <<= version {
-  (v: String) =>
-    val nexus = "https://oss.sonatype.org/"
-    if (v.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
-    else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+publishTo := {
+  val nexus = "https://oss.sonatype.org/"
+  if (version.value.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
+  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
-
-val root = Project("akka-persistence-dynamodb", file(".")).configs(IntegrationTest).settings(Defaults.itSettings:_*)

@@ -73,10 +73,9 @@ in creating the eventsourced dynamodb journal, but apply here as well.
 When initially modelling journal storage in dynamo, it seems natural to use a simple structure similar to this
 
 ```
-processorId  : S : HashKey
+persistenceId: S : HashKey
 sequenceNr   : N : RangeKey
 deleted      : S
-confirmations: SS
 payload      : B
 ```
 
@@ -86,8 +85,8 @@ This maps very well to the operations a journal needs to solve.
 writeMessage      -> PutItem
 writeConfirmation -> UpdateItem with set add
 deleteMessage     -> UpdateItem (mark deleted) or DeleteItem (permanent delete)
-replayMessages    -> Query by processorId, conditions and ordered by sequenceNr, ascending
-highCounter       -> Query by processorId, conditions and ordered by sequenceNr, descending limit 1
+replayMessages    -> Query by persistenceId, conditions and ordered by sequenceNr, ascending
+highCounter       -> Query by persistenceId, conditions and ordered by sequenceNr, descending limit 1
 ```
 
 However this layout suffers from scalability problems. Since the hash key is used to locate the data storage node, all writes for a
@@ -104,17 +103,17 @@ SL -> SequenceLow
 
 Persistent Data
 
-journalName"-P"-processorId-sequenceNr  : S : HashKey
+journalName"-P"-persistenceId-sequenceNr  : S : HashKey
 deleted                     : S
 confirmations               : SS
 payload                     : B
 
 High and Low Sequence Numbers
 
-journalName"-SH"-processorId-(sequenceNr % sequenceShards): S : HashKey
+journalName"-SH"-persistenceId-(sequenceNr % sequenceShards): S : HashKey
 sequenceNr                                    : N
 
-journalName"-SL"-processorId-(sequenceNr % sequenceShards): S : HashKey
+journalName"-SL"-persistenceId-(sequenceNr % sequenceShards): S : HashKey
 sequenceNr                                    : N
 ```
 

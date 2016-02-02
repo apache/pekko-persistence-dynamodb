@@ -1,30 +1,31 @@
-package akka.persistence.journal.dynamodb
+/**
+ * Copyright (C) 2016 Typesafe Inc. <http://www.typesafe.com>
+ */
+package akka.persistence.dynamodb.journal
 
 import java.util.UUID
-
 import akka.actor._
 import akka.persistence._
-import akka.persistence.journal.dynamodb.DynamoDBJournal._
+import akka.persistence.dynamodb.journal.DynamoDBJournal._
 import akka.testkit._
 import com.amazonaws.services.dynamodbv2.model.{ CreateTableRequest, DeleteTableRequest, ListTablesRequest, ProvisionedThroughput }
 import com.typesafe.config.{ Config, ConfigFactory, ConfigValueFactory }
 import org.scalatest._
-
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.concurrent.Future
 
 /**
  * This class is pulled from https://github.com/krasserm/akka-persistence-cassandra/
  * @author https://github.com/krasserm
- *
- * I removed the snapshot parts of the test, but most of the rest belongs to Martin Krasser
  */
 object DynamoDBIntegrationLoadSpec {
 
-  def config: Config = {
-    ConfigFactory.load(ActorSystem.findClassLoader())
-      .withValue("dynamodb-journal.journal-name", ConfigValueFactory.fromAnyRef(System.currentTimeMillis().toString))
-  }
+  val config = ConfigFactory.parseString("""
+dynamodb-journal {
+  journal-table = "integrationLoadSpec"
+}
+""").withFallback(ConfigFactory.load())
 
   case class DeleteTo(snr: Long)
 
@@ -110,15 +111,15 @@ object DynamoDBIntegrationLoadSpec {
 
     override def autoUpdateReplayMax: Long = 0
   }
-}
 
-import akka.persistence.journal.dynamodb.DynamoDBIntegrationLoadSpec._
-
-class Listener extends Actor {
-  def receive = {
-    case d: DeadLetter => println(d)
+  class Listener extends Actor {
+    def receive = {
+      case d: DeadLetter => println(d)
+    }
   }
 }
+
+import DynamoDBIntegrationLoadSpec._
 
 class DynamoDBIntegrationLoadSpec
   extends TestKit(ActorSystem("test", config))
@@ -129,9 +130,11 @@ class DynamoDBIntegrationLoadSpec
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    val config = system.settings.config.getConfig(Conf)
-    val table = "integrationLoadSpec"
-    val client = dynamoClient(system, system, config)
+    val c = system.settings.config
+    val config = c.getConfig(c.getString("akka.persistence.journal.plugin"))
+    val settings = new DynamoDBJournalConfig(config)
+    val table = settings.JournalTable
+    val client = dynamoClient(system, config)
     val create = new CreateTableRequest()
       .withTableName(table)
       .withKeySchema(DynamoDBJournal.schema)
@@ -139,17 +142,15 @@ class DynamoDBIntegrationLoadSpec
       .withProvisionedThroughput(new ProvisionedThroughput(10L, 10L))
     import system.dispatcher
 
-    val setup = client.sendListTables(new ListTablesRequest()).flatMap {
-      list =>
-        if (list.getTableNames.size() > 0) {
-          client.sendDeleteTable(new DeleteTableRequest(table)).flatMap {
-            res =>
-              client.sendCreateTable(create).map(_ => ())
-          }
-        } else {
-          client.sendCreateTable(create).map(_ => ())
-        }
-    }
+    val setup = for {
+      list <- client.sendListTables(new ListTablesRequest())
+      _ <- {
+        if (list.getTableNames.contains(table))
+          client.sendDeleteTable(new DeleteTableRequest(table))
+        else Future.successful(())
+      }
+      c <- client.sendCreateTable(create)
+    } yield c
     Await.result(setup, 5 seconds)
   }
 
@@ -187,7 +188,6 @@ class DynamoDBIntegrationLoadSpec
   }
 
   "A DynamoDB journal" should {
-    pending
 
     "write and replay messages" in {
       val persistenceId = UUID.randomUUID().toString
