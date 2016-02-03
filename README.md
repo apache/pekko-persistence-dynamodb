@@ -1,10 +1,10 @@
 DynamoDBJournal for Akka Persistence
 ====================================
 
-A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.3.0-RC3/scala/persistence.html) journal backed by
+A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.4.0/scala/persistence.html) journal backed by
 [Amazon DynamoDB](http://aws.amazon.com/dynamodb/).
 
-Scala: `2.10.4` and `2.11.1`  Akka: `2.3.3`
+Scala: `2.11.7`  Akka: `2.4.0`
 
 [![Build Status](https://travis-ci.org/akka/akka-persistence-dynamodb.svg?branch=master)](https://travis-ci.org/akka/akka-persistence-dynamodb)
 
@@ -17,7 +17,7 @@ Installation
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
-libraryDependencies += "com.sclasen" %% "akka-persistence-dynamodb" % "0.3.4" % "compile"
+libraryDependencies += "com.sclasen" %% "akka-persistence-dynamodb" % "0.4.0" % "compile"
 
 ```
 
@@ -60,23 +60,8 @@ Development
 
 ### dev setup
 
-* install [forego](https://github.com/ddollar/forego) if you dont have it.
-
-* run `bin/get-dynamodb-local`
-
-this downloads and unpacks the dynamodb local to a subdir of ./dynamodb-local
-
-* `cp .env.sample .env`
-
-* make sure the DYNAMODB_RELEASE var in .env matches the date of the distro that was placed in ./dynamodb-local
-
-* `forego start`
-
-This starts the local dynamodb instance
-
-In another shell
-
-* forego run sbt test
+* run `integration-test.sh` to run the integration tests.  This will download dynamodb local if it is not already 
+installed, start up dynamo, and then run the integration tests to validate the plugin.
 
 ### dynamodb table structure discussion
 
@@ -88,10 +73,9 @@ in creating the eventsourced dynamodb journal, but apply here as well.
 When initially modelling journal storage in dynamo, it seems natural to use a simple structure similar to this
 
 ```
-processorId  : S : HashKey
+persistenceId: S : HashKey
 sequenceNr   : N : RangeKey
 deleted      : S
-confirmations: SS
 payload      : B
 ```
 
@@ -101,8 +85,8 @@ This maps very well to the operations a journal needs to solve.
 writeMessage      -> PutItem
 writeConfirmation -> UpdateItem with set add
 deleteMessage     -> UpdateItem (mark deleted) or DeleteItem (permanent delete)
-replayMessages    -> Query by processorId, conditions and ordered by sequenceNr, ascending
-highCounter       -> Query by processorId, conditions and ordered by sequenceNr, descending limit 1
+replayMessages    -> Query by persistenceId, conditions and ordered by sequenceNr, ascending
+highCounter       -> Query by persistenceId, conditions and ordered by sequenceNr, descending limit 1
 ```
 
 However this layout suffers from scalability problems. Since the hash key is used to locate the data storage node, all writes for a
@@ -119,17 +103,17 @@ SL -> SequenceLow
 
 Persistent Data
 
-journalName"-P"-processorId-sequenceNr  : S : HashKey
+journalName"-P"-persistenceId-sequenceNr  : S : HashKey
 deleted                     : S
 confirmations               : SS
 payload                     : B
 
 High and Low Sequence Numbers
 
-journalName"-SH"-processorId-(sequenceNr % sequenceShards): S : HashKey
+journalName"-SH"-persistenceId-(sequenceNr % sequenceShards): S : HashKey
 sequenceNr                                    : N
 
-journalName"-SL"-processorId-(sequenceNr % sequenceShards): S : HashKey
+journalName"-SL"-persistenceId-(sequenceNr % sequenceShards): S : HashKey
 sequenceNr                                    : N
 ```
 
