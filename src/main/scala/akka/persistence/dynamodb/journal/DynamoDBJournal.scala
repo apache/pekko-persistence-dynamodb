@@ -17,7 +17,7 @@ import com.amazonaws.services.dynamodbv2.model._
 import com.typesafe.config.Config
 import scala.collection.immutable
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Try
+import scala.util.{ Try, Success, Failure }
 import akka.event.LoggingAdapter
 import akka.event.Logging
 
@@ -36,6 +36,11 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
 
   val maxDynamoBatchGet = 100
   val replayParallelism = 10
+
+  dynamo.sendDescribeTable(new DescribeTableRequest().withTableName(journalTable)).onComplete {
+    case Success(result) => log.info("using DynamoDB table {}", result)
+    case Failure(ex)     => context.stop(self)
+  }
 
   type Item = JMap[String, AttributeValue]
   type ItemUpdates = JMap[String, AttributeValueUpdate]
