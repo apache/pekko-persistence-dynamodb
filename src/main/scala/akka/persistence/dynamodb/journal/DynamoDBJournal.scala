@@ -20,8 +20,6 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 import akka.event.LoggingAdapter
 import akka.event.Logging
-import akka.persistence.dynamodb.journal.DynamoDBJournalConfig
-import akka.persistence.dynamodb.journal.DynamoDBJournalConfig
 
 class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRecovery with DynamoDBRequests with ActorLogging {
   import DynamoDBJournal._

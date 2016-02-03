@@ -4,6 +4,7 @@
 package akka.persistence.dynamodb.journal
 
 import com.typesafe.config.Config
+import akka.actor.ActorSystem
 
 class DynamoDBJournalConfig(c: Config) {
   val JournalTable = c getString "journal-table"
