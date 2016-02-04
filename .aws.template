@@ -1,0 +1,3 @@
+export AWS_DYNAMODB_ENDPOINT=<your endpoint here>
+export AWS_ACCESS_KEY_ID=<your key ID here>
+export AWS_SECRET_ACCESS_KEY=<your secret here>

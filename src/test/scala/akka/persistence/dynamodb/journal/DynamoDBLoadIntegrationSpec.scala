@@ -22,10 +22,13 @@ import scala.concurrent.Future
 object DynamoDBIntegrationLoadSpec {
 
   val config = ConfigFactory.parseString("""
-dynamodb-journal {
+my-dynamodb-journal {
   journal-table = "integrationLoadSpec"
+  endpoint = ${?AWS_DYNAMODB_ENDPOINT}
+  aws-access-key-id = ${?AWS_ACCESS_KEY_ID}
+  aws-secret-access-key = ${?AWS_SECRET_ACCESS_KEY}
 }
-""").withFallback(ConfigFactory.load())
+""").resolve.withFallback(ConfigFactory.load())
 
   case class DeleteTo(snr: Long)
 
@@ -134,7 +137,7 @@ class DynamoDBIntegrationLoadSpec
     val config = c.getConfig(c.getString("akka.persistence.journal.plugin"))
     val settings = new DynamoDBJournalConfig(config)
     val table = settings.JournalTable
-    val client = dynamoClient(system, config)
+    val client = dynamoClient(system, settings)
     val create = new CreateTableRequest()
       .withTableName(table)
       .withKeySchema(DynamoDBJournal.schema)

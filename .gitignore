@@ -10,3 +10,4 @@ project/project/target
 .project
 .settings/
 .cache
+.aws

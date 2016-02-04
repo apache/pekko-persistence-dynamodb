@@ -17,11 +17,9 @@ import com.amazonaws.services.dynamodbv2.model._
 import com.typesafe.config.Config
 import scala.collection.immutable
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.Try
+import scala.util.{ Try, Success, Failure }
 import akka.event.LoggingAdapter
 import akka.event.Logging
-import akka.persistence.dynamodb.journal.DynamoDBJournalConfig
-import akka.persistence.dynamodb.journal.DynamoDBJournalConfig
 
 class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRecovery with DynamoDBRequests with ActorLogging {
   import DynamoDBJournal._
@@ -29,15 +27,21 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
 
   val extension = Persistence(context.system)
   val serialization = SerializationExtension(context.system)
-  val dynamo = dynamoClient(context.system, config)
-
   val settings = new DynamoDBJournalConfig(config)
+  if (settings.LogConfig) log.info("using settings {}", settings)
+
+  val dynamo = dynamoClient(context.system, settings)
 
   val journalTable = settings.JournalTable
   val sequenceShards = settings.SequenceShards
 
   val maxDynamoBatchGet = 100
   val replayParallelism = 10
+
+  dynamo.sendDescribeTable(new DescribeTableRequest().withTableName(journalTable)).onComplete {
+    case Success(result) => log.info("using DynamoDB table {}", result)
+    case Failure(ex)     => context.stop(self)
+  }
 
   type Item = JMap[String, AttributeValue]
   type ItemUpdates = JMap[String, AttributeValueUpdate]
@@ -133,8 +137,7 @@ object DynamoDBJournal {
   val schema = Seq(new KeySchemaElement().withKeyType(KeyType.HASH).withAttributeName(Key)).asJava
   val schemaAttributes = Seq(new AttributeDefinition().withAttributeName(Key).withAttributeType("S")).asJava
 
-  def dynamoClient(system: ActorSystem, config: Config): DynamoDBHelper = {
-    val settings = new DynamoDBJournalConfig(config)
+  def dynamoClient(system: ActorSystem, settings: DynamoDBJournalConfig): DynamoDBHelper = {
     val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
     val client = new AmazonDynamoDBClient(creds)
     client.setEndpoint(settings.Endpoint)

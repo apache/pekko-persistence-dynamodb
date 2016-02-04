@@ -7,9 +7,9 @@ scalaVersion := "2.11.7"
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-core" % "1.10.50",
   "com.amazonaws" % "aws-java-sdk-dynamodb" % "1.10.50",
-  "com.typesafe.akka" %% "akka-persistence" % "2.4.1",
-  "com.typesafe.akka" %% "akka-persistence-tck" % "2.4.1" % "test",
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.0" % "test",
+  "com.typesafe.akka" %% "akka-persistence" % "2.4.2-RC2",
+  "com.typesafe.akka" %% "akka-persistence-tck" % "2.4.2-RC2" % "test",
+  "com.typesafe.akka" %% "akka-testkit" % "2.4.2-RC2" % "test",
   "org.scalatest" %% "scalatest" % "2.1.7" % "test",
   "commons-io" % "commons-io" % "2.4" % "test"
 )
