@@ -12,7 +12,7 @@ cache:
     - $HOME/.ivy2/cache
     - $HOME/.sbt/boot
 script:
-  - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M test
+  - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M -Dakka.test.timefactor=2.0 test
   - find $HOME/.sbt -name "*.lock" | xargs rm
   - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
   - find $HOME/.ivy2 -name "ivydata-*.properties"

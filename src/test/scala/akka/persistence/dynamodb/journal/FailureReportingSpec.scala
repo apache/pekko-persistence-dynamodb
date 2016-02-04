@@ -46,7 +46,7 @@ class FailureReportingSpec extends TestKit(ActorSystem("FailureReportingSpec"))
         .withFallback(ConfigFactory.load())
       implicit val system = ActorSystem("FailureReportingSpec-test1", config)
       try
-        EventFilter[ResourceNotFoundException](pattern = ".*TableName: nonexistent.*", occurrences = 1).intercept {
+        EventFilter[ResourceNotFoundException](pattern = ".*nonexistent.*", occurrences = 1).intercept {
           Persistence(system).journalFor("")
         }
       finally system.terminate()
@@ -75,7 +75,7 @@ akka.loggers = ["akka.testkit.TestEventListener"]
       try {
         val probe = TestProbe()
         system.eventStream.subscribe(probe.ref, classOf[Logging.LogEvent])
-        EventFilter[ResourceNotFoundException](pattern = ".*TableName: akka-persistence.*", occurrences = 1).intercept {
+        EventFilter[ResourceNotFoundException](pattern = ".*akka-persistence.*", occurrences = 1).intercept {
           Persistence(system).journalFor("")
         }
         probe.expectMsgType[Logging.Error]
