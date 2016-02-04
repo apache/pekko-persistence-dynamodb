@@ -22,10 +22,13 @@ import scala.concurrent.Future
 object DynamoDBIntegrationLoadSpec {
 
   val config = ConfigFactory.parseString("""
-dynamodb-journal {
+my-dynamodb-journal {
   journal-table = "integrationLoadSpec"
+  endpoint = ${?AWS_DYNAMODB_ENDPOINT}
+  aws-access-key-id = ${?AWS_ACCESS_KEY_ID}
+  aws-secret-access-key = ${?AWS_SECRET_ACCESS_KEY}
 }
-""").withFallback(ConfigFactory.load())
+""").resolve.withFallback(ConfigFactory.load())
 
   case class DeleteTo(snr: Long)
 
