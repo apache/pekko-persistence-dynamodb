@@ -27,9 +27,10 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
 
   val extension = Persistence(context.system)
   val serialization = SerializationExtension(context.system)
-  val dynamo = dynamoClient(context.system, config)
-
   val settings = new DynamoDBJournalConfig(config)
+  if (settings.LogConfig) log.info("using settings {}", settings)
+
+  val dynamo = dynamoClient(context.system, settings)
 
   val journalTable = settings.JournalTable
   val sequenceShards = settings.SequenceShards
@@ -136,8 +137,7 @@ object DynamoDBJournal {
   val schema = Seq(new KeySchemaElement().withKeyType(KeyType.HASH).withAttributeName(Key)).asJava
   val schemaAttributes = Seq(new AttributeDefinition().withAttributeName(Key).withAttributeType("S")).asJava
 
-  def dynamoClient(system: ActorSystem, config: Config): DynamoDBHelper = {
-    val settings = new DynamoDBJournalConfig(config)
+  def dynamoClient(system: ActorSystem, settings: DynamoDBJournalConfig): DynamoDBHelper = {
     val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
     val client = new AmazonDynamoDBClient(creds)
     client.setEndpoint(settings.Endpoint)

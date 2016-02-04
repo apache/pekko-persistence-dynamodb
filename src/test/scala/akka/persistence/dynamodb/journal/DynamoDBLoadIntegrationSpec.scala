@@ -137,7 +137,7 @@ class DynamoDBIntegrationLoadSpec
     val config = c.getConfig(c.getString("akka.persistence.journal.plugin"))
     val settings = new DynamoDBJournalConfig(config)
     val table = settings.JournalTable
-    val client = dynamoClient(system, config)
+    val client = dynamoClient(system, settings)
     val create = new CreateTableRequest()
       .withTableName(table)
       .withKeySchema(DynamoDBJournal.schema)
