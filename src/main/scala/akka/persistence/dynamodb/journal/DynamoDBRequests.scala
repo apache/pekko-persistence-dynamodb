@@ -131,15 +131,6 @@ trait DynamoDBRequests {
 
   def deleteReq(item: Item): WriteRequest = new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(item))
 
-  def updateReq(key: Item, updates: ItemUpdates): UpdateItemRequest = new UpdateItemRequest()
-    .withTableName(JournalTable)
-    .withKey(key)
-    .withAttributeUpdates(updates)
-    .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
-
-  def setAdd(value: AttributeValue): AttributeValueUpdate = new AttributeValueUpdate().withAction(AttributeAction.ADD)
-    .withValue(value)
-
   def batchWriteReq(items: JMap[String, JList[WriteRequest]]) = new BatchWriteItemRequest()
     .withRequestItems(items)
     .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
