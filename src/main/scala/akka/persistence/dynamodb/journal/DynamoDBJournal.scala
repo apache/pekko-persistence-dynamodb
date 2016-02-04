@@ -20,39 +20,39 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Try, Success, Failure }
 import akka.event.LoggingAdapter
 import akka.event.Logging
+import scala.util.control.NoStackTrace
+import akka.stream.ActorMaterializer
+
+class DynamoDBJournalFailure(message: String) extends RuntimeException(message) with NoStackTrace
 
 class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRecovery with DynamoDBRequests with ActorLogging {
-  import DynamoDBJournal._
   import context.dispatcher
+
+  implicit val materializer = ActorMaterializer()
 
   val extension = Persistence(context.system)
   val serialization = SerializationExtension(context.system)
+
   val settings = new DynamoDBJournalConfig(config)
   if (settings.LogConfig) log.info("using settings {}", settings)
 
   val dynamo = dynamoClient(context.system, settings)
 
-  val journalTable = settings.JournalTable
-  val sequenceShards = settings.SequenceShards
-
-  val maxDynamoBatchGet = 100
-  val replayParallelism = 10
-
-  dynamo.sendDescribeTable(new DescribeTableRequest().withTableName(journalTable)).onComplete {
-    case Success(result) => log.info("using DynamoDB table {}", result)
-    case Failure(ex)     => context.stop(self)
+  dynamo.describeTable(new DescribeTableRequest().withTableName(settings.JournalTable)).onComplete {
+    case Success(Right(result)) => log.info("using DynamoDB table {}", result)
+    case _ => context match {
+      case null =>
+      case ctx  => ctx.stop(self)
+    }
   }
 
-  type Item = JMap[String, AttributeValue]
-  type ItemUpdates = JMap[String, AttributeValueUpdate]
-
   override def asyncWriteMessages(messages: immutable.Seq[AtomicWrite]): Future[immutable.Seq[Try[Unit]]] =
-    Future.sequence(messages.map(writeMessages))
+    logFailure("write")(Future.sequence(messages.map(writeMessages)))
 
   // Removed "permanent" as that is no longer used in Akka 2.4
-  override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] = {
+  override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] = logFailure("delete") {
     log.debug("at=delete-messages-to persistenceId={} to={} perm={}", persistenceId, toSequenceNr)
-    readLowestSequenceNr(persistenceId).flatMap { fromSequenceNr =>
+    readSequenceNr(persistenceId, highest = false).flatMap { fromSequenceNr =>
       asyncReadHighestSequenceNr(persistenceId, fromSequenceNr).flatMap { highestSequenceNr =>
         val end = Math.min(toSequenceNr, highestSequenceNr)
         val asyncDeletions = (fromSequenceNr to end).grouped(12).map(deleteMessages(persistenceId, _))
@@ -68,28 +68,6 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
       case (k, v) => map.put(k, v)
     }
     map
-  }
-
-  def withBackoff[I, O](i: I, retriesRemaining: Int = 10)(op: I => Future[Either[AmazonServiceException, O]]): Future[O] = {
-    op(i).flatMap {
-      case Left(t: ProvisionedThroughputExceededException) =>
-        backoff(10 - retriesRemaining, i.getClass.getSimpleName)
-        withBackoff(i, retriesRemaining - 1)(op)
-      case Left(e) =>
-        log.error(e, "exception in withBackoff")
-        throw e
-      case Right(resp) =>
-        Future.successful(resp)
-    }
-  }
-
-  def backoff(retries: Int, what: String) {
-    if (retries == 0) Thread.`yield`()
-    else {
-      val sleep = math.pow(2, retries).toLong
-      log.warning("at=backoff request={} sleep={}", what, sleep)
-      Thread.sleep(sleep)
-    }
   }
 
   def S(value: String): AttributeValue = new AttributeValue().withS(value)
@@ -121,33 +99,8 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     serialization.deserialize(ByteString(b).toArray, classOf[PersistentRepr]).get
   }
 
-}
-
-object DynamoDBJournal {
-  // field names
-  val Key = "key"
-  val PersistenceId = "persistenceId"
-  val SequenceNr = "sequenceNr"
-  val Deleted = "deleted"
-  val Payload = "payload"
-  // config names
-
-  import collection.JavaConverters._
-
-  val schema = Seq(new KeySchemaElement().withKeyType(KeyType.HASH).withAttributeName(Key)).asJava
-  val schemaAttributes = Seq(new AttributeDefinition().withAttributeName(Key).withAttributeType("S")).asJava
-
-  def dynamoClient(system: ActorSystem, settings: DynamoDBJournalConfig): DynamoDBHelper = {
-    val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
-    val client = new AmazonDynamoDBClient(creds)
-    client.setEndpoint(settings.Endpoint)
-    val dispatcher = system.dispatchers.lookup(settings.ClientDispatcher)
-
-    new DynamoDBClient(dispatcher, client, settings.Tracing, Logging(system, "DynamoDBClient"))
-  }
-
-  private class DynamoDBClient(override val ec: ExecutionContext,
-                               override val dynamoDB: AmazonDynamoDBClient,
-                               override val tracing: Boolean,
-                               override val log: LoggingAdapter) extends DynamoDBHelper
+  def logFailure[T](desc: String)(f: Future[T]): Future[T] = f.transform(conforms, ex => {
+    log.error(ex, "operation failed: " + desc)
+    ex
+  })
 }

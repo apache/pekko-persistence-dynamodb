@@ -14,11 +14,11 @@ class DynamoDBJournalConfig(c: Config) {
   val JournalName = c getString "journal-name"
   val AwsKey = c getString "aws-access-key-id"
   val AwsSecret = c getString "aws-secret-access-key"
-  val OpTimeout = c getDuration "operation-timeout"
   val Endpoint = c getString "endpoint"
   val ReplayDispatcher = c getString "replay-dispatcher"
   val ClientDispatcher = c getString "client-dispatcher"
   val SequenceShards = c getInt "sequence-shards"
+  val ReplayParallelism = c getInt "replay-parallelism"
   val Tracing = c getBoolean "tracing"
   val LogConfig = c getBoolean "log-config"
 
@@ -75,11 +75,11 @@ class DynamoDBJournalConfig(c: Config) {
     "JournalTable:" + JournalTable +
     ",JournalName:" + JournalName +
     ",AwsKey:" + AwsKey +
-    ",OpTimeout:" + OpTimeout +
     ",Endpoint:" + Endpoint +
     ",ReplayDispatcher:" + ReplayDispatcher +
     ",ClientDispatcher:" + ClientDispatcher +
     ",SequenceShards:" + SequenceShards +
+    ",ReplayParallelism" + ReplayParallelism +
     ",Tracing:" + Tracing +
     ",client.config:" + client
 }

@@ -4,201 +4,123 @@
 package akka.persistence.dynamodb.journal
 
 import com.amazonaws.AmazonServiceException
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
 import com.amazonaws.services.dynamodbv2.model._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.reflect.ClassTag
 import akka.event.LoggingAdapter
 import scala.collection.JavaConverters._
+import com.amazonaws.handlers.AsyncHandler
+import com.amazonaws.AmazonWebServiceRequest
+import java.util.{ concurrent => juc }
+import scala.util.control.NoStackTrace
+import akka.pattern.after
+import scala.concurrent.duration._
+import akka.actor.Scheduler
+
+case class BackoffException(retries: Int, orig: ProvisionedThroughputExceededException) extends AmazonServiceException("BackOff") with NoStackTrace
 
 trait DynamoDBHelper {
 
   implicit val ec: ExecutionContext
-
-  val dynamoDB: AmazonDynamoDBClient
-
-  val tracing: Boolean
-
+  val scheduler: Scheduler
+  val dynamoDB: AmazonDynamoDBAsyncClient
   val log: LoggingAdapter
+  val settings: DynamoDBJournalConfig
+  import settings._
 
-  def toRight[T](t: T) = Right(t)
+  private def send[In <: AmazonWebServiceRequest, Out](aws: In,
+                                                       func: AsyncHandler[In, Out] => juc.Future[Out],
+                                                       retries: Int = 10,
+                                                       backoff: FiniteDuration = 1.millis)(implicit d: Describe[_ >: In]): Future[AWSTry[Out]] = {
+    val name = d.desc(aws)
+    if (Tracing) log.debug("{} {}", name, aws)
 
-  def fold[T](fe: Future[Either[AmazonServiceException, T]]): Future[T] = fe.map(_.fold(e => throw e, t => t))
+    val p = Promise[AWSTry[Out]]
 
-  def execute[T](f: => T)(implicit tag: ClassTag[T]) = Future(f).mapTo[T].map(toRight)
-
-  def sendListTables(aws: ListTablesRequest): Future[ListTablesResult] = fold(listTables(aws))
-
-  def listTables(aws: ListTablesRequest): Future[Either[AmazonServiceException, ListTablesResult]] =
-    execute {
-      if (tracing) log.debug("ListTablesRequest {}", aws)
-      try dynamoDB.listTables(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during ListTablesRequest {}", aws)
-          throw ex
+    val handler = new AsyncHandler[In, Out] {
+      override def onError(ex: Exception) = ex match {
+        case e: ProvisionedThroughputExceededException =>
+          p.trySuccess(Left(BackoffException(retries, e)))
+        case ase: AmazonServiceException =>
+          log.error(ase, "failure while executing {}", name)
+          p.trySuccess(Left(ase))
+        case _ =>
+          p.tryFailure(ex)
       }
+      override def onSuccess(req: In, resp: Out) = p.trySuccess(Right(resp))
     }
 
-  def sendQuery(aws: QueryRequest): Future[QueryResult] = fold(query(aws))
-
-  def query(aws: QueryRequest): Future[Either[AmazonServiceException, QueryResult]] =
-    execute {
-      if (tracing) log.debug("QueryRequest {}", aws)
-      try dynamoDB.query(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during QueryRequest {}", aws)
-          throw ex
-      }
+    try {
+      func(handler)
+    } catch {
+      case ex: Throwable =>
+        log.error(ex, "failure while preparing {}", name)
+        p.tryFailure(ex)
     }
 
-  def sendScan(aws: ScanRequest): Future[ScanResult] = fold(scan(aws))
-
-  def scan(aws: ScanRequest): Future[Either[AmazonServiceException, ScanResult]] =
-    execute {
-      if (tracing) log.debug("ScanRequest {}", aws)
-      try dynamoDB.scan(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during ScanRequest {}", aws)
-          throw ex
-      }
+    // backoff retries when sending too fast
+    p.future.flatMap {
+      case Left(BackoffException(x, _)) if x > 0 =>
+        after(backoff, scheduler)(send(aws, func, retries - 1, backoff * 2))
+      case Left(BackoffException(_, orig)) =>
+        log.error(orig, "maximum backoff exceeded while executing {}", name)
+        Future.successful(Left(orig))
+      case other => Future.successful(other)
     }
+  }
 
-  def sendUpdateItem(aws: UpdateItemRequest): Future[UpdateItemResult] = fold(updateItem(aws))
+  trait Describe[T] {
+    def desc(t: T): String
+  }
 
-  def updateItem(aws: UpdateItemRequest): Future[Either[AmazonServiceException, UpdateItemResult]] =
-    execute {
-      if (tracing) log.debug("UpdateItemRequest {}", aws)
-      try dynamoDB.updateItem(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during UpdateItemRequest {}", aws)
-          throw ex
-      }
+  object Describe {
+    implicit object GenericDescribe extends Describe[AmazonWebServiceRequest] {
+      def desc(aws: AmazonWebServiceRequest): String = aws.getClass.getSimpleName
     }
+  }
 
-  def sendPutItem(aws: PutItemRequest): Future[PutItemResult] = fold(putItem(aws))
+  implicit object DescribeDescribe extends Describe[DescribeTableRequest] {
+    def desc(aws: DescribeTableRequest): String = s"DescribeTableRequest(${aws.getTableName})"
+  }
 
-  def putItem(aws: PutItemRequest): Future[Either[AmazonServiceException, PutItemResult]] =
-    execute {
-      if (tracing) log.debug("PutItemRequest {}", aws)
-      try dynamoDB.putItem(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during PutItemRequest {}", aws)
-          throw ex
-      }
-    }
+  def listTables(aws: ListTablesRequest): Future[AWSTry[ListTablesResult]] =
+    send[ListTablesRequest, ListTablesResult](aws, dynamoDB.listTablesAsync(aws, _))
 
-  def sendDescribeTable(aws: DescribeTableRequest): Future[DescribeTableResult] = fold(describeTable(aws))
+  def describeTable(aws: DescribeTableRequest): Future[AWSTry[DescribeTableResult]] =
+    send[DescribeTableRequest, DescribeTableResult](aws, dynamoDB.describeTableAsync(aws, _))
 
-  def describeTable(aws: DescribeTableRequest): Future[Either[AmazonServiceException, DescribeTableResult]] =
-    execute {
-      if (tracing) log.debug("DescribeTableRequest {}", aws)
-      try dynamoDB.describeTable(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during DescribeTableRequest {}", aws)
-          throw ex
-      }
-    }
+  def createTable(aws: CreateTableRequest): Future[AWSTry[CreateTableResult]] =
+    send[CreateTableRequest, CreateTableResult](aws, dynamoDB.createTableAsync(aws, _))
 
-  def sendCreateTable(aws: CreateTableRequest): Future[CreateTableResult] = fold(createTable(aws))
+  def updateTable(aws: UpdateTableRequest): Future[AWSTry[UpdateTableResult]] =
+    send[UpdateTableRequest, UpdateTableResult](aws, dynamoDB.updateTableAsync(aws, _))
 
-  def createTable(aws: CreateTableRequest): Future[Either[AmazonServiceException, CreateTableResult]] =
-    execute {
-      if (tracing) log.debug("CreateTableRequest {}", aws)
-      try dynamoDB.createTable(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during CreateTableRequest {}", aws)
-          throw ex
-      }
-    }
+  def deleteTable(aws: DeleteTableRequest): Future[AWSTry[DeleteTableResult]] =
+    send[DeleteTableRequest, DeleteTableResult](aws, dynamoDB.deleteTableAsync(aws, _))
 
-  def sendUpdateTable(aws: UpdateTableRequest): Future[UpdateTableResult] = fold(updateTable(aws))
+  def query(aws: QueryRequest): Future[AWSTry[QueryResult]] =
+    send[QueryRequest, QueryResult](aws, dynamoDB.queryAsync(aws, _))
 
-  def updateTable(aws: UpdateTableRequest): Future[Either[AmazonServiceException, UpdateTableResult]] =
-    execute {
-      if (tracing) log.debug("UpdateTableRequest {}", aws)
-      try dynamoDB.updateTable(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during UpdateTableRequest {}", aws)
-          throw ex
-      }
-    }
+  def scan(aws: ScanRequest): Future[AWSTry[ScanResult]] =
+    send[ScanRequest, ScanResult](aws, dynamoDB.scanAsync(aws, _))
 
-  def sendDeleteTable(aws: DeleteTableRequest): Future[DeleteTableResult] = fold(deleteTable(aws))
+  def putItem(aws: PutItemRequest): Future[AWSTry[PutItemResult]] =
+    send[PutItemRequest, PutItemResult](aws, dynamoDB.putItemAsync(aws, _))
 
-  def deleteTable(aws: DeleteTableRequest): Future[Either[AmazonServiceException, DeleteTableResult]] =
-    execute {
-      if (tracing) log.debug("DeleteTableRequest {}", aws)
-      try dynamoDB.deleteTable(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during DeleteTableRequest {}", aws)
-          throw ex
-      }
-    }
+  def getItem(aws: GetItemRequest): Future[AWSTry[GetItemResult]] =
+    send[GetItemRequest, GetItemResult](aws, dynamoDB.getItemAsync(aws, _))
 
-  def sendGetItem(aws: GetItemRequest): Future[GetItemResult] = fold(getItem(aws))
+  def updateItem(aws: UpdateItemRequest): Future[AWSTry[UpdateItemResult]] =
+    send[UpdateItemRequest, UpdateItemResult](aws, dynamoDB.updateItemAsync(aws, _))
 
-  def getItem(aws: GetItemRequest): Future[Either[AmazonServiceException, GetItemResult]] =
-    execute {
-      if (tracing) log.debug("GetItemRequest {}", aws)
-      try dynamoDB.getItem(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during GetItemRequest {}", aws)
-          throw ex
-      }
-    }
+  def deleteItem(aws: DeleteItemRequest): Future[AWSTry[DeleteItemResult]] =
+    send[DeleteItemRequest, DeleteItemResult](aws, dynamoDB.deleteItemAsync(aws, _))
 
-  def sendBatchWriteItem(awsWrite: BatchWriteItemRequest): Future[BatchWriteItemResult] =
-    fold(batchWriteItem(awsWrite))
+  def batchWriteItem(aws: BatchWriteItemRequest): Future[AWSTry[BatchWriteItemResult]] =
+    send[BatchWriteItemRequest, BatchWriteItemResult](aws, dynamoDB.batchWriteItemAsync(aws, _))
 
-  def batchWriteItem(aws: BatchWriteItemRequest): Future[Either[AmazonServiceException, BatchWriteItemResult]] =
-    execute {
-      if (tracing && log.isDebugEnabled) log.debug("BatchWriteItemRequest {}", aws)
-      try dynamoDB.batchWriteItem(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during BatchWriteItemRequest {}", aws)
-          throw ex
-      }
-    }
-
-  def sendBatchGetItem(awsGet: BatchGetItemRequest): Future[BatchGetItemResult] = fold(batchGetItem(awsGet))
-
-  def batchGetItem(aws: BatchGetItemRequest): Future[Either[AmazonServiceException, BatchGetItemResult]] =
-    execute {
-      if (tracing && log.isDebugEnabled) {
-        val req = aws.getRequestItems.asScala.mapValues { v => s"{Keys:{${v.getKeys.get(0)}... (${v.getKeys.size})}, AttributesToGet: ${v.getAttributesToGet}, ConsistentRead: ${v.getConsistentRead}}" }
-        val summary = s"{RequestItems: $req, ReturnConsumedCapacity: ${aws.getReturnConsumedCapacity}}"
-        log.debug("BatchGetItemRequest {}", summary)
-      }
-      try dynamoDB.batchGetItem(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during BatchGetItemRequest {}", aws)
-          throw ex
-      }
-    }
-
-  def sendDeleteItem(awsDel: DeleteItemRequest): Future[DeleteItemResult] = fold(deleteItem(awsDel))
-
-  def deleteItem(aws: DeleteItemRequest): Future[Either[AmazonServiceException, DeleteItemResult]] =
-    execute {
-      if (tracing) log.debug("DeleteItemRequest {}", aws)
-      try dynamoDB.deleteItem(aws)
-      catch {
-        case ex: Throwable =>
-          log.error(ex, "failure during DeleteItemRequest {}", aws)
-          throw ex
-      }
-    }
+  def batchGetItem(aws: BatchGetItemRequest): Future[AWSTry[BatchGetItemResult]] =
+    send[BatchGetItemRequest, BatchGetItemResult](aws, dynamoDB.batchGetItemAsync(aws, _))
 
 }

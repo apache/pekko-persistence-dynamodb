@@ -4,12 +4,15 @@ version := "0.9-SNAPSHOT"
 
 scalaVersion := "2.11.7"
 
+val akkaVersion = "2.4.2-RC2"
+
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-core" % "1.10.50",
   "com.amazonaws" % "aws-java-sdk-dynamodb" % "1.10.50",
-  "com.typesafe.akka" %% "akka-persistence" % "2.4.2-RC2",
-  "com.typesafe.akka" %% "akka-persistence-tck" % "2.4.2-RC2" % "test",
-  "com.typesafe.akka" %% "akka-testkit" % "2.4.2-RC2" % "test",
+  "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
+  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
+  "com.typesafe.akka" %% "akka-persistence-tck" % akkaVersion % "test",
+  "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
   "org.scalatest" %% "scalatest" % "2.1.7" % "test",
   "commons-io" % "commons-io" % "2.4" % "test"
 )
