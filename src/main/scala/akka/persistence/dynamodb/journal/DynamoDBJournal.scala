@@ -24,6 +24,7 @@ import scala.util.control.NoStackTrace
 import akka.stream.ActorMaterializer
 
 class DynamoDBJournalFailure(message: String) extends RuntimeException(message) with NoStackTrace
+class DynamoDBJournalRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause) with NoStackTrace
 
 class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRecovery with DynamoDBRequests with ActorLogging {
   import context.dispatcher
@@ -34,7 +35,9 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
   val serialization = SerializationExtension(context.system)
 
   val settings = new DynamoDBJournalConfig(config)
-  if (settings.LogConfig) log.info("using settings {}", settings)
+
+  import settings._
+  if (LogConfig) log.info("using settings {}", settings)
 
   val dynamo = dynamoClient(context.system, settings)
 
@@ -49,7 +52,6 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
   override def asyncWriteMessages(messages: immutable.Seq[AtomicWrite]): Future[immutable.Seq[Try[Unit]]] =
     logFailure("write")(Future.sequence(messages.map(writeMessages)))
 
-  // Removed "permanent" as that is no longer used in Akka 2.4
   override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] = logFailure("delete") {
     log.debug("at=delete-messages-to persistenceId={} to={} perm={}", persistenceId, toSequenceNr)
     readSequenceNr(persistenceId, highest = false).flatMap { fromSequenceNr =>
@@ -61,36 +63,17 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     }
   }
 
-  // Maps a sequence of tuples to a hashmap
-  def fields[T](fs: (String, T)*): JMap[String, T] = {
-    val map = new JHMap[String, T]()
-    fs.foreach {
-      case (k, v) => map.put(k, v)
-    }
-    map
-  }
-
   def S(value: String): AttributeValue = new AttributeValue().withS(value)
-
-  def S(value: Boolean): AttributeValue = new AttributeValue().withS(value.toString)
 
   def N(value: Long): AttributeValue = new AttributeValue().withN(value.toString)
 
-  def SS(value: String): AttributeValue = new AttributeValue().withSS(value)
-
-  def SS(values: Seq[String]): AttributeValue = new AttributeValue().withSS(values: _*)
-
   def B(value: Array[Byte]): AttributeValue = new AttributeValue().withB(ByteBuffer.wrap(value))
 
-  def US(value: String): AttributeValueUpdate = new AttributeValueUpdate().withAction(AttributeAction.ADD).withValue(SS(value))
+  def messageKey(persistenceId: String, sequenceNr: Long) = S(s"$JournalName-P-$persistenceId-$sequenceNr")
 
-  private val journalName = settings.JournalName
+  def highSeqKey(persistenceId: String, shard: Long) = S(s"$JournalName-SH-$persistenceId-$shard")
 
-  def messageKey(persistenceId: String, sequenceNr: Long) = S(s"$journalName-P-$persistenceId-$sequenceNr")
-
-  def highSeqKey(persistenceId: String, sequenceNr: Long) = S(s"$journalName-SH-$persistenceId-$sequenceNr")
-
-  def lowSeqKey(persistenceId: String, sequenceNr: Long) = S(s"$journalName-SL-$persistenceId-$sequenceNr")
+  def lowSeqKey(persistenceId: String, shard: Long) = S(s"$JournalName-SL-$persistenceId-$shard")
 
   def persistentToByteBuffer(p: PersistentRepr): ByteBuffer =
     ByteBuffer.wrap(serialization.serialize(p).get)

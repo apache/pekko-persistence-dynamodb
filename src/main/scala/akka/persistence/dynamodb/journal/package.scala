@@ -15,6 +15,9 @@ import com.amazonaws.AmazonClientException
 import com.amazonaws.AmazonServiceException
 import akka.actor.Scheduler
 import scala.concurrent.Future
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.LinkedBlockingQueue
 
 package object journal {
 
@@ -24,8 +27,10 @@ package object journal {
 
   // field names
   val Key = "key"
-  val SequenceNr = "sequenceNr"
   val Payload = "payload"
+  val SequenceNr = "sequenceNr"
+
+  val KeyPayloadOverhead = 26 // including 16 bytes fudge factor
 
   import collection.JavaConverters._
 
@@ -34,7 +39,10 @@ package object journal {
 
   def dynamoClient(system: ActorSystem, settings: DynamoDBJournalConfig): DynamoDBHelper = {
     val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
-    val client = new AmazonDynamoDBAsyncClient(creds)
+    val conns = settings.client.config.getMaxConnections
+    val executor = new ThreadPoolExecutor(Math.min(8, conns), conns, 5, TimeUnit.SECONDS, new LinkedBlockingQueue)
+    executor.prestartAllCoreThreads()
+    val client = new AmazonDynamoDBAsyncClient(creds, settings.client.config, executor)
     client.setEndpoint(settings.Endpoint)
     val dispatcher = system.dispatchers.lookup(settings.ClientDispatcher)
 
