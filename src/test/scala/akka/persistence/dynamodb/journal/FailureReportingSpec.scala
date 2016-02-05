@@ -13,6 +13,8 @@ import com.typesafe.config.ConfigFactory
 import akka.persistence._
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException
 import akka.event.Logging
+import akka.persistence.JournalProtocol._
+import java.util.UUID
 
 object FailureReportingSpec {
   class GuineaPig(report: ActorRef) extends PersistentActor {
@@ -36,6 +38,21 @@ class FailureReportingSpec extends TestKit(ActorSystem("FailureReportingSpec"))
 
   implicit val patience = PatienceConfig(5.seconds)
 
+  val writerUuid = UUID.randomUUID.toString
+  val seqNr = Iterator from 1
+  val persistenceId = "FailureReportingSpec"
+
+  val bigMsg = Array.tabulate[Byte](400000)(_.toByte)
+
+  def persistentRepr(msg: Any) = PersistentRepr(msg, sequenceNr = seqNr.next(), persistenceId = persistenceId, writerUuid = writerUuid)
+  def expectRejection(msg: String, repr: PersistentRepr) = {
+    val rej = expectMsgType[WriteMessageRejected]
+    rej.message should ===(repr)
+    rej.cause shouldBe a[DynamoDBJournalRejection]
+    rej.cause.getMessage should include regex msg
+  }
+
+  override def beforeAll(): Unit = Utils.ensureJournalTableExists(system)
   override def afterAll(): Unit = system.terminate().futureValue
 
   "DynamoDB Journal Failure Reporting" must {
@@ -81,6 +98,35 @@ akka.loggers = ["akka.testkit.TestEventListener"]
         probe.expectMsgType[Logging.Error]
         probe.expectNoMsg(0.seconds)
       } finally system.terminate()
+    }
+
+    "properly reject too large payloads" in {
+      val journal = Persistence(system).journalFor("")
+      val msgs = Vector("t-1", bigMsg, "t-3", "t-4", bigMsg, "t-6").map(persistentRepr)
+      val write =
+        AtomicWrite(msgs(0)) ::
+          AtomicWrite(msgs(1)) ::
+          AtomicWrite(msgs(2)) ::
+          AtomicWrite(msgs(3) :: msgs(4) :: Nil) ::
+          AtomicWrite(msgs(5)) ::
+          Nil
+
+      EventFilter[DynamoDBJournalRejection](occurrences = 2) intercept {
+        journal ! WriteMessages(write, testActor, 42)
+        expectMsg(WriteMessagesSuccessful)
+        expectMsg(WriteMessageSuccess(msgs(0), 42))
+        expectRejection("MaxItemSize exceeded", msgs(1))
+        expectMsg(WriteMessageSuccess(msgs(2), 42))
+        expectRejection("AtomicWrite rejected as a whole.*MaxItemSize exceeded", msgs(3))
+        expectRejection("AtomicWrite rejected as a whole.*MaxItemSize exceeded", msgs(4))
+        expectMsg(WriteMessageSuccess(msgs(5), 42))
+      }
+
+      journal ! ReplayMessages(msgs.head.sequenceNr, msgs.last.sequenceNr, Long.MaxValue, persistenceId, testActor)
+      expectMsg(ReplayedMessage(msgs(0)))
+      expectMsg(ReplayedMessage(msgs(2)))
+      expectMsg(ReplayedMessage(msgs(5)))
+      expectMsgType[RecoverySuccess]
     }
 
   }

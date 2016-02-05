@@ -24,6 +24,7 @@ import scala.util.control.NoStackTrace
 import akka.stream.ActorMaterializer
 
 class DynamoDBJournalFailure(message: String) extends RuntimeException(message) with NoStackTrace
+class DynamoDBJournalRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause) with NoStackTrace
 
 class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRecovery with DynamoDBRequests with ActorLogging {
   import context.dispatcher
@@ -60,15 +61,6 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
         Future.sequence(asyncDeletions).map(_ => log.debug("finished asyncDeleteMessagesTo {} {}", persistenceId, toSequenceNr))
       }
     }
-  }
-
-  // Maps a sequence of tuples to a hashmap
-  def fields[T](fs: (String, T)*): JMap[String, T] = {
-    val map = new JHMap[String, T]()
-    fs.foreach {
-      case (k, v) => map.put(k, v)
-    }
-    map
   }
 
   def S(value: String): AttributeValue = new AttributeValue().withS(value)

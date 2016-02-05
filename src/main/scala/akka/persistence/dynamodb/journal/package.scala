@@ -27,8 +27,10 @@ package object journal {
 
   // field names
   val Key = "key"
-  val SequenceNr = "sequenceNr"
   val Payload = "payload"
+  val SequenceNr = "sequenceNr"
+
+  val KeyPayloadOverhead = 26 // including 16 bytes fudge factor
 
   import collection.JavaConverters._
 

@@ -77,7 +77,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
         .grouped(MaxBatchGet)
         .map {
           keys =>
-            val keyColl = keys.map(k => fields(Key -> k)).asJava
+            val keyColl = keys.map(k => Collections.singletonMap(Key, k)).asJava
             val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
             val get = batchGetReq(Collections.singletonMap(JournalTable, ka))
             dynamo.batchGetItem(get).map {

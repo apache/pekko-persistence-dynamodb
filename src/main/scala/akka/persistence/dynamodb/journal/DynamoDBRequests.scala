@@ -3,7 +3,7 @@
  */
 package akka.persistence.dynamodb.journal
 
-import java.util.{ Collections, List => JList, Map => JMap }
+import java.util.{ Collections, List => JList, Map => JMap, HashMap => JHMap }
 import akka.persistence.{ PersistentRepr, AtomicWrite }
 import com.amazonaws.services.dynamodbv2.model._
 import scala.collection.JavaConverters._
@@ -53,13 +53,17 @@ trait DynamoDBRequests {
         Future.sequence(futures).map { _ => Success(()) }
 
       case Failure(e) =>
-        log.error(e, "DynamoDB Journal encountered error creating writes for {}", atomicWrite)
+        log.error(e, "DynamoDB Journal encountered error creating writes for {}: {}", atomicWrite.persistenceId, e.getMessage)
+
+        val rej =
+          if (atomicWrite.size == 1) e
+          else new DynamoDBJournalRejection(s"AtomicWrite rejected as a whole due to ${e.getMessage}", e)
 
         // Note: In akka 2.4, asyncWriteMessages takes a Seq[AtomicWrite].  Akka assumes that you will
-        // return a result for Every item in the Sequence (the result is a Future[Seq[Try[Unit]]];
+        // return a result for every item in the Sequence (the result is a Future[Seq[Try[Unit]]];
         // therefore, we should not explicitly fail any given future due to serialization, but rather
         // we should "Reject" it, meaning we return successfully with a Failure
-        Future.successful(Failure(e))
+        Future.successful(Failure(rej))
     }
   }
 
@@ -115,17 +119,31 @@ trait DynamoDBRequests {
     }
   }
 
-  def toMsgItem(repr: PersistentRepr): Item = fields(
-    Key -> messageKey(repr.persistenceId, repr.sequenceNr),
-    Payload -> B(serialization.serialize(repr).get))
+  def toMsgItem(repr: PersistentRepr): Item = {
+    val k = messageKey(repr.persistenceId, repr.sequenceNr)
+    val v = B(serialization.serialize(repr).get)
+    val itemSize = KeyPayloadOverhead + k.getS.length + v.getB.remaining
+    if (itemSize > MaxItemSize)
+      throw new DynamoDBJournalRejection(s"MaxItemSize exceeded: $itemSize > $MaxItemSize")
+    val item: Item = new JHMap(2, 1.0f)
+    item.put(Key, k)
+    item.put(Payload, v)
+    item
+  }
 
-  def toHSItem(repr: PersistentRepr): Item = fields(
-    Key -> highSeqKey(repr.persistenceId, repr.sequenceNr % SequenceShards),
-    SequenceNr -> N(repr.sequenceNr))
+  def toHSItem(repr: PersistentRepr): Item = {
+    val item: Item = new JHMap(2, 1.0f)
+    item.put(Key, highSeqKey(repr.persistenceId, repr.sequenceNr % SequenceShards))
+    item.put(SequenceNr, N(repr.sequenceNr))
+    item
+  }
 
-  def toLSItem(persistenceId: String, sequenceNr: Long): Item = fields(
-    Key -> lowSeqKey(persistenceId, sequenceNr % SequenceShards),
-    SequenceNr -> N(sequenceNr))
+  def toLSItem(persistenceId: String, sequenceNr: Long): Item = {
+    val item: Item = new JHMap(2, 1.0f)
+    item.put(Key, lowSeqKey(persistenceId, sequenceNr % SequenceShards))
+    item.put(SequenceNr, N(sequenceNr))
+    item
+  }
 
   def putReq(item: Item): WriteRequest = new WriteRequest().withPutRequest(new PutRequest().withItem(item))
 
@@ -137,7 +155,7 @@ trait DynamoDBRequests {
 
   def permanentDeleteToDelete(persistenceId: String, sequenceNr: Long): DeleteItemRequest = {
     log.debug("delete permanent {}", sequenceNr)
-    val key = fields(Key -> messageKey(persistenceId, sequenceNr))
+    val key = Collections.singletonMap(Key, messageKey(persistenceId, sequenceNr))
     new DeleteItemRequest().withTableName(JournalTable).withKey(key)
   }
 
