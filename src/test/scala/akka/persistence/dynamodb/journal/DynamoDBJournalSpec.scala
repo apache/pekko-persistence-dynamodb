@@ -10,12 +10,19 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.persistence.CapabilityFlag
 import scala.concurrent.Future
+import akka.pattern.extended.ask
+import akka.actor.ActorRef
 
-class DynamoDBJournalSpec extends JournalSpec(ConfigFactory.load()) {
+class DynamoDBJournalSpec extends JournalSpec(ConfigFactory.load()) with DynamoDBUtils {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    Utils.ensureJournalTableExists(system)
+    ensureJournalTableExists()
+  }
+
+  override def writeMessages(fromSnr: Int, toSnr: Int, pid: String, sender: ActorRef, writerUuid: String): Unit = {
+    Await.result(journal ? (Purge(pid, _)), 5.seconds)
+    super.writeMessages(fromSnr, toSnr, pid, sender, writerUuid)
   }
 
   def supportsRejectingNonSerializableObjects = CapabilityFlag.on()
