@@ -43,12 +43,7 @@ trait DynamoDBRequests {
             // Dynamo can partially fail a number of write items in a batch write, usually because
             // of throughput constraints.  We need to continue to retry the unprocessed item
             // until we exhaust our backoff
-            dynamo.batchWriteItem(write).flatMap(r => sendUnprocessedItems(r)).map {
-              _ =>
-                if (log.isDebugEnabled)
-                  log.debug("at=batch-write-finish writes={}", write.getRequestItems.get(JournalTable).size())
-                ()
-            }
+            dynamo.batchWriteItem(write).flatMap(r => sendUnprocessedItems(r))
         }
 
         // Squash all of the futures into a single result

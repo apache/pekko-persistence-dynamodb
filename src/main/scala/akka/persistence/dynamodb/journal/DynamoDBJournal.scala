@@ -24,6 +24,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Try, Success, Failure }
 import scala.util.control.NoStackTrace
 import akka.actor.ActorRef
+import scala.concurrent.Promise
 
 class DynamoDBJournalFailure(message: String) extends RuntimeException(message) with NoStackTrace
 class DynamoDBJournalRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause) with NoStackTrace
@@ -52,6 +53,7 @@ case class ListAllResult(persistenceId: String, lowest: Set[Long], highest: Set[
 
 /**
  * Purge all information stored for the given `persistenceId` from the journal.
+ * Purging the information for a running actor results in undefined behavior.
  *
  * A confirmation of type [[Purged]] will be sent to the given `replyTo` reference.
  */
@@ -86,8 +88,28 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     }
   }
 
-  override def asyncWriteMessages(messages: immutable.Seq[AtomicWrite]): Future[immutable.Seq[Try[Unit]]] =
-    logFailure("write")(Future.sequence(messages.map(writeMessages)))
+  private case class OpFinished(pid: String)
+  private val opQueue: JMap[String, Future[Done]] = new JHMap
+
+  override def asyncWriteMessages(messages: immutable.Seq[AtomicWrite]): Future[immutable.Seq[Try[Unit]]] = {
+    val p = Promise[Done]
+    val pid = messages.head.persistenceId
+    log.debug("writeMesssages for {}", pid)
+    opQueue.put(pid, p.future)
+    val f = logFailure("write")(Future.sequence(messages.map(writeMessages)))
+    f.onComplete { _ =>
+      log.debug("writeMessages for {} finished", pid)
+      self ! OpFinished(pid)
+      p.success(Done)
+    }(akka.dispatch.ExecutionContexts.sameThreadExecutionContext)
+    f
+  }
+
+  override def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
+    opQueue.get(persistenceId) match {
+      case null => logFailure("read-highest")(readSequenceNr(persistenceId, highest = true))
+      case f => f.flatMap(_ => logFailure("read-highest")(readSequenceNr(persistenceId, highest = true)))
+    }
 
   /**
    * Delete messages up to a given sequence number. The range to which this applies
@@ -103,7 +125,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
    * TODO in principle replays should be inhibited while the purge is ongoing
    */
   override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] = logFailure("delete") {
-    log.debug("at=delete-messages-to persistenceId={} to={} perm={}", persistenceId, toSequenceNr)
+    log.debug("delete-messages-to persistenceId={} to={} perm={}", persistenceId, toSequenceNr)
     val lowF = readSequenceNr(persistenceId, highest = false)
     val highF = readSequenceNr(persistenceId, highest = true)
     for {
@@ -133,6 +155,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     } yield Done
 
   override def receivePluginInternal = {
+    case OpFinished(persistenceId) => opQueue.remove(persistenceId)
     case ListAll(persistenceId, replyTo) => listAll(persistenceId) pipeTo replyTo
     case Purge(persistenceId, replyTo) => purge(persistenceId).map(_ => Purged(persistenceId)) pipeTo replyTo
   }

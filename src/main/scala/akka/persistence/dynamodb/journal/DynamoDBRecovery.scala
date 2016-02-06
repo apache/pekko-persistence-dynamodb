@@ -73,9 +73,6 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       .takeWhile(_.nonEmpty)
       .runFold(Vector.empty[Long])(_ ++ _)
 
-  override def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
-    logFailure("read-highest")(readSequenceNr(persistenceId, highest = true))
-
   def readSequenceNr(persistenceId: String, highest: Boolean): Future[Long] = {
     log.debug("readSequenceNr(highest={}) persistenceId={}", highest, persistenceId)
     val keyGroups = readSequenceNrBatches(persistenceId, highest)
