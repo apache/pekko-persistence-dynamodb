@@ -29,22 +29,20 @@ object FailureReportingSpec {
 }
 
 class FailureReportingSpec extends TestKit(ActorSystem("FailureReportingSpec"))
-  with ImplicitSender
-  with WordSpecLike
-  with BeforeAndAfterAll
-  with Matchers
-  with ScalaFutures
-  with ConversionCheckedTripleEquals {
+    with ImplicitSender
+    with WordSpecLike
+    with BeforeAndAfterAll
+    with Matchers
+    with ScalaFutures
+    with ConversionCheckedTripleEquals
+    with DynamoDBUtils {
 
   implicit val patience = PatienceConfig(5.seconds)
 
-  val writerUuid = UUID.randomUUID.toString
-  val seqNr = Iterator from 1
-  val persistenceId = "FailureReportingSpec"
+  override val persistenceId = "FailureReportingSpec"
 
   val bigMsg = Array.tabulate[Byte](400000)(_.toByte)
 
-  def persistentRepr(msg: Any) = PersistentRepr(msg, sequenceNr = seqNr.next(), persistenceId = persistenceId, writerUuid = writerUuid)
   def expectRejection(msg: String, repr: PersistentRepr) = {
     val rej = expectMsgType[WriteMessageRejected]
     rej.message should ===(repr)
@@ -52,7 +50,7 @@ class FailureReportingSpec extends TestKit(ActorSystem("FailureReportingSpec"))
     rej.cause.getMessage should include regex msg
   }
 
-  override def beforeAll(): Unit = Utils.ensureJournalTableExists(system)
+  override def beforeAll(): Unit = ensureJournalTableExists()
   override def afterAll(): Unit = system.terminate().futureValue
 
   "DynamoDB Journal Failure Reporting" must {

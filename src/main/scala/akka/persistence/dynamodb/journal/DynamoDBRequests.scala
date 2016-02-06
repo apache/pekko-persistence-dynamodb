@@ -10,6 +10,8 @@ import scala.collection.JavaConverters._
 import scala.collection.{ immutable, mutable }
 import scala.concurrent.Future
 import scala.util.{ Failure, Success, Try }
+import scala.util.control.NonFatal
+import akka.Done
 
 trait DynamoDBRequests {
   this: DynamoDBJournal =>
@@ -50,7 +52,7 @@ trait DynamoDBRequests {
         }
 
         // Squash all of the futures into a single result
-        Future.sequence(futures).map { _ => Success(()) }
+        trySequence(futures).map(seq => Try(seq.foreach(_.get)))
 
       case Failure(e) =>
         log.error(e, "DynamoDB Journal encountered error creating writes for {}: {}", atomicWrite.persistenceId, e.getMessage)
@@ -67,59 +69,55 @@ trait DynamoDBRequests {
     }
   }
 
+  def deleteMessages(persistenceId: String, start: Long, end: Long): Future[Done] =
+    doBatch(
+      batch => s"execute batch delete $batch",
+      (start to end).map(deleteReq(persistenceId, _))
+    )
+
+  def setHS(persistenceId: String, to: Long): Future[PutItemResult] = {
+    val item = toHSItem(persistenceId, to)
+    val put = new PutItemRequest().withTableName(JournalTable).withItem(item)
+    dynamo.putItem(put)
+  }
+
+  def removeHS(persistenceId: String): Future[Done] =
+    doBatch(
+      _ => s"remove HS entry for $persistenceId",
+      (0 until SequenceShards).map(deleteHSItem(persistenceId, _))
+    )
+
+  def setLS(persistenceId: String, to: Long): Future[PutItemResult] = {
+    val item = toLSItem(persistenceId, to)
+    val put = new PutItemRequest().withTableName(JournalTable).withItem(item)
+    dynamo.putItem(put)
+  }
+
+  def removeLS(persistenceId: String): Future[Done] =
+    doBatch(
+      _ => s"remove LS entry for $persistenceId",
+      (0 until SequenceShards).map(deleteLSItem(persistenceId, _))
+    )
+
+  /*
+   * Request and Item construction helpers.
+   */
+
   /**
    * Converts a sequence of PersistentRepr to a single batch write request
    */
-  protected def toBatchWriteItemRequest(msgs: Seq[PersistentRepr]): BatchWriteItemRequest = {
+  private def toBatchWriteItemRequest(msgs: Seq[PersistentRepr]): BatchWriteItemRequest = {
     val writes = msgs.foldLeft(new mutable.ArrayBuffer[WriteRequest](msgs.length)) {
       case (ws, repr) =>
         ws += putReq(toMsgItem(repr))
-        ws += putReq(toHSItem(repr))
+        ws += putReq(toHSItem(repr.persistenceId, repr.sequenceNr))
         ws
     }
     val reqItems = Collections.singletonMap(JournalTable, writes.asJava)
     batchWriteReq(reqItems)
   }
 
-  /**
-   * Sends the unprocessed batch write items, and sets the back-off.
-   * if no more retries remain (number of back-off retries exhausted, we throw a Runtime exception
-   *
-   * Note: the dynamo db client supports automatic retries, however a batch will not fail if some of the items in the
-   * batch fail; that is why we need our own back-off mechanism here.  If we exhaust OUR retry logic on top of
-   * the retries from teh client, then we are hosed and cannot continue; that is why we have a RuntimeException here
-   */
-  protected def sendUnprocessedItems(resultTry: AWSTry[BatchWriteItemResult],
-                                     retriesRemaining: Int = 10): Future[AWSTry[BatchWriteItemResult]] =
-    resultTry match {
-      case Left(ex) => Future.successful(resultTry)
-      case Right(result) =>
-        val unprocessed: Int = Option(result.getUnprocessedItems.get(JournalTable)).map(_.size()).getOrElse(0)
-        if (unprocessed == 0) Future.successful(resultTry)
-        else if (retriesRemaining == 0) {
-          throw new RuntimeException(s"unable to batch write $result after 10 tries")
-        } else {
-          val rest = batchWriteReq(result.getUnprocessedItems)
-          dynamo.batchWriteItem(rest).flatMap(r => sendUnprocessedItems(r, retriesRemaining - 1))
-        }
-    }
-
-  def deleteMessages(persistenceId: String, sequenceNrs: immutable.Seq[Long]): Future[Unit] = unitSequence {
-    sequenceNrs.map {
-      sequenceNr =>
-        dynamo.deleteItem(permanentDeleteToDelete(persistenceId, sequenceNr)).map {
-          _ => log.debug("at=permanent-delete-item  persistenceId={} sequenceId={}", persistenceId, sequenceNr)
-        }.flatMap {
-          _ =>
-            val item = toLSItem(persistenceId, sequenceNr)
-            val put = new PutItemRequest().withTableName(JournalTable).withItem(item)
-            dynamo.putItem(put).map(
-              _ => log.debug("at=update-sequence-low-shard persistenceId={} sequenceId={}", persistenceId, sequenceNr))
-        }
-    }
-  }
-
-  def toMsgItem(repr: PersistentRepr): Item = {
+  private def toMsgItem(repr: PersistentRepr): Item = {
     val k = messageKey(repr.persistenceId, repr.sequenceNr)
     val v = B(serialization.serialize(repr).get)
     val itemSize = KeyPayloadOverhead + k.getS.length + v.getB.remaining
@@ -131,33 +129,83 @@ trait DynamoDBRequests {
     item
   }
 
-  def toHSItem(repr: PersistentRepr): Item = {
+  private def toHSItem(persistenceId: String, sequenceNr: Long): Item = {
     val item: Item = new JHMap(2, 1.0f)
-    item.put(Key, highSeqKey(repr.persistenceId, repr.sequenceNr % SequenceShards))
-    item.put(SequenceNr, N(repr.sequenceNr))
+    item.put(Key, highSeqKey(persistenceId, sequenceNr % SequenceShards))
+    item.put(SequenceNr, N(sequenceNr))
     item
   }
 
-  def toLSItem(persistenceId: String, sequenceNr: Long): Item = {
+  private def deleteHSItem(persistenceId: String, shard: Int): WriteRequest =
+    new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(
+      Collections.singletonMap(Key, highSeqKey(persistenceId, shard))
+    ))
+
+  private def toLSItem(persistenceId: String, sequenceNr: Long): Item = {
     val item: Item = new JHMap(2, 1.0f)
     item.put(Key, lowSeqKey(persistenceId, sequenceNr % SequenceShards))
     item.put(SequenceNr, N(sequenceNr))
     item
   }
 
-  def putReq(item: Item): WriteRequest = new WriteRequest().withPutRequest(new PutRequest().withItem(item))
+  private def deleteLSItem(persistenceId: String, shard: Int): WriteRequest =
+    new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(
+      Collections.singletonMap(Key, lowSeqKey(persistenceId, shard))
+    ))
 
-  def deleteReq(item: Item): WriteRequest = new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(item))
+  private def putReq(item: Item): WriteRequest = new WriteRequest().withPutRequest(new PutRequest().withItem(item))
 
-  def batchWriteReq(items: JMap[String, JList[WriteRequest]]) = new BatchWriteItemRequest()
-    .withRequestItems(items)
-    .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
+  private def deleteReq(persistenceId: String, sequenceNr: Long): WriteRequest =
+    new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(
+      Collections.singletonMap(Key, messageKey(persistenceId, sequenceNr))
+    ))
 
-  def permanentDeleteToDelete(persistenceId: String, sequenceNr: Long): DeleteItemRequest = {
-    log.debug("delete permanent {}", sequenceNr)
-    val key = Collections.singletonMap(Key, messageKey(persistenceId, sequenceNr))
-    new DeleteItemRequest().withTableName(JournalTable).withKey(key)
+  private def batchWriteReq(writes: Seq[WriteRequest]): BatchWriteItemRequest =
+    batchWriteReq(Collections.singletonMap(JournalTable, writes.asJava))
+
+  private def batchWriteReq(items: JMap[String, JList[WriteRequest]]): BatchWriteItemRequest =
+    new BatchWriteItemRequest()
+      .withRequestItems(items)
+      .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
+
+  /*
+   * Request execution helpers.
+   */
+
+  /**
+   * Execute the given WriteRequests in batches of MaxBatchWrite, ignoring and
+   * logging all errors. The returned Future never fails.
+   */
+  private def doBatch(desc: Seq[WriteRequest] => String, writes: Seq[WriteRequest]): Future[Done] =
+    Future.sequence {
+      writes
+        .grouped(MaxBatchWrite)
+        .map { batch =>
+          dynamo.batchWriteItem(batchWriteReq(batch))
+            .flatMap(sendUnprocessedItems(_))
+            .recover {
+              case NonFatal(ex) => log.error(ex, "cannot " + desc(batch))
+            }
+        }
+    }.map(_ => Done)
+
+  /**
+   * Sends the unprocessed batch write items, and sets the back-off.
+   * if no more retries remain (number of back-off retries exhausted, we throw a Runtime exception
+   *
+   * Note: the dynamo db client supports automatic retries, however a batch will not fail if some of the items in the
+   * batch fail; that is why we need our own back-off mechanism here.  If we exhaust OUR retry logic on top of
+   * the retries from teh client, then we are hosed and cannot continue; that is why we have a RuntimeException here
+   */
+  private def sendUnprocessedItems(result: BatchWriteItemResult, retriesRemaining: Int = 10): Future[BatchWriteItemResult] = {
+    val unprocessed: Int = Option(result.getUnprocessedItems.get(JournalTable)).map(_.size()).getOrElse(0)
+    if (unprocessed == 0) Future.successful(result)
+    else if (retriesRemaining == 0) {
+      throw new RuntimeException(s"unable to batch write $result after 10 tries")
+    } else {
+      val rest = batchWriteReq(result.getUnprocessedItems)
+      dynamo.batchWriteItem(rest).flatMap(r => sendUnprocessedItems(r, retriesRemaining - 1))
+    }
   }
 
-  def unitSequence(seq: TraversableOnce[Future[Unit]]): Future[Unit] = Future.sequence(seq).map(_ => ())
 }
