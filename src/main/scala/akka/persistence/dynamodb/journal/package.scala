@@ -13,6 +13,7 @@ import scala.concurrent._
 import scala.util.Try
 import java.util.concurrent.{ ThreadPoolExecutor, LinkedBlockingQueue, TimeUnit }
 import scala.collection.generic.CanBuildFrom
+import java.util.concurrent.Executors
 
 package object journal {
 
@@ -48,8 +49,7 @@ package object journal {
   def dynamoClient(system: ActorSystem, settings: DynamoDBJournalConfig): DynamoDBHelper = {
     val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
     val conns = settings.client.config.getMaxConnections
-    val executor = new ThreadPoolExecutor(Math.min(8, conns), conns, 5, TimeUnit.SECONDS, new LinkedBlockingQueue)
-    executor.prestartAllCoreThreads()
+    val executor = Executors.newFixedThreadPool(conns)
     val client = new AmazonDynamoDBAsyncClient(creds, settings.client.config, executor)
     client.setEndpoint(settings.Endpoint)
     val dispatcher = system.dispatchers.lookup(settings.ClientDispatcher)

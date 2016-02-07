@@ -14,7 +14,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-persistence-tck" % akkaVersion % "test",
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
   "org.scalatest" %% "scalatest" % "2.1.7" % "test",
-  "commons-io" % "commons-io" % "2.4" % "test"
+  "commons-io" % "commons-io" % "2.4" % "test",
+  "org.hdrhistogram" % "HdrHistogram" % "2.1.8" % "test"
 )
 
 parallelExecution in Test := false

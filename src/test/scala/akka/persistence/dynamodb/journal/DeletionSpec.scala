@@ -22,7 +22,10 @@ class DeletionSpec extends TestKit(ActorSystem("FailureReportingSpec"))
     with DynamoDBUtils {
 
   override def beforeAll(): Unit = ensureJournalTableExists()
-  override def afterAll(): Unit = system.terminate().futureValue
+  override def afterAll(): Unit = {
+    system.terminate().futureValue
+    client.shutdown()
+  }
 
   override val persistenceId = "DeletionSpec"
   val journal = Persistence(system).journalFor("")

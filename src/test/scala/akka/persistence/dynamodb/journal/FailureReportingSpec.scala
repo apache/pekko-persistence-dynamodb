@@ -51,7 +51,10 @@ class FailureReportingSpec extends TestKit(ActorSystem("FailureReportingSpec"))
   }
 
   override def beforeAll(): Unit = ensureJournalTableExists()
-  override def afterAll(): Unit = system.terminate().futureValue
+  override def afterAll(): Unit = {
+    client.shutdown()
+    system.terminate().futureValue
+  }
 
   "DynamoDB Journal Failure Reporting" must {
 

@@ -29,13 +29,13 @@ trait DynamoDBUtils {
 
   implicit val timeout = Timeout(5.seconds)
 
-  def ensureJournalTableExists(): Unit = {
+  def ensureJournalTableExists(read: Long = 10L, write: Long = 10L): Unit = {
     val describe = new DescribeTableRequest().withTableName(JournalTable)
     val create = new CreateTableRequest()
       .withTableName(JournalTable)
       .withKeySchema(schema)
       .withAttributeDefinitions(schemaAttributes)
-      .withProvisionedThroughput(new ProvisionedThroughput(10L, 10L))
+      .withProvisionedThroughput(new ProvisionedThroughput(read, write))
 
     val setup = for {
       exists <- client.describeTable(describe).map(_ => true).recover { case _ => false }

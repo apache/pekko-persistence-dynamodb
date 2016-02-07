@@ -59,6 +59,8 @@ case class ListAllResult(persistenceId: String, lowest: Set[Long], highest: Set[
  */
 case class Purge(persistenceId: String, replyTo: ActorRef)
 
+private[akka] case class SetDBHelperReporter(ref: ActorRef)
+
 /**
  * Confirmation that all information stored for the given `persistenceId` has
  * been purged from the journal.
@@ -87,6 +89,8 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
       case ctx => ctx.stop(self)
     }
   }
+
+  override def postStop(): Unit = dynamo.shutdown()
 
   private case class OpFinished(pid: String, f: Future[Done])
   private val opQueue: JMap[String, Future[Done]] = new JHMap
@@ -158,6 +162,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     case OpFinished(persistenceId, f) => opQueue.remove(persistenceId, f)
     case ListAll(persistenceId, replyTo) => listAll(persistenceId) pipeTo replyTo
     case Purge(persistenceId, replyTo) => purge(persistenceId).map(_ => Purged(persistenceId)) pipeTo replyTo
+    case SetDBHelperReporter(ref) => dynamo.setReporter(ref)
   }
 
   def S(value: String): AttributeValue = new AttributeValue().withS(value)

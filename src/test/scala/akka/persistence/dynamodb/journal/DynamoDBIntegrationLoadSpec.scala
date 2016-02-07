@@ -136,6 +136,11 @@ class DynamoDBIntegrationLoadSpec
     ensureJournalTableExists()
   }
 
+  override def afterAll(): Unit = {
+    client.shutdown()
+    system.terminate()
+  }
+
   def subscribeToRangeDeletion(probe: TestProbe): Unit =
     system.eventStream.subscribe(probe.ref, classOf[JournalProtocol.DeleteMessagesTo])
 

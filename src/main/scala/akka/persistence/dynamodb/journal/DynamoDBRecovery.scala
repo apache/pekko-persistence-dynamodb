@@ -12,7 +12,6 @@ import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
-import akka.actor.ActorContext
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 
