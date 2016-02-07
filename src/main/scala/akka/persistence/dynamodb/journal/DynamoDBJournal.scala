@@ -88,7 +88,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     }
   }
 
-  private case class OpFinished(pid: String)
+  private case class OpFinished(pid: String, f: Future[Done])
   private val opQueue: JMap[String, Future[Done]] = new JHMap
 
   override def asyncWriteMessages(messages: immutable.Seq[AtomicWrite]): Future[immutable.Seq[Try[Unit]]] = {
@@ -99,7 +99,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     val f = logFailure("write")(Future.sequence(messages.map(writeMessages)))
     f.onComplete { _ =>
       log.debug("writeMessages for {} finished", pid)
-      self ! OpFinished(pid)
+      self ! OpFinished(pid, p.future)
       p.success(Done)
     }(akka.dispatch.ExecutionContexts.sameThreadExecutionContext)
     f
@@ -155,7 +155,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     } yield Done
 
   override def receivePluginInternal = {
-    case OpFinished(persistenceId) => opQueue.remove(persistenceId)
+    case OpFinished(persistenceId, f) => opQueue.remove(persistenceId, f)
     case ListAll(persistenceId, replyTo) => listAll(persistenceId) pipeTo replyTo
     case Purge(persistenceId, replyTo) => purge(persistenceId).map(_ => Purged(persistenceId)) pipeTo replyTo
   }
