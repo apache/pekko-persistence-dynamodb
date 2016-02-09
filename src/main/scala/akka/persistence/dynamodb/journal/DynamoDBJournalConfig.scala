@@ -81,5 +81,8 @@ class DynamoDBJournalConfig(c: Config) {
     ",SequenceShards:" + SequenceShards +
     ",ReplayParallelism" + ReplayParallelism +
     ",Tracing:" + Tracing +
+    ",MaxBatchGet:" + MaxBatchGet +
+    ",MaxBatchWrite:" + MaxBatchWrite +
+    ",MaxItemSize:" + MaxItemSize +
     ",client.config:" + client
 }

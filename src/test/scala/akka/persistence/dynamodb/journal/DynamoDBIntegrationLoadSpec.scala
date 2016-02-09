@@ -279,7 +279,7 @@ class DynamoDBIntegrationLoadSpec
       subscribeToRangeDeletion(deleteProbe)
       val processorAtomic = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, self))
 
-      processorAtomic ! List("a-1", "a-2", "a-3", "a-4", "a-5", "a-6")
+      List("a-1", "a-2", "a-3", "a-4", "a-5", "a-6") foreach (processorAtomic ! List(_))
       1L to 6L foreach { i =>
         expectMsgAllOf(s"a-${i}", i, false)
       }

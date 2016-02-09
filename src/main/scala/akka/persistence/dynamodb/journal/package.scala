@@ -15,6 +15,7 @@ import java.util.concurrent.{ ThreadPoolExecutor, LinkedBlockingQueue, TimeUnit 
 import scala.collection.generic.CanBuildFrom
 import java.util.concurrent.Executors
 import java.util.Collections
+import java.nio.ByteBuffer
 
 package object journal {
 
@@ -26,6 +27,8 @@ package object journal {
   val Sort = "num"
   val Payload = "pay"
   val SequenceNr = "seq"
+  val AtomIndex = "idx"
+  val AtomEnd = "cnt"
 
   val KeyPayloadOverhead = 26 // including fixed parts of partition key and 36 bytes fudge factor
 
@@ -40,6 +43,14 @@ package object journal {
       new AttributeDefinition().withAttributeName(Key).withAttributeType("S"),
       new AttributeDefinition().withAttributeName(Sort).withAttributeType("N")
     )
+
+  def S(value: String): AttributeValue = new AttributeValue().withS(value)
+
+  def N(value: Long): AttributeValue = new AttributeValue().withN(value.toString)
+  def N(value: String): AttributeValue = new AttributeValue().withN(value)
+  val Naught = N(0)
+
+  def B(value: Array[Byte]): AttributeValue = new AttributeValue().withB(ByteBuffer.wrap(value))
 
   def lift[T](f: Future[T]): Future[Try[T]] = {
     val p = Promise[Try[T]]
