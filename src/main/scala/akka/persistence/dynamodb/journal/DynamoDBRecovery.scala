@@ -113,23 +113,24 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     fromSequenceNr: Long,
     toSequenceNr: Long,
     max: Long
-  )(replayCallback: (PersistentRepr) => Unit): Future[Unit] = logFailure("replay") {
-    log.debug("starting replay for {} from {} to {} (max {})", persistenceId, fromSequenceNr, toSequenceNr, max)
-    // toSequenceNr is already capped to highest and guaranteed to be no less than fromSequenceNr
-    readSequenceNr(persistenceId, highest = false).flatMap { lowest =>
-      val start = Math.max(fromSequenceNr, lowest)
-      Source(start to toSequenceNr)
-        .grouped(MaxBatchGet)
-        .mapAsync(ReplayParallelism)(batch => getReplayBatch(persistenceId, batch).map(_.sorted))
-        .mapConcat(conforms)
-        .via(RemoveIncompleteAtoms)
-        .mapConcat(conforms)
-        .take(max)
-        .map(readPersistentRepr)
-        .runFold(0) { (count, next) => replayCallback(next); count + 1 }
-        .map(count => log.debug("replay finished for {} with {} events", persistenceId, count))
+  )(replayCallback: (PersistentRepr) => Unit): Future[Unit] =
+    logFailure(s"replay for $persistenceId ($fromSequenceNr to $toSequenceNr)") {
+      log.debug("starting replay for {} from {} to {} (max {})", persistenceId, fromSequenceNr, toSequenceNr, max)
+      // toSequenceNr is already capped to highest and guaranteed to be no less than fromSequenceNr
+      readSequenceNr(persistenceId, highest = false).flatMap { lowest =>
+        val start = Math.max(fromSequenceNr, lowest)
+        Source(start to toSequenceNr)
+          .grouped(MaxBatchGet)
+          .mapAsync(ReplayParallelism)(batch => getReplayBatch(persistenceId, batch).map(_.sorted))
+          .mapConcat(conforms)
+          .via(RemoveIncompleteAtoms)
+          .mapConcat(conforms)
+          .take(max)
+          .map(readPersistentRepr)
+          .runFold(0) { (count, next) => replayCallback(next); count + 1 }
+          .map(count => log.debug("replay finished for {} with {} events", persistenceId, count))
+      }
     }
-  }
 
   def getReplayBatch(persistenceId: String, seqNrs: Seq[Long]): Future[ReplayBatch] = {
     val batchKeys = seqNrs.map(s => messageKey(persistenceId, s) -> (s / 100))
@@ -259,10 +260,13 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     persistentFromByteBuffer(item.get(Payload).getB)
 
   def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int = 10): Future[BatchGetItemResult] = {
-    val unprocessed = Option(result.getUnprocessedKeys.get(JournalTable)).map(_.getKeys.size()).getOrElse(0)
+    val unprocessed = result.getUnprocessedKeys.get(JournalTable) match {
+      case null => 0
+      case x => x.getKeys.size
+    }
     if (unprocessed == 0) Future.successful(result)
     else if (retriesRemaining == 0) {
-      Future.failed(new DynamoDBJournalFailure(s"unable to batch get $result after 10 tries"))
+      Future.failed(new DynamoDBJournalFailure(s"unable to batch get ${result.getUnprocessedKeys.get(JournalTable).getKeys} after 10 tries"))
     } else {
       val rest = batchGetReq(result.getUnprocessedKeys)
       dynamo.batchGetItem(rest).map { rr =>

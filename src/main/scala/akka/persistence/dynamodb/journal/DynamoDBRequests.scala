@@ -112,7 +112,7 @@ trait DynamoDBRequests {
 
   def removeHS(persistenceId: String): Future[Done] =
     doBatch(
-      _ => s"remove HS entry for $persistenceId",
+      _ => s"remove highest sequence number entry for $persistenceId",
       (0 until SequenceShards).map(deleteHSItem(persistenceId, _))
     )
 
@@ -123,7 +123,7 @@ trait DynamoDBRequests {
 
   def removeLS(persistenceId: String): Future[Done] =
     doBatch(
-      _ => s"remove LS entry for $persistenceId",
+      _ => s"remove lowest sequence number entry for $persistenceId",
       (0 until SequenceShards).map(deleteLSItem(persistenceId, _))
     )
 
@@ -252,7 +252,7 @@ trait DynamoDBRequests {
     }
     if (unprocessed == 0) Future.successful(result)
     else if (retriesRemaining == 0) {
-      throw new RuntimeException(s"unable to batch write $result after 10 tries")
+      throw new RuntimeException(s"unable to batch write ${result.getUnprocessedItems.get(JournalTable)} after 10 tries")
     } else {
       val rest = batchWriteReq(result.getUnprocessedItems)
       after(backoff, context.system.scheduler)(dynamo.batchWriteItem(rest).flatMap(r => sendUnprocessedItems(r, retriesRemaining - 1, backoff * 2)))

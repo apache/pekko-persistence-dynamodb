@@ -100,6 +100,18 @@ trait DynamoDBHelper {
     def desc(aws: DescribeTableRequest): String = s"DescribeTableRequest(${aws.getTableName})"
   }
 
+  implicit object QueryDescribe extends Describe[QueryRequest] {
+    def desc(aws: QueryRequest): String = s"QueryRequest(${aws.getExpressionAttributeValues})"
+  }
+
+  implicit object PutItemDescribe extends Describe[PutItemRequest] {
+    def desc(aws: PutItemRequest): String = s"PutItemRequest(${aws.getItem.get(Key)})"
+  }
+
+  implicit object DeleteDescribe extends Describe[DeleteItemRequest] {
+    def desc(aws: DeleteItemRequest): String = s"DeleteItemRequest(${aws.getKey})"
+  }
+
   def listTables(aws: ListTablesRequest): Future[ListTablesResult] =
     send[ListTablesRequest, ListTablesResult](aws, dynamoDB.listTablesAsync(aws, _))
 

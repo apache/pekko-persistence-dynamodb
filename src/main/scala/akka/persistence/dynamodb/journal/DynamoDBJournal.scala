@@ -100,7 +100,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     val pid = messages.head.persistenceId
     opQueue.put(pid, p.future)
 
-    val f = logFailure("write")(writeMessages(messages))
+    val f = writeMessages(messages)
 
     f.onComplete { _ =>
       self ! OpFinished(pid, p.future)
@@ -112,8 +112,8 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
 
   override def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
     opQueue.get(persistenceId) match {
-      case null => logFailure("read-highest")(readSequenceNr(persistenceId, highest = true))
-      case f => f.flatMap(_ => logFailure("read-highest")(readSequenceNr(persistenceId, highest = true)))
+      case null => logFailure(s"read-highest($persistenceId)")(readSequenceNr(persistenceId, highest = true))
+      case f => f.flatMap(_ => logFailure(s"read-highest($persistenceId)")(readSequenceNr(persistenceId, highest = true)))
     }
 
   /**
@@ -129,20 +129,21 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
    *
    * TODO in principle replays should be inhibited while the purge is ongoing
    */
-  override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] = logFailure("delete") {
-    log.debug("delete-messages persistenceId={} to={}", persistenceId, toSequenceNr)
-    val lowF = readSequenceNr(persistenceId, highest = false)
-    val highF = readSequenceNr(persistenceId, highest = true)
-    for {
-      lowest <- lowF
-      highest <- highF
-      val upTo = Math.min(toSequenceNr, highest)
-      _ <- if (upTo + 1 > lowest) setLS(persistenceId, to = upTo + 1) else Future.successful(Done)
-      _ <- if (lowest <= upTo) deleteMessages(persistenceId, lowest, upTo) else Future.successful(Done)
-    } yield {
-      log.debug("finished asyncDeleteMessagesTo {} {} ({})", persistenceId, toSequenceNr, upTo)
+  override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] =
+    logFailure(s"delete($persistenceId, upto=$toSequenceNr)") {
+      log.debug("delete-messages persistenceId={} to={}", persistenceId, toSequenceNr)
+      val lowF = readSequenceNr(persistenceId, highest = false)
+      val highF = readSequenceNr(persistenceId, highest = true)
+      for {
+        lowest <- lowF
+        highest <- highF
+        val upTo = Math.min(toSequenceNr, highest)
+        _ <- if (upTo + 1 > lowest) setLS(persistenceId, to = upTo + 1) else Future.successful(Done)
+        _ <- if (lowest <= upTo) deleteMessages(persistenceId, lowest, upTo) else Future.successful(Done)
+      } yield {
+        log.debug("finished asyncDeleteMessagesTo {} {} ({})", persistenceId, toSequenceNr, upTo)
+      }
     }
-  }
 
   private def listAll(persistenceId: String): Future[ListAllResult] =
     for {

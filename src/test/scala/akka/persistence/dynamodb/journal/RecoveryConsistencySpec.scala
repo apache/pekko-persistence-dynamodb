@@ -36,7 +36,7 @@ class RecoveryConsistencySpec extends TestKit(ActorSystem("FailureReportingSpec"
 
   "DynamoDB Journal (Recovery)" must {
 
-    val repetitions = 1
+    val repetitions = 50
     val messages = 20
     val writes = (1 to messages).map(i => AtomicWrite(persistentRepr(f"a-$i%04d")))
     val probe = TestProbe()
