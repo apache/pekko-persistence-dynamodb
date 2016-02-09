@@ -75,7 +75,7 @@ trait DynamoDBHelper {
       case other => Future.failed(other)
     }
 
-    if (Tracing) log.debug("{} {}", name, aws)
+    if (Tracing) log.debug("{}", name)
     val start = if (reporter ne null) System.nanoTime else 0L
 
     // backoff retries when sending too fast

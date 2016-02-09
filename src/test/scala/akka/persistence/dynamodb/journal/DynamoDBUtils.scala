@@ -31,10 +31,8 @@ trait DynamoDBUtils {
 
   def ensureJournalTableExists(read: Long = 10L, write: Long = 10L): Unit = {
     val describe = new DescribeTableRequest().withTableName(JournalTable)
-    val create = new CreateTableRequest()
+    val create = schema
       .withTableName(JournalTable)
-      .withKeySchema(schema)
-      .withAttributeDefinitions(schemaAttributes)
       .withProvisionedThroughput(new ProvisionedThroughput(read, write))
 
     val setup = for {
