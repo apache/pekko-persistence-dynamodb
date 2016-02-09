@@ -22,7 +22,10 @@ class DeletionSpec extends TestKit(ActorSystem("FailureReportingSpec"))
     with DynamoDBUtils {
 
   override def beforeAll(): Unit = ensureJournalTableExists()
-  override def afterAll(): Unit = system.terminate().futureValue
+  override def afterAll(): Unit = {
+    system.terminate().futureValue
+    client.shutdown()
+  }
 
   override val persistenceId = "DeletionSpec"
   val journal = Persistence(system).journalFor("")
@@ -37,33 +40,40 @@ class DeletionSpec extends TestKit(ActorSystem("FailureReportingSpec"))
     }
 
     "2 store events" in {
-      val msgs = (0 to 9).map(i => AtomicWrite(persistentRepr(s"a-$i")))
+      val msgs = (1 to 149).map(i => AtomicWrite(persistentRepr(s"a-$i")))
       journal ! WriteMessages(msgs, testActor, 1)
       expectMsg(WriteMessagesSuccessful)
-      (0 to 9) foreach (_ => expectMsgType[WriteMessageSuccess])
+      (1 to 149) foreach (i => expectMsgType[WriteMessageSuccess].persistent.sequenceNr should ===(i))
       journal ! ListAll(persistenceId, testActor)
-      expectMsg(ListAllResult(persistenceId, Set.empty, (1L to 10).toSet, (1L to 10)))
+      expectMsg(ListAllResult(persistenceId, Set.empty, Set(100L), (1L to 149)))
+
+      val more = AtomicWrite((150 to 200).map(i => persistentRepr("b-$i")))
+      journal ! WriteMessages(more :: Nil, testActor, 1)
+      expectMsg(WriteMessagesSuccessful)
+      (150 to 200) foreach (i => expectMsgType[WriteMessageSuccess].persistent.sequenceNr should ===(i))
+      journal ! ListAll(persistenceId, testActor)
+      expectMsg(ListAllResult(persistenceId, Set.empty, Set(100L, 200L), (1L to 200)))
     }
 
     "3 delete some events" in {
       journal ! DeleteMessagesTo(persistenceId, 5L, testActor)
       expectMsg(DeleteMessagesSuccess(5L))
       journal ! ListAll(persistenceId, testActor)
-      expectMsg(ListAllResult(persistenceId, Set(6L), (1L to 10).toSet, (6L to 10)))
+      expectMsg(ListAllResult(persistenceId, Set(6L), Set(100L, 200L), (6L to 200)))
     }
 
     "4 delete no events" in {
       journal ! DeleteMessagesTo(persistenceId, 3L, testActor)
       expectMsg(DeleteMessagesSuccess(3L))
       journal ! ListAll(persistenceId, testActor)
-      expectMsg(ListAllResult(persistenceId, Set(6L), (1L to 10).toSet, (6L to 10)))
+      expectMsg(ListAllResult(persistenceId, Set(6L), Set(100L, 200L), (6L to 200)))
     }
 
     "5 delete all events" in {
-      journal ! DeleteMessagesTo(persistenceId, 31L, testActor)
-      expectMsg(DeleteMessagesSuccess(31L))
+      journal ! DeleteMessagesTo(persistenceId, 210L, testActor)
+      expectMsg(DeleteMessagesSuccess(210L))
       journal ! ListAll(persistenceId, testActor)
-      expectMsg(ListAllResult(persistenceId, Set(6L, 11L), (1L to 10).toSet, Nil))
+      expectMsg(ListAllResult(persistenceId, Set(6L, 201L), Set(100L, 200L), Nil))
     }
 
     "6 purge events" in {

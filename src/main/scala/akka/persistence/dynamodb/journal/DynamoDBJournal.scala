@@ -59,6 +59,8 @@ case class ListAllResult(persistenceId: String, lowest: Set[Long], highest: Set[
  */
 case class Purge(persistenceId: String, replyTo: ActorRef)
 
+private[akka] case class SetDBHelperReporter(ref: ActorRef)
+
 /**
  * Confirmation that all information stored for the given `persistenceId` has
  * been purged from the journal.
@@ -88,20 +90,23 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     }
   }
 
-  private case class OpFinished(pid: String)
+  override def postStop(): Unit = dynamo.shutdown()
+
+  private case class OpFinished(pid: String, f: Future[Done])
   private val opQueue: JMap[String, Future[Done]] = new JHMap
 
   override def asyncWriteMessages(messages: immutable.Seq[AtomicWrite]): Future[immutable.Seq[Try[Unit]]] = {
     val p = Promise[Done]
     val pid = messages.head.persistenceId
-    log.debug("writeMesssages for {}", pid)
     opQueue.put(pid, p.future)
-    val f = logFailure("write")(Future.sequence(messages.map(writeMessages)))
+
+    val f = logFailure("write")(writeMessages(messages))
+
     f.onComplete { _ =>
-      log.debug("writeMessages for {} finished", pid)
-      self ! OpFinished(pid)
+      self ! OpFinished(pid, p.future)
       p.success(Done)
     }(akka.dispatch.ExecutionContexts.sameThreadExecutionContext)
+
     f
   }
 
@@ -125,7 +130,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
    * TODO in principle replays should be inhibited while the purge is ongoing
    */
   override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] = logFailure("delete") {
-    log.debug("delete-messages-to persistenceId={} to={} perm={}", persistenceId, toSequenceNr)
+    log.debug("delete-messages persistenceId={} to={}", persistenceId, toSequenceNr)
     val lowF = readSequenceNr(persistenceId, highest = false)
     val highF = readSequenceNr(persistenceId, highest = true)
     for {
@@ -155,22 +160,46 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     } yield Done
 
   override def receivePluginInternal = {
-    case OpFinished(persistenceId) => opQueue.remove(persistenceId)
+    case OpFinished(persistenceId, f) => opQueue.remove(persistenceId, f)
     case ListAll(persistenceId, replyTo) => listAll(persistenceId) pipeTo replyTo
     case Purge(persistenceId, replyTo) => purge(persistenceId).map(_ => Purged(persistenceId)) pipeTo replyTo
+    case SetDBHelperReporter(ref) => dynamo.setReporter(ref)
   }
 
   def S(value: String): AttributeValue = new AttributeValue().withS(value)
 
   def N(value: Long): AttributeValue = new AttributeValue().withN(value.toString)
+  def N(value: String): AttributeValue = new AttributeValue().withN(value)
+  val Naught = N(0)
 
   def B(value: Array[Byte]): AttributeValue = new AttributeValue().withB(ByteBuffer.wrap(value))
 
-  def messageKey(persistenceId: String, sequenceNr: Long) = S(s"$JournalName-P-$persistenceId-$sequenceNr")
+  def keyLength(persistenceId: String, sequenceNr: Long): Int =
+    persistenceId.length + JournalName.length + KeyPayloadOverhead
 
-  def highSeqKey(persistenceId: String, shard: Long) = S(s"$JournalName-SH-$persistenceId-$shard")
+  def messageKey(persistenceId: String, sequenceNr: Long): Item = {
+    val item: Item = new JHMap
+    item.put(Key, S(messagePartitionKey(persistenceId, sequenceNr)))
+    item.put(Sort, N(sequenceNr % 100))
+    item
+  }
 
-  def lowSeqKey(persistenceId: String, shard: Long) = S(s"$JournalName-SL-$persistenceId-$shard")
+  def messagePartitionKey(persistenceId: String, sequenceNr: Long): String =
+    s"$JournalName-P-$persistenceId-${sequenceNr / 100}"
+
+  def highSeqKey(persistenceId: String, shard: Long) = {
+    val item: Item = new JHMap
+    item.put(Key, S(s"$JournalName-SH-$persistenceId-$shard"))
+    item.put(Sort, Naught)
+    item
+  }
+
+  def lowSeqKey(persistenceId: String, shard: Long) = {
+    val item: Item = new JHMap
+    item.put(Key, S(s"$JournalName-SL-$persistenceId-$shard"))
+    item.put(Sort, Naught)
+    item
+  }
 
   def persistentToByteBuffer(p: PersistentRepr): ByteBuffer =
     ByteBuffer.wrap(serialization.serialize(p).get)

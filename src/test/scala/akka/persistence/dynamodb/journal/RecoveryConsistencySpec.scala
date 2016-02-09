@@ -22,10 +22,13 @@ class RecoveryConsistencySpec extends TestKit(ActorSystem("FailureReportingSpec"
     with DynamoDBUtils {
 
   override def beforeAll(): Unit = ensureJournalTableExists()
-  override def afterAll(): Unit = system.terminate().futureValue
+  override def afterAll(): Unit = {
+    client.shutdown()
+    system.terminate().futureValue
+  }
 
   override val persistenceId = "RecoveryConsistencySpec"
-  val journal = Persistence(system).journalFor("")
+  lazy val journal = Persistence(system).journalFor("")
 
   "DynamoDB Journal (Recovery)" must {
 

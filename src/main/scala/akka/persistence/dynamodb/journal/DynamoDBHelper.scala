@@ -16,8 +16,10 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.control.NoStackTrace
+import akka.actor.ActorRef
 
-case class BackoffException(retries: Int, orig: ProvisionedThroughputExceededException) extends AmazonServiceException("BackOff") with NoStackTrace
+case class LatencyReport(nanos: Long, retries: Int)
+private class RetryStateHolder(var retries: Int = 10, var backoff: FiniteDuration = 1.millis)
 
 trait DynamoDBHelper {
 
@@ -28,45 +30,60 @@ trait DynamoDBHelper {
   val settings: DynamoDBJournalConfig
   import settings._
 
-  private def send[In <: AmazonWebServiceRequest, Out](
-    aws: In,
-    func: AsyncHandler[In, Out] => juc.Future[Out],
-    retries: Int = 10,
-    backoff: FiniteDuration = 1.millis
-  )(implicit d: Describe[_ >: In]): Future[Out] = {
-    val name = d.desc(aws)
-    if (Tracing) log.debug("{} {}", name, aws)
+  def shutdown(): Unit = dynamoDB.shutdown()
 
-    val p = Promise[Out]
+  private var reporter: ActorRef = _
+  def setReporter(ref: ActorRef): Unit = reporter = ref
 
-    val handler = new AsyncHandler[In, Out] {
-      override def onError(ex: Exception) = ex match {
-        case e: ProvisionedThroughputExceededException =>
-          p.tryFailure(BackoffException(retries, e))
-        case _ =>
-          log.error(ex, "failure while executing {}", name)
+  private def send[In <: AmazonWebServiceRequest, Out](aws: In, func: AsyncHandler[In, Out] => juc.Future[Out])(implicit d: Describe[_ >: In]): Future[Out] = {
+
+    def name = d.desc(aws)
+
+    def sendSingle(): Future[Out] = {
+      val p = Promise[Out]
+
+      val handler = new AsyncHandler[In, Out] {
+        override def onError(ex: Exception) = ex match {
+          case e: ProvisionedThroughputExceededException =>
+            p.tryFailure(ex)
+          case _ =>
+            log.error(ex, "failure while executing {}", name)
+            p.tryFailure(ex)
+        }
+        override def onSuccess(req: In, resp: Out) = p.trySuccess(resp)
+      }
+
+      try {
+        func(handler)
+      } catch {
+        case ex: Throwable =>
+          log.error(ex, "failure while preparing {}", name)
           p.tryFailure(ex)
       }
-      override def onSuccess(req: In, resp: Out) = p.trySuccess(resp)
+
+      p.future
     }
 
-    try {
-      func(handler)
-    } catch {
-      case ex: Throwable =>
-        log.error(ex, "failure while preparing {}", name)
-        p.tryFailure(ex)
-    }
+    val state = new RetryStateHolder
 
-    // backoff retries when sending too fast
-    p.future.recoverWith {
-      case BackoffException(x, _) if x > 0 =>
-        after(backoff, scheduler)(send(aws, func, retries - 1, backoff * 2))
-      case BackoffException(_, orig) =>
-        log.error(orig, "maximum backoff exceeded while executing {}", name)
-        Future.failed(orig)
+    lazy val retry: PartialFunction[Throwable, Future[Out]] = {
+      case _: ProvisionedThroughputExceededException if state.retries > 0 =>
+        val backoff = state.backoff
+        state.retries -= 1
+        state.backoff *= 2
+        after(backoff, scheduler)(sendSingle().recoverWith(retry))
       case other => Future.failed(other)
     }
+
+    if (Tracing) log.debug("{}", name)
+    val start = if (reporter ne null) System.nanoTime else 0L
+
+    // backoff retries when sending too fast
+    val f = sendSingle().recoverWith(retry)
+
+    if (reporter ne null) f.onComplete(_ => reporter ! LatencyReport(System.nanoTime - start, 10 - state.retries))
+
+    f
   }
 
   trait Describe[T] {

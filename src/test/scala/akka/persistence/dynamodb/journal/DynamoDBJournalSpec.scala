@@ -20,6 +20,11 @@ class DynamoDBJournalSpec extends JournalSpec(ConfigFactory.load()) with DynamoD
     ensureJournalTableExists()
   }
 
+  override def afterAll(): Unit = {
+    super.afterAll()
+    client.shutdown()
+  }
+
   override def writeMessages(fromSnr: Int, toSnr: Int, pid: String, sender: ActorRef, writerUuid: String): Unit = {
     Await.result(journal ? (Purge(pid, _)), 5.seconds)
     super.writeMessages(fromSnr, toSnr, pid, sender, writerUuid)

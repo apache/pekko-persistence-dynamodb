@@ -12,23 +12,23 @@ import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.concurrent.Future
 import scala.util.{ Failure, Success }
-import akka.actor.ActorContext
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
+import java.util.ArrayList
 
 object DynamoDBRecovery {
   case class ReplayBatch(items: Seq[Item], map: Map[AttributeValue, Long]) {
     def sorted: immutable.Iterable[Item] =
       items.foldLeft(immutable.TreeMap.empty[Long, Item])((acc, i) =>
-        acc.updated(map(i.get(Key)), i))
+        acc.updated(itemToSeq(i), i))
         .map(_._2)
-    def ids: Seq[Long] = items.map(i => map(i.get(Key))).sorted
+    def ids: Seq[Long] = items.map(itemToSeq).sorted
+    private def itemToSeq(i: Item): Long = map(i.get(Key)) * 100 + i.get(Sort).getN.toInt
   }
 }
 
 trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
   import DynamoDBRecovery._
-
   import settings._
 
   implicit lazy val replayDispatcher = context.system.dispatchers.lookup(ReplayDispatcher)
@@ -55,14 +55,18 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
   }
 
   def getReplayBatch(persistenceId: String, seqNrs: Seq[Long]): Future[ReplayBatch] = {
-    val batchKeys: Map[AttributeValue, Long] = seqNrs.map(s => messageKey(persistenceId, s) -> s)(collection.breakOut)
+    val batchKeys = seqNrs.map(s => messageKey(persistenceId, s) -> (s / 100))
     val keyAttr = new KeysAndAttributes()
-      .withKeys(batchKeys.keysIterator.map(Collections.singletonMap(Key, _)).toVector.asJava)
+      .withKeys(batchKeys.map(_._1).asJava)
       .withConsistentRead(true)
-      .withAttributesToGet(Key, Payload)
+      .withAttributesToGet(Key, Sort, Payload)
     val get = batchGetReq(Collections.singletonMap(JournalTable, keyAttr))
     dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_)).map {
-      case result => ReplayBatch(result.getResponses.get(JournalTable).asScala, batchKeys)
+      result =>
+        ReplayBatch(
+          result.getResponses.get(JournalTable).asScala,
+          batchKeys.iterator.map(p => p._1.get(Key) -> p._2).toMap
+        )
     }
   }
 
@@ -74,24 +78,74 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       .runFold(Vector.empty[Long])(_ ++ _)
 
   def readSequenceNr(persistenceId: String, highest: Boolean): Future[Long] = {
-    log.debug("readSequenceNr(highest={}) persistenceId={}", highest, persistenceId)
+    if (Tracing) log.debug("readSequenceNr(highest={}, persistenceId={})", highest, persistenceId)
     val keyGroups = readSequenceNrBatches(persistenceId, highest)
       .map(_.map(getMaxSeqNr).recover {
         case ex: Throwable =>
           log.error(ex, "unexpected failure condition in asyncReadHighestSequenceNr")
           -1L
       })
-    Future.sequence(keyGroups).map { seq =>
+    Future.sequence(keyGroups).flatMap { seq =>
       seq.max match {
         case -1L =>
           val highOrLow = if (highest) "highest" else "lowest"
           throw new DynamoDBJournalFailure(s"cannot read $highOrLow sequence number for persistenceId $persistenceId")
-        case ret =>
-          log.debug("readSequenceNr result for {}: {}", persistenceId, ret)
-          ret
+        case start =>
+          if (highest) {
+            /*
+             * When reading the highest sequence number the stored value always points to the Sort=0 entry
+             * for which it was written, all other entries do not update the highest value. Therefore we
+             * must scan the partition of this Sort=0 entry and find the highest occupied number.
+             */
+            val request = eventQuery(persistenceId, start)
+            dynamo.query(request)
+              .flatMap(getRemainingQueryItems(request, _))
+              .flatMap { result =>
+                if (result.getItems.isEmpty) {
+                  /*
+                   * If this comes back empty then that means that all events have been deleted. The only
+                   * reliable way to obtain the previously highest number is to also read the lowest number
+                   * (which is always stored in full), knowing that it will be either highest-1 or zero.
+                   */
+                  readSequenceNr(persistenceId, highest = false).map { lowest =>
+                    val ret = Math.max(0L, lowest - 1)
+                    log.debug("readSequenceNr(highest=true persistenceId={}) = {}", persistenceId, ret)
+                    ret
+                  }
+                } else {
+                  /*
+                   * `start` is the Sort=0 entry’s sequence number, so add the maximum sort key.
+                   */
+                  val ret = start + result.getItems.asScala.map(_.get(Sort).getN.toLong).max
+                  log.debug("readSequenceNr(highest=true persistenceId={}) = {}", persistenceId, ret)
+                  Future.successful(ret)
+                }
+              }
+          } else {
+            log.debug("readSequenceNr(highest=false persistenceId={}) = {}", persistenceId, start)
+            Future.successful(start)
+          }
       }
     }
   }
+
+  def readAllSequenceNr(persistenceId: String, highest: Boolean): Future[Set[Long]] =
+    Future.sequence(
+      readSequenceNrBatches(persistenceId, highest)
+        .map(_.map(getAllSeqNr).recover { case ex: Throwable => Nil })
+    )
+      .map(_.flatten.toSet)
+
+  def readSequenceNrBatches(persistenceId: String, highest: Boolean): Iterator[Future[BatchGetItemResult]] =
+    (0 until SequenceShards)
+      .iterator
+      .map(l => if (highest) highSeqKey(persistenceId, l) else lowSeqKey(persistenceId, l))
+      .grouped(MaxBatchGet)
+      .map { keys =>
+        val ka = new KeysAndAttributes().withKeys(keys.asJava).withConsistentRead(true)
+        val get = batchGetReq(Collections.singletonMap(JournalTable, ka))
+        dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_))
+      }
 
   private def getMaxSeqNr(resp: BatchGetItemResult): Long =
     if (resp.getResponses.isEmpty) 0L
@@ -124,23 +178,6 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       ret
     }
 
-  def readAllSequenceNr(persistenceId: String, highest: Boolean): Future[Set[Long]] =
-    Future.sequence(readSequenceNrBatches(persistenceId, highest)
-      .map(_.map(getAllSeqNr).recover { case ex: Throwable => Nil }))
-      .map(_.flatten.toSet)
-
-  def readSequenceNrBatches(persistenceId: String, highest: Boolean): Iterator[Future[BatchGetItemResult]] =
-    (0 until SequenceShards)
-      .iterator
-      .map(l => if (highest) highSeqKey(persistenceId, l) else lowSeqKey(persistenceId, l))
-      .grouped(MaxBatchGet)
-      .map { keys =>
-        val keyColl = keys.map(k => Collections.singletonMap(Key, k)).asJava
-        val ka = new KeysAndAttributes().withKeys(keyColl).withConsistentRead(true)
-        val get = batchGetReq(Collections.singletonMap(JournalTable, ka))
-        dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_))
-      }
-
   def readPersistentRepr(item: JMap[String, AttributeValue]): PersistentRepr =
     persistentFromByteBuffer(item.get(Payload).getB)
 
@@ -162,6 +199,27 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       }.flatMap(getUnprocessedItems(_, retriesRemaining - 1))
     }
   }
+
+  def getRemainingQueryItems(request: QueryRequest, result: QueryResult): Future[QueryResult] = {
+    val last = result.getLastEvaluatedKey
+    if (last == null || last.isEmpty || last.get(Sort).getN.toLong == 99) Future.successful(result)
+    else {
+      dynamo.query(request.withExclusiveStartKey(last)).map { next =>
+        val merged = new ArrayList[Item](result.getItems.size + next.getItems.size)
+        merged.addAll(result.getItems)
+        merged.addAll(next.getItems)
+        next.withItems(merged)
+      }
+    }
+  }
+
+  def eventQuery(persistenceId: String, sequenceNr: Long) =
+    new QueryRequest()
+      .withTableName(JournalTable)
+      .withKeyConditionExpression(Key + " = :kkey")
+      .withExpressionAttributeValues(Collections.singletonMap(":kkey", S(messagePartitionKey(persistenceId, sequenceNr))))
+      .withProjectionExpression("num")
+      .withConsistentRead(true)
 
   def batchGetReq(items: JMap[String, KeysAndAttributes]) =
     new BatchGetItemRequest()

@@ -10,9 +10,11 @@ import akka.actor.{ ActorSystem, Scheduler }
 import akka.event.{ Logging, LoggingAdapter }
 import java.util.{ Map => JMap }
 import scala.concurrent._
-import scala.util.Try
+import scala.util.{ Try, Success, Failure }
 import java.util.concurrent.{ ThreadPoolExecutor, LinkedBlockingQueue, TimeUnit }
 import scala.collection.generic.CanBuildFrom
+import java.util.concurrent.Executors
+import java.util.Collections
 
 package object journal {
 
@@ -20,20 +22,37 @@ package object journal {
   type ItemUpdates = JMap[String, AttributeValueUpdate]
 
   // field names
-  val Key = "key"
-  val Payload = "payload"
-  val SequenceNr = "sequenceNr"
+  val Key = "par"
+  val Sort = "num"
+  val Payload = "pay"
+  val SequenceNr = "seq"
 
-  val KeyPayloadOverhead = 26 // including 16 bytes fudge factor
+  val KeyPayloadOverhead = 26 // including fixed parts of partition key and 36 bytes fudge factor
 
   import collection.JavaConverters._
 
-  val schema = Seq(new KeySchemaElement().withKeyType(KeyType.HASH).withAttributeName(Key)).asJava
-  val schemaAttributes = Seq(new AttributeDefinition().withAttributeName(Key).withAttributeType("S")).asJava
+  val schema = new CreateTableRequest()
+    .withKeySchema(
+      new KeySchemaElement().withAttributeName(Key).withKeyType(KeyType.HASH),
+      new KeySchemaElement().withAttributeName(Sort).withKeyType(KeyType.RANGE)
+    )
+    .withAttributeDefinitions(
+      new AttributeDefinition().withAttributeName(Key).withAttributeType("S"),
+      new AttributeDefinition().withAttributeName(Sort).withAttributeType("N")
+    )
 
   def lift[T](f: Future[T]): Future[Try[T]] = {
     val p = Promise[Try[T]]
     f.onComplete(p.success)(akka.dispatch.ExecutionContexts.sameThreadExecutionContext)
+    p.future
+  }
+
+  def liftUnit(f: Future[Any]): Future[Try[Unit]] = {
+    val p = Promise[Try[Unit]]
+    f.onComplete {
+      case Success(_) => p.success(Success(()))
+      case f @ Failure(_) => p.success(f.asInstanceOf[Failure[Unit]])
+    }(akka.dispatch.ExecutionContexts.sameThreadExecutionContext)
     p.future
   }
 
@@ -48,8 +67,7 @@ package object journal {
   def dynamoClient(system: ActorSystem, settings: DynamoDBJournalConfig): DynamoDBHelper = {
     val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
     val conns = settings.client.config.getMaxConnections
-    val executor = new ThreadPoolExecutor(Math.min(8, conns), conns, 5, TimeUnit.SECONDS, new LinkedBlockingQueue)
-    executor.prestartAllCoreThreads()
+    val executor = Executors.newFixedThreadPool(conns)
     val client = new AmazonDynamoDBAsyncClient(creds, settings.client.config, executor)
     client.setEndpoint(settings.Endpoint)
     val dispatcher = system.dispatchers.lookup(settings.ClientDispatcher)
