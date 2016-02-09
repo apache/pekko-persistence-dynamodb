@@ -166,14 +166,6 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     case SetDBHelperReporter(ref) => dynamo.setReporter(ref)
   }
 
-  def S(value: String): AttributeValue = new AttributeValue().withS(value)
-
-  def N(value: Long): AttributeValue = new AttributeValue().withN(value.toString)
-  def N(value: String): AttributeValue = new AttributeValue().withN(value)
-  val Naught = N(0)
-
-  def B(value: Array[Byte]): AttributeValue = new AttributeValue().withB(ByteBuffer.wrap(value))
-
   def keyLength(persistenceId: String, sequenceNr: Long): Int =
     persistenceId.length + JournalName.length + KeyPayloadOverhead
 

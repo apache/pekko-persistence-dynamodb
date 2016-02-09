@@ -15,6 +15,8 @@ import scala.util.{ Failure, Success }
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import java.util.ArrayList
+import akka.stream.stage._
+import akka.stream._
 
 object DynamoDBRecovery {
   case class ReplayBatch(items: Seq[Item], map: Map[AttributeValue, Long]) {
@@ -24,6 +26,79 @@ object DynamoDBRecovery {
         .map(_._2)
     def ids: Seq[Long] = items.map(itemToSeq).sorted
     private def itemToSeq(i: Item): Long = map(i.get(Key)) * 100 + i.get(Sort).getN.toInt
+  }
+}
+
+object RemoveIncompleteAtoms extends GraphStage[FlowShape[Item, List[Item]]] {
+  private final val NoBatch = -1L
+
+  val in = Inlet[Item]("RIA.in")
+  val out = Outlet[List[Item]]("RIA.out")
+
+  override val shape = FlowShape(in, out)
+  override val initialAttributes = Attributes.name("RemoveIncompleteAtoms")
+
+  override def createLogic(attr: Attributes) = new GraphStageLogic(shape) with InHandler with OutHandler {
+    var batchEnd = NoBatch
+    var batch = List.empty[Item]
+
+    setHandler(out, this)
+    setHandler(in, this)
+
+    override def onPull(): Unit =
+      if (isClosed(in)) {
+        push(out, batch.reverse)
+        completeStage()
+      } else pull(in)
+
+    override def onPush(): Unit = {
+      val item = grab(in)
+      if (item.containsKey(AtomEnd)) {
+        val end = item.get(AtomEnd).getN.toLong
+        val index = item.get(AtomIndex).getN.toLong
+        val seqNr = sn(item)
+        if (seqNr == batchEnd) {
+          val result = (item :: batch).reverse
+          batch = Nil
+          batchEnd = NoBatch
+          if (result.size == (end + 1)) push(out, result)
+          else pull(in)
+        } else if (batchEnd == NoBatch || seqNr > batchEnd) {
+          batchEnd = seqNr - index + end
+          batch = item :: Nil
+          pull(in)
+        } else {
+          batch ::= item
+          pull(in)
+        }
+      } else {
+        push(out, item :: Nil)
+        // throw away possible incomplete batch
+        batchEnd = NoBatch
+        batch = Nil
+      }
+    }
+
+    override def onUpstreamFinish(): Unit =
+      if (batchEnd == NoBatch || batchIncomplete) completeStage()
+      else if (isAvailable(out)) {
+        push(out, batch.reverse)
+        completeStage()
+      }
+
+    private def batchIncomplete: Boolean = {
+      val idx = batch.head.get(AtomIndex).getN.toLong
+      batch.size <= idx
+    }
+
+    private def sn(item: Item): Long = {
+      val s = item.get(Key).getS
+      val n = item.get(Sort).getN.toLong
+      val pos = s.lastIndexOf('-')
+      require(pos != -1, "unknown key format " + s)
+      s.substring(pos + 1).toLong * 100 + n
+    }
+
   }
 }
 
@@ -46,7 +121,9 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       Source(start to toSequenceNr)
         .grouped(MaxBatchGet)
         .mapAsync(ReplayParallelism)(batch => getReplayBatch(persistenceId, batch).map(_.sorted))
-        .mapConcat(identity)
+        .mapConcat(conforms)
+        .via(RemoveIncompleteAtoms)
+        .mapConcat(conforms)
         .take(max)
         .map(readPersistentRepr)
         .runFold(0) { (count, next) => replayCallback(next); count + 1 }
@@ -59,7 +136,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     val keyAttr = new KeysAndAttributes()
       .withKeys(batchKeys.map(_._1).asJava)
       .withConsistentRead(true)
-      .withAttributesToGet(Key, Sort, Payload)
+      .withAttributesToGet(Key, Sort, Payload, AtomEnd, AtomIndex)
     val get = batchGetReq(Collections.singletonMap(JournalTable, keyAttr))
     dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_)).map {
       result =>
