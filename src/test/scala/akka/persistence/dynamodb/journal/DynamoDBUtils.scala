@@ -46,13 +46,18 @@ trait DynamoDBUtils {
   }
 
   private val writerUuid = UUID.randomUUID.toString
-  private val seqNr = Iterator from 1
   def persistenceId: String = ???
 
+  var nextSeqNr = 1
+  def seqNr() = {
+    val ret = nextSeqNr
+    nextSeqNr += 1
+    ret
+  }
   var generatedMessages: Vector[PersistentRepr] = Vector(null) // we start counting at 1
 
   def persistentRepr(msg: Any) = {
-    val ret = PersistentRepr(msg, sequenceNr = seqNr.next(), persistenceId = persistenceId, writerUuid = writerUuid)
+    val ret = PersistentRepr(msg, sequenceNr = seqNr(), persistenceId = persistenceId, writerUuid = writerUuid)
     generatedMessages :+= ret
     ret
   }

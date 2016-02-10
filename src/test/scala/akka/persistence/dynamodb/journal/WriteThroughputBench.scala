@@ -118,13 +118,13 @@ writer-dispatcher {
   val writers = system.settings.config.getInt("writers")
 
   val endToEnd = Source.actorRef[Report](3 * writers, OverflowStrategy.dropHead)
-    .conflate(identity)(_ + _)
+    .conflate(_ + _)
     .prepend(Source.single(Report()))
     .expand(Iterator.continually(_))
     .withAttributes(Attributes.asyncBoundary)
 
   val calls = Source.actorRef[LatencyReport](1000, OverflowStrategy.dropNew)
-    .conflate(r => ({ val h = new Histogram(3); h.recordValue(r.nanos); h }, new H(r.retries))) {
+    .conflateWithSeed(r => ({ val h = new Histogram(3); h.recordValue(r.nanos); h }, new H(r.retries))) {
       case ((hist, h), LatencyReport(nanos, retries)) =>
         hist.recordValue(nanos)
         (hist, h.record(retries))

@@ -45,11 +45,7 @@ object RemoveIncompleteAtoms extends GraphStage[FlowShape[Item, List[Item]]] {
     setHandler(out, this)
     setHandler(in, this)
 
-    override def onPull(): Unit =
-      if (isClosed(in)) {
-        push(out, batch.reverse)
-        completeStage()
-      } else pull(in)
+    override def onPull(): Unit = pull(in)
 
     override def onPush(): Unit = {
       val item = grab(in)
@@ -57,18 +53,32 @@ object RemoveIncompleteAtoms extends GraphStage[FlowShape[Item, List[Item]]] {
         val end = item.get(AtomEnd).getN.toLong
         val index = item.get(AtomIndex).getN.toLong
         val seqNr = sn(item)
+        val myBatchEnd = seqNr - index + end
         if (seqNr == batchEnd) {
-          val result = (item :: batch).reverse
-          batch = Nil
-          batchEnd = NoBatch
+          val result =
+            if (myBatchEnd == batchEnd) {
+              val r = (item :: batch).reverse
+              batch = Nil
+              batchEnd = NoBatch
+              r
+            } else {
+              // foul play detected, scrap this batch
+              batch = item :: Nil
+              batchEnd = myBatchEnd
+              Nil
+            }
           if (result.size == (end + 1)) push(out, result)
           else pull(in)
         } else if (batchEnd == NoBatch || seqNr > batchEnd) {
-          batchEnd = seqNr - index + end
+          batchEnd = myBatchEnd
           batch = item :: Nil
           pull(in)
         } else {
-          batch ::= item
+          if (batchEnd == myBatchEnd) batch ::= item
+          else {
+            batchEnd = myBatchEnd
+            batch = item :: Nil
+          }
           pull(in)
         }
       } else {
@@ -77,18 +87,6 @@ object RemoveIncompleteAtoms extends GraphStage[FlowShape[Item, List[Item]]] {
         batchEnd = NoBatch
         batch = Nil
       }
-    }
-
-    override def onUpstreamFinish(): Unit =
-      if (batchEnd == NoBatch || batchIncomplete) completeStage()
-      else if (isAvailable(out)) {
-        push(out, batch.reverse)
-        completeStage()
-      }
-
-    private def batchIncomplete: Boolean = {
-      val idx = batch.head.get(AtomIndex).getN.toLong
-      batch.size <= idx
     }
 
     private def sn(item: Item): Long = {
@@ -186,7 +184,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
                    * (which is always stored in full), knowing that it will be either highest-1 or zero.
                    */
                   readSequenceNr(persistenceId, highest = false).map { lowest =>
-                    val ret = Math.max(0L, lowest - 1)
+                    val ret = Math.max(start, lowest - 1)
                     log.debug("readSequenceNr(highest=true persistenceId={}) = {}", persistenceId, ret)
                     ret
                   }
