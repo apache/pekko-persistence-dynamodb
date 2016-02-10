@@ -18,7 +18,7 @@ This plugin is published to the Maven Central repository with the following name
 ~~~
 <dependency>
     <groupId>com.typesafe.akka</groupId>
-    <artifactId>akka-persistence-dynamodb_2.11</artifactId>
+    <artifactId>akka-persistence-dynamodb</artifactId>
     <version>1.0.0-RC1</version>
 </dependency>
 ~~~
@@ -26,7 +26,7 @@ This plugin is published to the Maven Central repository with the following name
 or for sbt users:
 
 ~~~
-libraryDependencies += "com.sclasen" %% "akka-persistence-dynamodb" % "1.0.0-RC1"
+libraryDependencies += "com.typesafe.akka" % "akka-persistence-dynamodb" % "1.0.0-RC1"
 ~~~
 
 Configuration
@@ -142,3 +142,8 @@ seq = <sequenceNr, not rounded>                                              : N
 This is somewhat more difficult to code, but offers higher throughput possibilities. Notice that the items that hold the high and low sequence are sharded, rather than using a single item to store the counter. If we only used a single item, we would suffer from the same hot key problems as our first structure.
 
 When writing an item we typically do not touch the high sequence number storage, only when writing an item with sort key `0` is this done. This implies that reading the highest sequence number will need to first query the sequence shards for the highest multiple of 100 and then send a `Query` for the corresponding P entry’s hash key to find the highest stored sort key number.
+
+Credits
+-------
+
+Initial development was done by [Scott Clasen](https://github.com/sclasen/akka-persistence-dynamodb). Update to Akka 2.4 and further development up to version 1.0 was kindly sponsored by [Zynga Inc.](https://www.zynga.com/).
