@@ -88,6 +88,11 @@ trait DynamoDBHelper {
 
   trait Describe[T] {
     def desc(t: T): String
+    protected def formatKey(i: Item): String = {
+      val key = i.get(Key) match { case null => "<none>" case x => x.getS }
+      val sort = i.get(Sort) match { case null => "<none>" case x => x.getN }
+      s"[$Key=$key,$Sort=$sort]"
+    }
   }
 
   object Describe {
@@ -101,15 +106,38 @@ trait DynamoDBHelper {
   }
 
   implicit object QueryDescribe extends Describe[QueryRequest] {
-    def desc(aws: QueryRequest): String = s"QueryRequest(${aws.getExpressionAttributeValues})"
+    def desc(aws: QueryRequest): String = s"QueryRequest(${aws.getTableName},${aws.getExpressionAttributeValues})"
   }
 
   implicit object PutItemDescribe extends Describe[PutItemRequest] {
-    def desc(aws: PutItemRequest): String = s"PutItemRequest(${aws.getItem.get(Key)})"
+    def desc(aws: PutItemRequest): String = s"PutItemRequest(${aws.getTableName},${formatKey(aws.getItem)})"
   }
 
   implicit object DeleteDescribe extends Describe[DeleteItemRequest] {
-    def desc(aws: DeleteItemRequest): String = s"DeleteItemRequest(${aws.getKey})"
+    def desc(aws: DeleteItemRequest): String = s"DeleteItemRequest(${aws.getTableName},${formatKey(aws.getKey)})"
+  }
+
+  implicit object BatchGetItemDescribe extends Describe[BatchGetItemRequest] {
+    def desc(aws: BatchGetItemRequest): String = {
+      val entry = aws.getRequestItems.entrySet.iterator.next()
+      val table = entry.getKey
+      val keys = entry.getValue.getKeys.asScala.map(formatKey)
+      s"BatchGetItemRequeest($table, ${keys.mkString("(", ",", ")")})"
+    }
+  }
+
+  implicit object BatchWriteItemDescribe extends Describe[BatchWriteItemRequest] {
+    def desc(aws: BatchWriteItemRequest): String = {
+      val entry = aws.getRequestItems.entrySet.iterator.next()
+      val table = entry.getKey
+      val keys = entry.getValue.asScala.map { write =>
+        write.getDeleteRequest match {
+          case null => "put" + formatKey(write.getPutRequest.getItem)
+          case del => "del" + formatKey(del.getKey)
+        }
+      }
+      s"BatchWriteItemRequeest($table, ${keys.mkString("(", ",", ")")})"
+    }
   }
 
   def listTables(aws: ListTablesRequest): Future[ListTablesResult] =
