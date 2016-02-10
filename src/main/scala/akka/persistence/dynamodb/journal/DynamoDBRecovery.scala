@@ -109,10 +109,10 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
   implicit lazy val replayDispatcher = context.system.dispatchers.lookup(ReplayDispatcher)
 
   override def asyncReplayMessages(
-    persistenceId: String,
+    persistenceId:  String,
     fromSequenceNr: Long,
-    toSequenceNr: Long,
-    max: Long
+    toSequenceNr:   Long,
+    max:            Long
   )(replayCallback: (PersistentRepr) => Unit): Future[Unit] =
     logFailure(s"replay for $persistenceId ($fromSequenceNr to $toSequenceNr)") {
       log.debug("starting replay for {} from {} to {} (max {})", persistenceId, fromSequenceNr, toSequenceNr, max)
@@ -262,7 +262,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
   def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int = 10): Future[BatchGetItemResult] = {
     val unprocessed = result.getUnprocessedKeys.get(JournalTable) match {
       case null => 0
-      case x => x.getKeys.size
+      case x    => x.getKeys.size
     }
     if (unprocessed == 0) Future.successful(result)
     else if (retriesRemaining == 0) {

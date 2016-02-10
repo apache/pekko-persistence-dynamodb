@@ -1,8 +1,7 @@
-organization := "com.typesafe.akka"
 name := "akka-persistence-dynamodb"
-version := "0.9-SNAPSHOT"
 
 scalaVersion := "2.11.7"
+crossScalaVersions := Seq("2.11.7", "2.12.0-M3")
 
 val akkaVersion = "2.4.2-RC2"
 
@@ -22,36 +21,20 @@ parallelExecution in Test := false
 logBuffered := false
 testOptions in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 
-pomExtra := (
-  <url>http://github.com/sclasen/akka-persistence-dynamodb</url>
-    <licenses>
-      <license>
-        <name>The Apache Software License, Version 2.0</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
-        <distribution>repo</distribution>
-      </license>
-    </licenses>
-    <scm>
-      <url>git@github.com:akka/akka-persistence-dynamodb.git</url>
-      <connection>scm:git:git@github.com:akka/akka-persistence-dynamodb.git</connection>
-    </scm>
-    <developers>
-      <developer>
-        <id>sclasen</id>
-        <name>Scott Clasen</name>
-        <url>http://github.com/sclasen</url>
-      </developer>
-      <developer>
-        <id>akka</id>
-        <name>The Akka Team</name>
-        <url>http://github.com/akka</url>
-      </developer>
-    </developers>)
+import com.typesafe.sbt.SbtScalariform
+import com.typesafe.sbt.SbtScalariform.ScalariformKeys
 
+SbtScalariform.scalariformSettings
+ScalariformKeys.preferences in Compile  := formattingPreferences
+ScalariformKeys.preferences in Test     := formattingPreferences
 
-publishTo := {
-  val nexus = "https://oss.sonatype.org/"
-  if (version.value.trim.endsWith("SNAPSHOT")) Some("snapshots" at nexus + "content/repositories/snapshots")
-  else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+def formattingPreferences = {
+  import scalariform.formatter.preferences._
+  FormattingPreferences()
+    .setPreference(RewriteArrowSymbols, false)
+    .setPreference(AlignParameters, true)
+    .setPreference(AlignSingleLineCaseStatements, true)
+    .setPreference(SpacesAroundMultiImports, true)
+    .setPreference(DoubleIndentClassDeclaration, true)
+    .setPreference(AlignArguments, true)
 }
-

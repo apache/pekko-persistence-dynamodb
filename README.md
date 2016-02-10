@@ -4,130 +4,141 @@ DynamoDBJournal for Akka Persistence
 A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.4.0/scala/persistence.html) journal backed by
 [Amazon DynamoDB](http://aws.amazon.com/dynamodb/).
 
-Scala: `2.11.7`  Akka: `2.4.0`
+**Please note that this module does neither include a snapshot-store plugin nor an Akka Persistence Query plugin.**
+
+Scala: `2.11.7`  Akka: `2.4.2-RC2`
 
 [![Build Status](https://travis-ci.org/akka/akka-persistence-dynamodb.svg?branch=master)](https://travis-ci.org/akka/akka-persistence-dynamodb)
 
 Installation
 ------------
 
-```scala
+This plugin is published to the Maven Central repository with the following names:
 
-// build.sbt
+~~~
+<dependency>
+    <groupId>com.typesafe.akka</groupId>
+    <artifactId>akka-persistence-dynamodb_2.11</artifactId>
+    <version>1.0.0-RC1</version>
+</dependency>
+~~~
 
-resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+or for sbt users:
 
-libraryDependencies += "com.sclasen" %% "akka-persistence-dynamodb" % "0.4.0" % "compile"
-
-```
+~~~
+libraryDependencies += "com.sclasen" %% "akka-persistence-dynamodb" % "1.0.0-RC1"
+~~~
 
 Configuration
 -------------
 
-```
-// application.conf - all config except endpoint, journal-name, sequence-shards is required
+~~~
+akka.persistence.journal.plugin = "my-dynamodb-journal"
 
-akka.persistence.journal.plugin = "dynamodb-journal"
-
-dynamodb-journal {
-    journal-table =  "the name of a dynamodb table you create with hash key: `key`"
-    # journal-name =  "prefixes all keys, allows multiple journals per table, default: `journal`"
-    aws-access-key-id =  "yourKey"
-    aws-secret-access-key =  "yourSecret"
-    operation-timeout =  10 seconds
-    # endpoint =  "defaults to https://dynamodb.us-east-1.amazonaws.com"
-    sequence-shards = 1000
+my-dynamodb-journal = ${dynamodb-journal} # include the default settings
+my-dynamodb-journal {                     # and add some overrides
+    journal-table =  <the name of the table to be used>
+    journal-name =  <prefix to be used for all keys stored by this plugin>
+    aws-access-key-id =  <your key>
+    aws-secret-access-key =  <your secret>
+    endpoint =  "https://dynamodb.us-east-1.amazonaws.com" # or where your deployment is
 }
+~~~
 
-Note on `sequence-shards`: the high and low sequence numbers are stored across `sequence-shards` number of keys.
-The more shards used, the less likely that throttling will occur when writing at a high rate.  Sequence shards should
-be set to as least as high as the write throughput of your table.
+For details on the endpoint URL please refer to the [DynamoDB documentation](http://docs.aws.amazon.com/general/latest/gr/rande.html#ddb_region). There are many more settings that can be used for fine-tuning and adapting this journal plugin to your use-case, please refer to the [reference.conf](https://github.com/akka/akka-persistence-dynamodb/blob/master/src/main/resources/reference.conf) file.
 
-The trade off with a higher number of shards is the number of requests needed to find the high or low sequence number for a processor.
-We can read the value of 100 shards per request to dynamodb, so reading 1000 shards takes 10 (parallel) requests, 10000 takes 100, etc.
+Before you can use these settings you will have to create a table, e.g. using the AWS console, with the following schema:
 
-The reference.conf for this journal also contains the following settings for spray and akka.
+  * a hash key of type String with name `par`
+  * a sort key of type Number with name `num`
 
-```
-spray.can.host-connector.max-connections = 600
-akka.persistence.journal.max-message-batch-size = 4000
-```
+Performance Considerations
+--------------------------
 
-```
+This plugin uses the AWS Java SDK which means that the number of requests that can be made concurrently is limited by the number of connections to DynamoDB and by the number of threads in the thread-pool that is used by the AWS HTTP client. The default setting is 50 connections which for a deployment that is used from the same EC2 region allows roughly 5000 requests per second (where every persisted event batch is roughly one request). If a single ActorSystem needs to persist more than this number of events per second then you may want to tune the parameter
 
-Development
------------
+~~~
+my-dynamodb-journal.aws-client-config.max-connections = <your value here>
+~~~
 
-### dev setup
+Changing this number changes both the number of concurrent connections and the used thread-pool size.
 
-* run `integration-test.sh` to run the integration tests.  This will download dynamodb local if it is not already 
-installed, start up dynamo, and then run the integration tests to validate the plugin.
+Compatibility with pre-1.0 versions
+-----------------------------------
 
-### dynamodb table structure discussion
+The storage layout has been changed incompatibly for performance and correctness reasons, therefore events stored with the old plugin cannot be used with versions since 1.0.
 
-the structure for journal storage in dynamodb has evolved over iterations of performance tuning. Most of these lessons were learned
-in creating the eventsourced dynamodb journal, but apply here as well.
+Plugin Development
+------------------
 
-##### naiive structure
+### Dev Setup
+
+* Run `./scripts/dev-setup.sh` to download and start [DynamoDB-local](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html).
+* Now you are all set for running the test suite from `sbt`.
+
+Please also read the [CONTRIBUTING.md](CONTRIBUTING.md) file.
+
+### DynamoDB table structure discussion
+
+The structure for journal storage in dynamodb has evolved over iterations of performance tuning. Most of these lessons were learned in creating the eventsourced dynamodb journal, but apply here as well.
+
+##### Naïve structure
 
 When initially modelling journal storage in dynamo, it seems natural to use a simple structure similar to this
 
 ```
-persistenceId: S : HashKey
-sequenceNr   : N : RangeKey
-deleted      : S
-payload      : B
+persistenceId : S : HashKey
+sequenceNr    : N : RangeKey
+payload       : B
 ```
 
 This maps very well to the operations a journal needs to solve.
 
 ```
 writeMessage      -> PutItem
-writeConfirmation -> UpdateItem with set add
-deleteMessage     -> UpdateItem (mark deleted) or DeleteItem (permanent delete)
+deleteMessage     -> DeleteItem
 replayMessages    -> Query by persistenceId, conditions and ordered by sequenceNr, ascending
 highCounter       -> Query by persistenceId, conditions and ordered by sequenceNr, descending limit 1
 ```
 
-However this layout suffers from scalability problems. Since the hash key is used to locate the data storage node, all writes for a
-single processor will go to the same dynamodb node, which limits throughput and invites throttling, no matter the level of throughput provisioned
-for a table. The hash key just gets too hot. Also this limits replay throughput since you have to step through a sequence of queries, where
-you use the last processed item in query N for query N+1.
+However this layout suffers from scalability problems. Since the hash key is used to locate the data storage node, all writes for a single processor will go to the same DynamoDB node, which limits throughput and invites throttling, no matter the level of throughput provisioned for a table—the hash key just gets too hot. Also this limits replay throughput since you have to step through a sequence of queries, where you use the last processed item in query N for query N+1.
 
-##### higher throughput structure.
+##### Higher throughput structure
 
-```
+With the following abbreviations:
+
+~~~
 P -> PersistentRepr
 SH -> SequenceHigh
 SL -> SequenceLow
+~~~
 
-Persistent Data
+we model PersistentRepr storage as
 
-journalName"-P"-persistenceId-sequenceNr  : S : HashKey
-deleted                     : S
-confirmations               : SS
-payload                     : B
+~~~
+par = <journalName>-P-<persistenceId>-<sequenceNr / 100> : S : HashKey
+num = <sequenceNr % 100>                                 : N : RangeKey
+pay = <payload>                                          : B
+idx = <atomic write batch index>                         : N (possibly absent)
+cnt = <atomic write batch max index>                     : N (possibly absent)
+~~~
 
-High and Low Sequence Numbers
+High Sequence Numbers
 
-journalName"-SH"-persistenceId-(sequenceNr % sequenceShards): S : HashKey
-sequenceNr                                    : N
+~~~
+par = <journalName>-SH-<persistenceId>-<(sequenceNr / 100) % sequenceShards> : S : HashKey
+num = 0                                                                      : N : RangeKey
+seq = <sequenceNr rounded down to nearest multiple of 100>                   : N
+~~~
 
-journalName"-SL"-persistenceId-(sequenceNr % sequenceShards): S : HashKey
-sequenceNr                                    : N
-```
+Low Sequence Numbers
 
-This is somewhat more difficult to code, but offers higher throughput possibilities. Notice that the items that hold the high and low sequence are sharded,
-rather than using a single item to store the counter. If we only used a single item, we would suffer from the same hot key problems as our
-first structure.
+~~~
+par = <journalName>-SL-<persistenceId>-<(sequenceNr / 100) % sequenceShards> : S : HashKey
+num = 0                                                                      : N : RangeKey
+seq = <sequenceNr, not rounded>                                              : N
+~~~
 
-```
-writeMessage      -> BatchPutItem (P and SH)
-writeConfirmation -> UpdateItem with set add
-deleteMessage     -> BatchPutItem (mark deleted, set SL) or BatchPutItem (permanent delete, set SL)
-replayMessages    -> Parallel BatchGet all P items for the processor
-highCounter       -> Parallel BatchGet all SH shards for the processor, find max.
-lowCounter        -> Parallel BatchGet all SL shards for the processor, find min.
-```
+This is somewhat more difficult to code, but offers higher throughput possibilities. Notice that the items that hold the high and low sequence are sharded, rather than using a single item to store the counter. If we only used a single item, we would suffer from the same hot key problems as our first structure.
 
-
+When writing an item we typically do not touch the high sequence number storage, only when writing an item with sort key `0` is this done. This implies that reading the highest sequence number will need to first query the sequence shards for the highest multiple of 100 and then send a `Query` for the corresponding P entry’s hash key to find the highest stored sort key number.

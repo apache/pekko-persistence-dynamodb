@@ -61,7 +61,7 @@ package object journal {
   def liftUnit(f: Future[Any]): Future[Try[Unit]] = {
     val p = Promise[Try[Unit]]
     f.onComplete {
-      case Success(_) => p.success(Success(()))
+      case Success(_)     => p.success(Success(()))
       case f @ Failure(_) => p.success(f.asInstanceOf[Failure[Unit]])
     }(akka.dispatch.ExecutionContexts.sameThreadExecutionContext)
     p.future
@@ -69,7 +69,7 @@ package object journal {
 
   def trySequence[A, M[X] <: TraversableOnce[X]](in: M[Future[A]])(implicit
     cbf: CanBuildFrom[M[Future[A]], Try[A], M[Try[A]]],
-    executor: ExecutionContext): Future[M[Try[A]]] =
+                                                                   executor: ExecutionContext): Future[M[Try[A]]] =
     in.foldLeft(Future.successful(cbf(in))) { (fr, a) =>
       val fb = lift(a)
       for (r <- fr; b <- fb) yield (r += b)
@@ -84,11 +84,11 @@ package object journal {
     val dispatcher = system.dispatchers.lookup(settings.ClientDispatcher)
 
     class DynamoDBClient(
-      override val ec: ExecutionContext,
-      override val dynamoDB: AmazonDynamoDBAsyncClient,
-      override val settings: DynamoDBJournalConfig,
+      override val ec:        ExecutionContext,
+      override val dynamoDB:  AmazonDynamoDBAsyncClient,
+      override val settings:  DynamoDBJournalConfig,
       override val scheduler: Scheduler,
-      override val log: LoggingAdapter
+      override val log:       LoggingAdapter
     ) extends DynamoDBHelper
 
     new DynamoDBClient(dispatcher, client, settings, system.scheduler, Logging(system, "DynamoDBClient"))

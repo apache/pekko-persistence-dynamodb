@@ -86,7 +86,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     case Success(result) => log.info("using DynamoDB table {}", result)
     case _ => context match {
       case null =>
-      case ctx => ctx.stop(self)
+      case ctx  => ctx.stop(self)
     }
   }
 
@@ -113,7 +113,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
   override def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
     opQueue.get(persistenceId) match {
       case null => logFailure(s"read-highest($persistenceId)")(readSequenceNr(persistenceId, highest = true))
-      case f => f.flatMap(_ => logFailure(s"read-highest($persistenceId)")(readSequenceNr(persistenceId, highest = true)))
+      case f    => f.flatMap(_ => logFailure(s"read-highest($persistenceId)")(readSequenceNr(persistenceId, highest = true)))
     }
 
   /**
@@ -161,10 +161,10 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     } yield Done
 
   override def receivePluginInternal = {
-    case OpFinished(persistenceId, f) => opQueue.remove(persistenceId, f)
+    case OpFinished(persistenceId, f)    => opQueue.remove(persistenceId, f)
     case ListAll(persistenceId, replyTo) => listAll(persistenceId) pipeTo replyTo
-    case Purge(persistenceId, replyTo) => purge(persistenceId).map(_ => Purged(persistenceId)) pipeTo replyTo
-    case SetDBHelperReporter(ref) => dynamo.setReporter(ref)
+    case Purge(persistenceId, replyTo)   => purge(persistenceId).map(_ => Purged(persistenceId)) pipeTo replyTo
+    case SetDBHelperReporter(ref)        => dynamo.setReporter(ref)
   }
 
   def keyLength(persistenceId: String, sequenceNr: Long): Int =

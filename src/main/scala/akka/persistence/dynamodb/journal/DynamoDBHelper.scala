@@ -133,7 +133,7 @@ trait DynamoDBHelper {
       val keys = entry.getValue.asScala.map { write =>
         write.getDeleteRequest match {
           case null => "put" + formatKey(write.getPutRequest.getItem)
-          case del => "del" + formatKey(del.getKey)
+          case del  => "del" + formatKey(del.getKey)
         }
       }
       s"BatchWriteItemRequeest($table, ${keys.mkString("(", ",", ")")})"

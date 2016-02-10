@@ -36,7 +36,7 @@ trait DynamoDBRequests {
       def rec(todo: List[AtomicWrite], acc: List[Try[Unit]]): Future[List[Try[Unit]]] =
         todo match {
           case write :: remainder => writeMessages(write).flatMap(result => rec(remainder, result :: acc))
-          case Nil => Future.successful(acc.reverse)
+          case Nil                => Future.successful(acc.reverse)
         }
       rec(writes.toList, Nil)
     }
@@ -242,12 +242,12 @@ trait DynamoDBRequests {
    * the retries from the client, then we are hosed and cannot continue; that is why we have a RuntimeException here
    */
   private def sendUnprocessedItems(
-    result: BatchWriteItemResult,
-    retriesRemaining: Int = 10,
-    backoff: FiniteDuration = 1.millis
+    result:           BatchWriteItemResult,
+    retriesRemaining: Int                  = 10,
+    backoff:          FiniteDuration       = 1.millis
   ): Future[BatchWriteItemResult] = {
     val unprocessed: Int = result.getUnprocessedItems.get(JournalTable) match {
-      case null => 0
+      case null  => 0
       case items => items.size
     }
     if (unprocessed == 0) Future.successful(result)
