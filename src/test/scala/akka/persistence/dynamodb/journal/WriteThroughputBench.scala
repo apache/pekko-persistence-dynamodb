@@ -38,11 +38,9 @@ object WriteThroughputBench extends App with DynamoDBUtils {
   case object Go
   case class Report(endToEnd: Histogram, calls: Histogram, retries: H) {
     def +(other: Report): Report = {
-      val e = endToEnd.copy()
-      e.add(other.endToEnd)
-      val c = calls.copy()
-      c.add(other.calls)
-      Report(e, c, retries + other.retries)
+      endToEnd.add(other.endToEnd)
+      calls.add(other.calls)
+      Report(endToEnd, calls, retries + other.retries)
     }
   }
   object Report {
@@ -88,34 +86,42 @@ my-dynamodb-journal {
   aws-client-config {
     max-connections = 100
   }
-  plugin-dispatcher = "akka.actor.default-dispatcher"
-  replay-dispatcher = "akka.actor.default-dispatcher"
-  client-dispatcher = "akka.actor.default-dispatcher"
+  plugin-dispatcher = "dispatcher"
+  replay-dispatcher = "dispatcher"
+  client-dispatcher = "dispatcher"
+}
+dispatcher {
+  type = Dispatcher
+  executor = "fork-join-executor"
+  fork-join-executor {
+    parallelism-min = 4
+    parallelism-max = 8
+  }
 }
 akka.actor.default-dispatcher.fork-join-executor.parallelism-max = 4
 writers = 1000
-writer-batch = 100
 writer-dispatcher {
   type = Dispatcher
   executor = "fork-join-executor"
   fork-join-executor {
-    parallelism-min = 1
-    parallelism-max = 1
+    parallelism-min = 2
+    parallelism-max = 2
   }
 }
 """).resolve).withFallback(ConfigFactory.load())
 
   implicit val system = ActorSystem("WriteThroughputBench", config)
-  implicit val materializer = ActorMaterializer()
+  implicit val materializer = ActorMaterializer(ActorMaterializerSettings(system).withInputBuffer(1, 1))
 
   ensureJournalTableExists(40000, 40000)
 
   val writers = system.settings.config.getInt("writers")
 
-  val endToEnd = Source.actorRef[Report](writers, OverflowStrategy.fail)
+  val endToEnd = Source.actorRef[Report](3 * writers, OverflowStrategy.dropHead)
     .conflate(identity)(_ + _)
     .prepend(Source.single(Report()))
     .expand(Iterator.continually(_))
+    .withAttributes(Attributes.asyncBoundary)
 
   val calls = Source.actorRef[LatencyReport](1000, OverflowStrategy.dropNew)
     .conflate(r => ({ val h = new Histogram(3); h.recordValue(r.nanos); h }, new H(r.retries))) {
@@ -126,6 +132,7 @@ writer-dispatcher {
     .map(p => Report.calls(p._1, p._2))
     .prepend(Source.single(Report()))
     .expand(Iterator.continually(_))
+    .withAttributes(Attributes.asyncBoundary)
 
   val (eRef, cRef) =
     RunnableGraph.fromGraph(GraphDSL.create(endToEnd, calls)(Keep.both) { implicit b => (e, c) =>
