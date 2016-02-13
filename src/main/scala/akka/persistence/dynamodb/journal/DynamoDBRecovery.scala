@@ -156,11 +156,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
   def readSequenceNr(persistenceId: String, highest: Boolean): Future[Long] = {
     if (Tracing) log.debug("readSequenceNr(highest={}, persistenceId={})", highest, persistenceId)
     val keyGroups = readSequenceNrBatches(persistenceId, highest)
-      .map(_.map(getMaxSeqNr).recover {
-        case ex: Throwable =>
-          log.error(ex, "unexpected failure condition in asyncReadHighestSequenceNr")
-          -1L
-      })
+      .map(_.map(getMaxSeqNr).recover { case ex: Throwable => -1L })
     Future.sequence(keyGroups).flatMap { seq =>
       seq.max match {
         case -1L =>
