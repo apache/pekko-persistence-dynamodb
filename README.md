@@ -75,6 +75,7 @@ Plugin Development
 
 * Run `./scripts/dev-setup.sh` to download and start [DynamoDB-local](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Tools.DynamoDBLocal.html).
 * Now you are all set for running the test suite from `sbt`.
+* In order to stop the DynamoDB process you may execute `./scripts/kill-dynamoDB.sh`.
 
 Please also read the [CONTRIBUTING.md](CONTRIBUTING.md) file.
 
