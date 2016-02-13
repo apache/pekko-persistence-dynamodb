@@ -12,6 +12,7 @@ import akka.persistence.Persistence
 import akka.util.Timeout
 import java.util.UUID
 import akka.persistence.PersistentRepr
+import scala.collection.JavaConverters._
 
 trait DynamoDBUtils {
 
@@ -30,13 +31,23 @@ trait DynamoDBUtils {
   implicit val timeout = Timeout(5.seconds)
 
   def ensureJournalTableExists(read: Long = 10L, write: Long = 10L): Unit = {
-    val describe = new DescribeTableRequest().withTableName(JournalTable)
     val create = schema
       .withTableName(JournalTable)
       .withProvisionedThroughput(new ProvisionedThroughput(read, write))
 
+    var names = Vector.empty[String]
+    lazy val complete: ListTablesResult => Future[Vector[String]] = aws =>
+      if (aws.getLastEvaluatedTableName == null) Future.successful(names ++ aws.getTableNames.asScala)
+      else {
+        names ++= aws.getTableNames.asScala
+        client
+          .listTables(new ListTablesRequest().withExclusiveStartTableName(aws.getLastEvaluatedTableName))
+          .flatMap(complete)
+      }
+    val list = client.listTables(new ListTablesRequest).flatMap(complete)
+
     val setup = for {
-      exists <- client.describeTable(describe).map(_ => true).recover { case _ => false }
+      exists <- list.map(_ contains JournalTable)
       _ <- {
         if (exists) Future.successful(())
         else client.createTable(create)

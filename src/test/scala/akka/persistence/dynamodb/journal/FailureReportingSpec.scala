@@ -71,11 +71,32 @@ class FailureReportingSpec extends TestKit(ActorSystem("FailureReportingSpec"))
       finally system.terminate()
     }
 
+    "keep running even when journal table is absent" in {
+      val config = ConfigFactory
+        .parseString("my-dynamodb-journal.journal-table=nonexistent")
+        .withFallback(ConfigFactory.load())
+      implicit val system = ActorSystem("FailureReportingSpec-test2", config)
+      try {
+        val journal =
+          EventFilter[ResourceNotFoundException](pattern = ".*nonexistent.*", occurrences = 1).intercept {
+            EventFilter.error(pattern = ".*requests will fail.*nonexistent.*", occurrences = 1).intercept {
+              Persistence(system).journalFor("")
+            }
+          }
+        EventFilter[ResourceNotFoundException](pattern = ".*BatchGetItemRequest.*", occurrences = 1).intercept {
+          EventFilter[DynamoDBJournalFailure](pattern = s".*failed.*read-highest-sequence-number.*$persistenceId.*", occurrences = 1).intercept {
+            journal ! ReplayMessages(0, Long.MaxValue, 0, persistenceId, testActor)
+            expectMsgType[ReplayMessagesFailure]
+          }
+        }
+      } finally system.terminate()
+    }
+
     "notify user about used config" in {
       val config = ConfigFactory
         .parseString("my-dynamodb-journal{log-config=on\naws-client-config.protocol=HTTPS}")
         .withFallback(ConfigFactory.load())
-      implicit val system = ActorSystem("FailureReportingSpec-test1", config)
+      implicit val system = ActorSystem("FailureReportingSpec-test3", config)
       try
         EventFilter.info(pattern = ".*protocol:https.*", occurrences = 1).intercept {
           Persistence(system).journalFor("")
@@ -90,14 +111,15 @@ akka.persistence.journal.plugin = "dynamodb-journal"
 akka.persistence.snapshot-store.plugin = "no-snapshot-store"
 akka.loggers = ["akka.testkit.TestEventListener"]
 """)
-      implicit val system = ActorSystem("FailureReportingSpec-test2", config)
+      implicit val system = ActorSystem("FailureReportingSpec-test4", config)
       try {
         val probe = TestProbe()
         system.eventStream.subscribe(probe.ref, classOf[Logging.LogEvent])
         EventFilter[ResourceNotFoundException](pattern = ".*akka-persistence.*", occurrences = 1).intercept {
           Persistence(system).journalFor("")
         }
-        probe.expectMsgType[Logging.Error]
+        probe.expectMsgType[Logging.Error].message.toString should include("DescribeTableRequest(akka-persistence)")
+        probe.expectMsgType[Logging.Error].message.toString should include("until the table 'akka-persistence'")
         probe.expectNoMsg(0.seconds)
       } finally system.terminate()
     }

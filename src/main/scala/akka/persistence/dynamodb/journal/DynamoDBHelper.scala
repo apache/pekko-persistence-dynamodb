@@ -122,7 +122,7 @@ trait DynamoDBHelper {
       val entry = aws.getRequestItems.entrySet.iterator.next()
       val table = entry.getKey
       val keys = entry.getValue.getKeys.asScala.map(formatKey)
-      s"BatchGetItemRequeest($table, ${keys.mkString("(", ",", ")")})"
+      s"BatchGetItemRequest($table, ${keys.mkString("(", ",", ")")})"
     }
   }
 
@@ -136,7 +136,7 @@ trait DynamoDBHelper {
           case del  => "del" + formatKey(del.getKey)
         }
       }
-      s"BatchWriteItemRequeest($table, ${keys.mkString("(", ",", ")")})"
+      s"BatchWriteItemRequest($table, ${keys.mkString("(", ",", ")")})"
     }
   }
 

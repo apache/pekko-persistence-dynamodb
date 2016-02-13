@@ -82,12 +82,9 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
 
   val dynamo = dynamoClient(context.system, settings)
 
-  dynamo.describeTable(new DescribeTableRequest().withTableName(settings.JournalTable)).onComplete {
+  dynamo.describeTable(new DescribeTableRequest().withTableName(JournalTable)).onComplete {
     case Success(result) => log.info("using DynamoDB table {}", result)
-    case _ => context match {
-      case null =>
-      case ctx  => ctx.stop(self)
-    }
+    case _               => log.error("persistent actor requests will fail until the table '{}' is accessible", JournalTable)
   }
 
   override def postStop(): Unit = dynamo.shutdown()
@@ -112,7 +109,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
 
   override def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
     opQueue.get(persistenceId) match {
-      case null => logFailure(s"read-highest($persistenceId)")(readSequenceNr(persistenceId, highest = true))
+      case null => logFailure(s"read-highest-sequence-number($persistenceId)")(readSequenceNr(persistenceId, highest = true))
       case f    => f.flatMap(_ => logFailure(s"read-highest($persistenceId)")(readSequenceNr(persistenceId, highest = true)))
     }
 
