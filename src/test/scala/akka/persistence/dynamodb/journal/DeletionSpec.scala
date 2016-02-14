@@ -23,6 +23,12 @@ class DeletionSpec extends TestKit(ActorSystem("FailureReportingSpec"))
 
   override def beforeAll(): Unit = ensureJournalTableExists()
   override def afterAll(): Unit = {
+    /*
+     * The last operation is a ListAll which may spawn requests that linger
+     * past the end of the test case; nothing bad would happen apart from some
+     * noisy logging, and I like my build output clean and green.
+     */
+    Thread.sleep(500)
     system.terminate().futureValue
     client.shutdown()
   }

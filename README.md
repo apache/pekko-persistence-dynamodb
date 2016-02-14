@@ -6,7 +6,7 @@ A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.4.0/scala/persist
 
 **Please note that this module does neither include a snapshot-store plugin nor an Akka Persistence Query plugin.**
 
-Scala: `2.11.7`  Akka: `2.4.2-RC2`
+Scala: `2.11.7`  Akka: `2.4.2-RC3`
 
 [![Build Status](https://travis-ci.org/akka/akka-persistence-dynamodb.svg?branch=master)](https://travis-ci.org/akka/akka-persistence-dynamodb)
 

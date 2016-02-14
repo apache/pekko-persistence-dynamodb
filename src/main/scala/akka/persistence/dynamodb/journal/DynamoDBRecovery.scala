@@ -121,9 +121,9 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
           .grouped(MaxBatchGet)
           .mapAsync(ReplayParallelism)(batch => getReplayBatch(persistenceId, batch).map(_.sorted))
           .mapConcat(conforms)
+          .take(max)
           .via(RemoveIncompleteAtoms)
           .mapConcat(conforms)
-          .take(max)
           .map(readPersistentRepr)
           .runFold(0) { (count, next) => replayCallback(next); count + 1 }
           .map(count => log.debug("replay finished for {} with {} events", persistenceId, count))

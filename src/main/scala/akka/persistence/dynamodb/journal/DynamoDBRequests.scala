@@ -31,11 +31,11 @@ trait DynamoDBRequests {
   def writeMessages(writes: Seq[AtomicWrite]): Future[List[Try[Unit]]] =
     // optimize the common case
     if (writes.size == 1) {
-      writeMessages(writes.head).map(_ :: Nil)(akka.dispatch.ExecutionContexts.sameThreadExecutionContext)
+      writeMessages(writes.head).map(bubbleUpFailures(_) :: Nil)(akka.dispatch.ExecutionContexts.sameThreadExecutionContext)
     } else {
       def rec(todo: List[AtomicWrite], acc: List[Try[Unit]]): Future[List[Try[Unit]]] =
         todo match {
-          case write :: remainder => writeMessages(write).flatMap(result => rec(remainder, result :: acc))
+          case write :: remainder => writeMessages(write).flatMap(result => rec(remainder, bubbleUpFailures(result) :: acc))
           case Nil                => Future.successful(acc.reverse)
         }
       rec(writes.toList, Nil)
@@ -64,7 +64,7 @@ trait DynamoDBRequests {
       } catch {
         case NonFatal(ex) =>
           log.error(ex, "Failure during message write preparation: {}", ex.getMessage)
-          Future.successful(Failure(ex))
+          Future.successful(Failure(new DynamoDBJournalRejection("write rejected due to " + ex.getMessage, ex)))
       }
     } else {
       val itemTry = Try { atomicWrite.payload.map(repr => toMsgItem(repr)) }
@@ -258,5 +258,12 @@ trait DynamoDBRequests {
       after(backoff, context.system.scheduler)(dynamo.batchWriteItem(rest).flatMap(r => sendUnprocessedItems(r, retriesRemaining - 1, backoff * 2)))
     }
   }
+
+  private def bubbleUpFailures(t: Try[Unit]): Try[Unit] =
+    t match {
+      case s @ Success(_)                           => s
+      case r @ Failure(_: DynamoDBJournalRejection) => r
+      case Failure(other)                           => throw other
+    }
 
 }
