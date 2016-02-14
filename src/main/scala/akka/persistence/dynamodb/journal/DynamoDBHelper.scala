@@ -47,8 +47,9 @@ trait DynamoDBHelper {
           case e: ProvisionedThroughputExceededException =>
             p.tryFailure(ex)
           case _ =>
-            log.error(ex, "failure while executing {}", name)
-            p.tryFailure(ex)
+            val n = name
+            log.error(ex, "failure while executing {}", n)
+            p.tryFailure(new DynamoDBJournalFailure("failure while executing " + n, ex))
         }
         override def onSuccess(req: In, resp: Out) = p.trySuccess(resp)
       }

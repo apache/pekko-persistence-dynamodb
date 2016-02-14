@@ -26,8 +26,8 @@ import scala.util.control.NoStackTrace
 import akka.actor.ActorRef
 import scala.concurrent.Promise
 
-class DynamoDBJournalFailure(message: String) extends RuntimeException(message) with NoStackTrace
-class DynamoDBJournalRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause) with NoStackTrace
+class DynamoDBJournalFailure(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
+class DynamoDBJournalRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
 
 /**
  * Query the table for all sequence numbers of the given persistenceId, starting
