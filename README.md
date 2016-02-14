@@ -19,14 +19,14 @@ This plugin is published to the Maven Central repository with the following name
 <dependency>
     <groupId>com.typesafe.akka</groupId>
     <artifactId>akka-persistence-dynamodb</artifactId>
-    <version>1.0.0-RC1</version>
+    <version>1.0.0-RC3</version>
 </dependency>
 ~~~
 
 or for sbt users:
 
 ~~~
-libraryDependencies += "com.typesafe.akka" % "akka-persistence-dynamodb" % "1.0.0-RC1"
+libraryDependencies += "com.typesafe.akka" % "akka-persistence-dynamodb" % "1.0.0-RC3"
 ~~~
 
 Configuration
