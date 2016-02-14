@@ -52,6 +52,24 @@ Before you can use these settings you will have to create a table, e.g. using th
   * a hash key of type String with name `par`
   * a sort key of type Number with name `num`
 
+Storage Semantics
+-----------------
+
+DynamoDB only offers consistency guarantees for a single storage item—which corresponds to one event in the case of this Akka Persistence plugin. This means that any single event is either written to the journal (and thereby visible to later replays) or it is not. This plugin supports atomic multi-event batches nevertheless, by marking the contained events such that partial replay can be avoided (see the `idx` and `cnt` attributes in the storage format description below). Consider the following actions of a PersistentActor:
+
+~~~scala
+val events = List(<some events>)
+if (atomic) {
+  persistAll(events)(handler)
+else {
+  for (event <- events) persist(event)(handler)
+}
+~~~
+
+In the first case a recovery will only ever see all of the events or none of them. This is also true if recovery is requested with an upper limit on the sequence number to be recovered to or a limit on the number of events to be replayed; the event count limit is applied before removing incomplete batch writes which means that the actual count of events received at the actor may be lower than the requested limit even if further events are available.
+
+In the second case each event is treated in isolation and may or may not be replayed depending on whether it was persisted successfully or not.
+
 Performance Considerations
 --------------------------
 
