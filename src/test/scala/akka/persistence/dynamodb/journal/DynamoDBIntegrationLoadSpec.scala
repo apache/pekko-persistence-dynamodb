@@ -24,7 +24,9 @@ object DynamoDBIntegrationLoadSpec {
 my-dynamodb-journal {
   journal-table = "integrationLoadSpec"
   endpoint = ${?AWS_DYNAMODB_ENDPOINT}
+  aws-access-key-id = "set something in case no real creds are there"
   aws-access-key-id = ${?AWS_ACCESS_KEY_ID}
+  aws-secret-access-key = "set something in case no real creds are there"
   aws-secret-access-key = ${?AWS_SECRET_ACCESS_KEY}
 }
 """).resolve.withFallback(ConfigFactory.load())
