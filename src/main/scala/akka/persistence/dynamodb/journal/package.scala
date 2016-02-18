@@ -76,10 +76,15 @@ package object journal {
     }.map(_.result())
 
   def dynamoClient(system: ActorSystem, settings: DynamoDBJournalConfig): DynamoDBHelper = {
-    val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
-    val conns = settings.client.config.getMaxConnections
-    val executor = Executors.newFixedThreadPool(conns)
-    val client = new AmazonDynamoDBAsyncClient(creds, settings.client.config, executor)
+    val client =
+      if (settings.AwsKey.nonEmpty && settings.AwsSecret.nonEmpty) {
+        val conns = settings.client.config.getMaxConnections
+        val executor = Executors.newFixedThreadPool(conns)
+        val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
+        new AmazonDynamoDBAsyncClient(creds, settings.client.config, executor)
+      } else {
+        new AmazonDynamoDBAsyncClient(settings.client.config)
+      }
     client.setEndpoint(settings.Endpoint)
     val dispatcher = system.dispatchers.lookup(settings.ClientDispatcher)
 

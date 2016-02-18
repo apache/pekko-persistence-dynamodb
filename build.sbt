@@ -4,7 +4,7 @@ scalaVersion := "2.11.7"
 crossScalaVersions := Seq("2.11.7", "2.12.0-M3")
 crossVersion := CrossVersion.binary
 
-val akkaVersion = "2.4.2-RC3"
+val akkaVersion = "2.4.2"
 
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-core" % "1.10.50",
