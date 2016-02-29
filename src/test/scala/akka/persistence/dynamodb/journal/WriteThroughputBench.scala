@@ -113,7 +113,12 @@ writer-dispatcher {
   implicit val system = ActorSystem("WriteThroughputBench", config)
   implicit val materializer = ActorMaterializer(ActorMaterializerSettings(system).withInputBuffer(1, 1))
 
-  ensureJournalTableExists(40000, 40000)
+  /*
+   * You will want to make sure that the table is deployed with the proper values for
+   * read and write throughput; the default is 10/10 which is incredibly low, but defaulting
+   * to larger values can burn through a big budget very quickly.
+   */
+  ensureJournalTableExists()
 
   val writers = system.settings.config.getInt("writers")
 
