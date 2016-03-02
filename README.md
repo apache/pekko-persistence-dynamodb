@@ -6,7 +6,7 @@ A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.4.0/scala/persist
 
 **Please note that this module does neither include a snapshot-store plugin nor an Akka Persistence Query plugin.**
 
-Scala: `2.11.7`  Akka: `2.4.2-RC3`
+Scala: `2.11.x` or `2.12.0-M3`  Akka: `2.4.2`  Java: `8+`
 
 [![Build Status](https://travis-ci.org/akka/akka-persistence-dynamodb.svg?branch=master)](https://travis-ci.org/akka/akka-persistence-dynamodb)
 
@@ -18,16 +18,18 @@ This plugin is published to the Maven Central repository with the following name
 ~~~
 <dependency>
     <groupId>com.typesafe.akka</groupId>
-    <artifactId>akka-persistence-dynamodb</artifactId>
-    <version>1.0.0-RC3</version>
+    <artifactId>akka-persistence-dynamodb_2.11</artifactId>
+    <version>1.0.0</version>
 </dependency>
 ~~~
 
 or for sbt users:
 
 ~~~
-libraryDependencies += "com.typesafe.akka" % "akka-persistence-dynamodb" % "1.0.0-RC3"
+libraryDependencies += "com.typesafe.akka" % "akka-persistence-dynamodb_2.11" % "1.0.0"
 ~~~
+
+Substitute the `_2.11` suffix by `_2.12.0-M3` when using Scala version 2.12.0-M3. This plugin requires Java 8 (just as Akka itself).
 
 Configuration
 -------------
