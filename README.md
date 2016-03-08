@@ -8,6 +8,7 @@ A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.4.0/scala/persist
 
 Scala: `2.11.x` or `2.12.0-M3`  Akka: `2.4.2`  Java: `8+`
 
+[![Join the chat at https://gitter.im/akka/akka-persistence-dynamodb](https://badges.gitter.im/akka/akka-persistence-dynamodb.svg)](https://gitter.im/akka/akka-persistence-dynamodb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/akka/akka-persistence-dynamodb.svg?branch=master)](https://travis-ci.org/akka/akka-persistence-dynamodb)
 
 Installation
