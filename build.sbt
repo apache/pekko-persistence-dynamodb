@@ -1,21 +1,22 @@
 name := "akka-persistence-dynamodb"
 
-scalaVersion       := "2.11.7"
-crossScalaVersions := Seq("2.11.7", "2.12.0-M3")
+scalaVersion       := "2.11.8"
+crossScalaVersions := Seq("2.11.8", "2.12.1")
 crossVersion       := CrossVersion.binary
 
-val akkaVersion = "2.4.2"
+val akkaVersion = "2.4.14"
+val amzVersion = "1.11.66"
 
 libraryDependencies ++= Seq(
-  "com.amazonaws" % "aws-java-sdk-core" % "1.10.50",
-  "com.amazonaws" % "aws-java-sdk-dynamodb" % "1.10.50",
-  "com.typesafe.akka" %% "akka-persistence" % akkaVersion,
-  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-  "com.typesafe.akka" %% "akka-persistence-tck" % akkaVersion % "test",
-  "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
-  "org.scalatest" %% "scalatest" % "2.1.7" % "test",
-  "commons-io" % "commons-io" % "2.4" % "test",
-  "org.hdrhistogram" % "HdrHistogram" % "2.1.8" % "test"
+  "com.amazonaws"       % "aws-java-sdk-core"       % amzVersion,
+  "com.amazonaws"       % "aws-java-sdk-dynamodb"   % amzVersion,
+  "com.typesafe.akka"   %% "akka-persistence"       % akkaVersion,
+  "com.typesafe.akka"   %% "akka-stream"            % akkaVersion,
+  "com.typesafe.akka"   %% "akka-persistence-tck"   % akkaVersion   % "test",
+  "com.typesafe.akka"   %% "akka-testkit"           % akkaVersion   % "test",
+  "org.scalatest"       %% "scalatest"              % "3.0.1"       % "test",
+  "commons-io"          % "commons-io"              % "2.4"         % "test",
+  "org.hdrhistogram"    % "HdrHistogram"            % "2.1.8"       % "test"
 )
 
 parallelExecution in Test := false
