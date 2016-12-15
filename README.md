@@ -6,7 +6,7 @@ A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.4.0/scala/persist
 
 **Please note that this module does neither include a snapshot-store plugin nor an Akka Persistence Query plugin.**
 
-Scala: `2.11.x` or `2.12.0-M3`  Akka: `2.4.2`  Java: `8+`
+Scala: `2.11.x` or `2.12.1`  Akka: `2.4.14`  Java: `8+`
 
 [![Join the chat at https://gitter.im/akka/akka-persistence-dynamodb](https://badges.gitter.im/akka/akka-persistence-dynamodb.svg)](https://gitter.im/akka/akka-persistence-dynamodb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://travis-ci.org/akka/akka-persistence-dynamodb.svg?branch=master)](https://travis-ci.org/akka/akka-persistence-dynamodb)
@@ -26,11 +26,11 @@ This plugin is published to the Maven Central repository with the following name
 
 or for sbt users:
 
-~~~
+```sbt
 libraryDependencies += "com.typesafe.akka" % "akka-persistence-dynamodb_2.11" % "1.0.0"
-~~~
+```
 
-Substitute the `_2.11` suffix by `_2.12.0-M3` when using Scala version 2.12.0-M3. This plugin requires Java 8 (just as Akka itself).
+Substitute the `_2.11` suffix by `_2.12` when using Scala version 2.12.1 or greater. This plugin requires Java 8 (just as Akka itself).
 
 Configuration
 -------------
@@ -60,14 +60,14 @@ Storage Semantics
 
 DynamoDB only offers consistency guarantees for a single storage item—which corresponds to one event in the case of this Akka Persistence plugin. This means that any single event is either written to the journal (and thereby visible to later replays) or it is not. This plugin supports atomic multi-event batches nevertheless, by marking the contained events such that partial replay can be avoided (see the `idx` and `cnt` attributes in the storage format description below). Consider the following actions of a PersistentActor:
 
-~~~scala
+```scala
 val events = List(<some events>)
 if (atomic) {
   persistAll(events)(handler)
 else {
   for (event <- events) persist(event)(handler)
 }
-~~~
+```
 
 In the first case a recovery will only ever see all of the events or none of them. This is also true if recovery is requested with an upper limit on the sequence number to be recovered to or a limit on the number of events to be replayed; the event count limit is applied before removing incomplete batch writes which means that the actual count of events received at the actor may be lower than the requested limit even if further events are available.
 
