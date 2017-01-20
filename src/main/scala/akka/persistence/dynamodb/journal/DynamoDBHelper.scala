@@ -27,7 +27,7 @@ trait DynamoDBHelper {
   val scheduler: Scheduler
   val dynamoDB: AmazonDynamoDBAsyncClient
   val log: LoggingAdapter
-  val settings: DynamoDBJournalConfig
+  val settings: DynamoDBConfig
   import settings._
 
   def shutdown(): Unit = dynamoDB.shutdown()

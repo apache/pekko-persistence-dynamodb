@@ -1,28 +1,29 @@
 /**
  * Copyright (C) 2016 Typesafe Inc. <http://www.typesafe.com>
  */
-package akka.persistence.dynamodb.journal
+package akka.persistence.dynamodb.snapshot
 
-import com.amazonaws.services.dynamodbv2.model._
-import scala.concurrent.Await
-import akka.actor.ActorSystem
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import akka.persistence.Persistence
-import akka.util.Timeout
 import java.util.UUID
+
+import akka.actor.ActorSystem
 import akka.persistence.PersistentRepr
+import akka.util.Timeout
+import com.amazonaws.services.dynamodbv2.model._
+
 import scala.collection.JavaConverters._
+import scala.concurrent.{ Await, Future }
+import scala.concurrent.duration._
+import akka.persistence.dynamodb.journal.dynamoClient
 
 trait DynamoDBUtils {
 
   val system: ActorSystem
   import system.dispatcher
 
-  lazy val settings = {
+  lazy val settings: DynamoDBSnapshotConfig = {
     val c = system.settings.config
-    val config = c.getConfig(c.getString("akka.persistence.journal.plugin"))
-    new DynamoDBJournalConfig(config)
+    val config = c.getConfig(c.getString("akka.persistence.snapshot-store.plugin"))
+    new DynamoDBSnapshotConfig(config)
   }
   import settings._
 
@@ -30,9 +31,9 @@ trait DynamoDBUtils {
 
   implicit val timeout = Timeout(5.seconds)
 
-  def ensureJournalTableExists(read: Long = 10L, write: Long = 10L): Unit = {
+  def ensureSnapshotTableExists(read: Long = 10L, write: Long = 10L): Unit = {
     val create = schema
-      .withTableName(JournalTable)
+      .withTableName(SnapshotTable)
       .withProvisionedThroughput(new ProvisionedThroughput(read, write))
 
     var names = Vector.empty[String]
@@ -46,15 +47,15 @@ trait DynamoDBUtils {
       }
     val list = client.listTables(new ListTablesRequest).flatMap(complete)
 
-    list.foreach(println)
     val setup = for {
-      exists <- list.map(_ contains JournalTable)
+      exists <- list.map(_ contains SnapshotTable)
       _ <- {
         if (exists) Future.successful(())
         else client.createTable(create)
       }
-    } yield ()
-    Await.result(setup, 5.seconds)
+    } yield exists
+    val r = Await.result(setup, 5.seconds)
+    println(s"ensured $r")
   }
 
   private val writerUuid = UUID.randomUUID.toString

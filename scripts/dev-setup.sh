@@ -11,7 +11,7 @@ fi
 echo "Starting up dynamodb"
 rm -f $PID_FILE
 
-nohup java -Djava.library.path=./dynamodb-local -jar ./dynamodb-local/DynamoDBLocal.jar -inMemory > target/dynamodb-output.log 2>&1 &
+nohup java -Djava.library.path=./dynamodb-local -jar ./dynamodb-local/DynamoDBLocal.jar -inMemory -sharedDb > target/dynamodb-output.log 2>&1 &
 echo $! > $PID_FILE
 echo -n "Started up dynamodb, pid is "
 cat $PID_FILE
