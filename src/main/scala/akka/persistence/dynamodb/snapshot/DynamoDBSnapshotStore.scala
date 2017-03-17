@@ -9,7 +9,7 @@ import com.typesafe.config.Config
 import java.util.{ HashMap => JHMap, Map => JMap }
 import scala.concurrent.Future
 
-class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBRequests with ActorLogging with DynamoDBProvider {
+class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBSnapshotRequests with ActorLogging with DynamoDBProvider {
   override val settings = new DynamoDBSnapshotConfig(config)
   override val dynamo = dynamoClient(context.system, settings)
   override val serialization = SerializationExtension(context.system)
@@ -22,7 +22,9 @@ class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBR
 
   override def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = Future.successful(None)
 
-  override def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = Future.successful(())
+  override def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
+    save(metadata.persistenceId, metadata.sequenceNr, metadata.timestamp, snapshot)
+  }
 
   override def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = Future.successful(())
 

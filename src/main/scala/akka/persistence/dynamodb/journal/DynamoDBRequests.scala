@@ -50,7 +50,7 @@ trait DynamoDBRequests {
 
   private[journal] def putReq(item: Item): WriteRequest = new WriteRequest().withPutRequest(new PutRequest().withItem(item))
 
-  private[journal] def putItem(item: Item): PutItemRequest = new PutItemRequest().withTableName(Table).withItem(item)
+  private[dynamodb] def putItem(item: Item): PutItemRequest = new PutItemRequest().withTableName(Table).withItem(item)
 
   private def deleteReq(persistenceId: String, sequenceNr: Long): WriteRequest =
     new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(messageKey(persistenceId, sequenceNr)))
