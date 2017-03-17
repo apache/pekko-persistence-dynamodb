@@ -1,15 +1,15 @@
 package akka.persistence.dynamodb.snapshot
 
 import akka.actor.ActorLogging
-import akka.persistence.dynamodb.journal.{DynamoDBRequests, dynamoClient}
-import akka.persistence.{SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria}
+import akka.persistence.dynamodb.journal.{ DynamoDBRequests, dynamoClient }
+import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import akka.persistence.snapshot.SnapshotStore
 import akka.serialization.SerializationExtension
 import com.typesafe.config.Config
 
 import scala.concurrent.Future
 
-class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBRequests with ActorLogging {
+class DynamoDBSnapshotStore(config: Config) extends SnapshotStore /* with DynamoDBRequests */ with ActorLogging {
   val settings = new DynamoDBSnapshotConfig(config)
   val dynamo = dynamoClient(context.system, settings)
   val serialization = SerializationExtension(context.system)
@@ -29,7 +29,6 @@ class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBR
 
 }
 
-
-object DynamoDBSnapshotStore{
+object DynamoDBSnapshotStore {
   private case object Init
 }
