@@ -67,7 +67,7 @@ private[akka] case class SetDBHelperReporter(ref: ActorRef)
  */
 case class Purged(persistenceId: String)
 
-class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRecovery with DynamoDBRequests with ActorLogging {
+class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRecovery with DynamoDBJournalRequests with ActorLogging with DynamoDBProvider {
   import context.dispatcher
 
   implicit val materializer = ActorMaterializer()

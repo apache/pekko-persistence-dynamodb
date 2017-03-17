@@ -4,8 +4,10 @@
 package akka.persistence.dynamodb.journal
 
 import com.typesafe.config.Config
-import akka.actor.ActorSystem
+import akka.actor.{ ActorSystem, ExtensionId, ExtensionIdProvider }
 import java.net.InetAddress
+import java.util.{ HashMap => JHMap, Map => JMap }
+import akka.serialization.{ Serialization, SerializationExtension }
 import com.amazonaws.ClientConfiguration
 import com.amazonaws.Protocol
 
@@ -19,7 +21,22 @@ trait DynamoDBConfig {
   val ClientDispatcher: String
   val client: ClientConfig
   val Tracing: Boolean
+  val MaxBatchGet: Int
+  val MaxBatchWrite: Int
+  val MaxItemSize: Int
+  val Table: String
+  val JournalName: String
 
+}
+
+trait DynamoDBProvider {
+  val settings: DynamoDBConfig
+  val dynamo: DynamoDBHelper
+  val serialization: Serialization
+
+  def keyLength(persistenceId: String, sequenceNr: Long): Int
+  def messageKey(persistenceId: String, sequenceNr: Long): Item
+  def messagePartitionKey(persistenceId: String, sequenceNr: Long): String
 }
 
 class DynamoDBClientConfig(c: Config) extends ClientConfig {
@@ -69,6 +86,7 @@ class DynamoDBClientConfig(c: Config) extends ClientConfig {
 
 class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
   val JournalTable = c getString "journal-table"
+  val Table = JournalTable
   val JournalName = c getString "journal-name"
   val AwsKey = c getString "aws-access-key-id"
   val AwsSecret = c getString "aws-secret-access-key"
