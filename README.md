@@ -20,14 +20,14 @@ This plugin is published to the Maven Central repository with the following name
 <dependency>
     <groupId>com.typesafe.akka</groupId>
     <artifactId>akka-persistence-dynamodb_2.11</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
 </dependency>
 ~~~
 
 or for sbt users:
 
 ```sbt
-libraryDependencies += "com.typesafe.akka" % "akka-persistence-dynamodb_2.11" % "1.0.0"
+libraryDependencies += "com.typesafe.akka" % "akka-persistence-dynamodb_2.11" % "1.0.1"
 ```
 
 Substitute the `_2.11` suffix by `_2.12` when using Scala version 2.12.1 or greater. This plugin requires Java 8 (just as Akka itself).
