@@ -13,7 +13,7 @@ import com.amazonaws.services.dynamodbv2.model._
 import scala.collection.JavaConverters._
 import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
-import akka.persistence.dynamodb.journal.dynamoClient
+import akka.persistence.dynamodb.dynamoClient
 
 trait DynamoDBUtils {
 
@@ -55,7 +55,6 @@ trait DynamoDBUtils {
       }
     } yield exists
     val r = Await.result(setup, 5.seconds)
-    println(s"ensured $r")
   }
 
   private val writerUuid = UUID.randomUUID.toString

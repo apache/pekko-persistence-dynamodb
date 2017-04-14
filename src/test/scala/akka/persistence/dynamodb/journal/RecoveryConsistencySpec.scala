@@ -13,6 +13,7 @@ import akka.testkit._
 import akka.persistence.journal.AsyncWriteTarget.ReplaySuccess
 import com.amazonaws.services.dynamodbv2.model._
 import java.util.{ HashMap => JHMap }
+import akka.persistence.dynamodb._
 
 class RecoveryConsistencySpec extends TestKit(ActorSystem("FailureReportingSpec"))
     with ImplicitSender

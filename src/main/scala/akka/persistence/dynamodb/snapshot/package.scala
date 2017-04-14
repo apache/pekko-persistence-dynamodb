@@ -16,7 +16,7 @@ package object snapshot {
 
   // field names
   val Key = "par"
-  val Sort = "num"
+//  val Sort = "num"
   val Timestamp = "ts"
   val TimestampIndex = "ts-idx"
 
@@ -30,21 +30,22 @@ package object snapshot {
   import com.amazonaws.services.dynamodbv2.model.{ KeySchemaElement, KeyType }
 
   val schema = new CreateTableRequest()
+    .withAttributeDefinitions(
+      new AttributeDefinition().withAttributeName(Key).withAttributeType("S"),
+      new AttributeDefinition().withAttributeName(SequenceNr).withAttributeType("N"),
+      new AttributeDefinition().withAttributeName(Timestamp).withAttributeType("N")
+    )
     .withKeySchema(
       new KeySchemaElement().withAttributeName(Key).withKeyType(KeyType.HASH),
-      new KeySchemaElement().withAttributeName(Sort).withKeyType(KeyType.RANGE)
+      new KeySchemaElement().withAttributeName(SequenceNr).withKeyType(KeyType.RANGE)
     )
     .withLocalSecondaryIndexes(
       new LocalSecondaryIndex()
         .withIndexName(TimestampIndex).withKeySchema(
           new KeySchemaElement().withAttributeName(Key).withKeyType(KeyType.HASH),
+//        new KeySchemaElement().withAttributeName(SequenceNr).withKeyType(KeyType.RANGE),
           new KeySchemaElement().withAttributeName(Timestamp).withKeyType(KeyType.RANGE)
         ).withProjection(new Projection().withProjectionType(ProjectionType.ALL))
-    )
-    .withAttributeDefinitions(
-      new AttributeDefinition().withAttributeName(Key).withAttributeType("S"),
-      new AttributeDefinition().withAttributeName(Sort).withAttributeType("N"),
-      new AttributeDefinition().withAttributeName(Timestamp).withAttributeType("N")
     )
 
   def S(value: String): AttributeValue = new AttributeValue().withS(value)

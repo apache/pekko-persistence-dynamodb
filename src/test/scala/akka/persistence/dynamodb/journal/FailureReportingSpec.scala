@@ -16,6 +16,7 @@ import akka.event.Logging
 import akka.persistence.JournalProtocol._
 import java.util.UUID
 import scala.collection.JavaConverters._
+import akka.persistence.dynamodb._
 
 class FailureReportingSpec extends TestKit(ActorSystem("FailureReportingSpec"))
     with ImplicitSender

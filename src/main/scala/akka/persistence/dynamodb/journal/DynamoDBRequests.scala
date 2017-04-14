@@ -17,6 +17,7 @@ import scala.util.control.NonFatal
 import akka.Done
 import akka.actor.{ Actor, ActorLogging }
 import akka.pattern.after
+import akka.persistence.dynamodb._
 
 trait DynamoDBRequests {
   this: DynamoDBProvider with ActorLogging with Actor =>
@@ -52,13 +53,13 @@ trait DynamoDBRequests {
 
   private[dynamodb] def putItem(item: Item): PutItemRequest = new PutItemRequest().withTableName(Table).withItem(item)
 
-  private def deleteReq(persistenceId: String, sequenceNr: Long): WriteRequest =
+  private[journal] def deleteReq(persistenceId: String, sequenceNr: Long): WriteRequest =
     new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(messageKey(persistenceId, sequenceNr)))
 
-  private[journal] def batchWriteReq(writes: Seq[WriteRequest]): BatchWriteItemRequest =
+  private[dynamodb] def batchWriteReq(writes: Seq[WriteRequest]): BatchWriteItemRequest =
     batchWriteReq(Collections.singletonMap(Table, writes.asJava))
 
-  private[journal] def batchWriteReq(items: JMap[String, JList[WriteRequest]]): BatchWriteItemRequest =
+  private[dynamodb] def batchWriteReq(items: JMap[String, JList[WriteRequest]]): BatchWriteItemRequest =
     new BatchWriteItemRequest()
       .withRequestItems(items)
       .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
@@ -71,7 +72,7 @@ trait DynamoDBRequests {
    * Execute the given WriteRequests in batches of MaxBatchWrite, ignoring and
    * logging all errors. The returned Future never fails.
    */
-  private[journal] def doBatch(desc: Seq[WriteRequest] => String, writes: Seq[WriteRequest]): Future[Done] =
+  private[dynamodb] def doBatch(desc: Seq[WriteRequest] => String, writes: Seq[WriteRequest]): Future[Done] =
     Future.sequence {
       writes
         .grouped(MaxBatchWrite)
@@ -99,7 +100,7 @@ trait DynamoDBRequests {
    * batch fail; that is why we need our own back-off mechanism here.  If we exhaust OUR retry logic on top of
    * the retries from the client, then we are hosed and cannot continue; that is why we have a RuntimeException here
    */
-  private[journal] def sendUnprocessedItems(
+  private[dynamodb] def sendUnprocessedItems(
     result:           BatchWriteItemResult,
     retriesRemaining: Int                  = 10,
     backoff:          FiniteDuration       = 1.millis

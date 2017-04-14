@@ -13,6 +13,7 @@ import akka.util.Timeout
 import java.util.UUID
 import akka.persistence.PersistentRepr
 import scala.collection.JavaConverters._
+import akka.persistence.dynamodb._
 
 trait DynamoDBUtils {
 
@@ -46,7 +47,6 @@ trait DynamoDBUtils {
       }
     val list = client.listTables(new ListTablesRequest).flatMap(complete)
 
-    list.foreach(println)
     val setup = for {
       exists <- list.map(_ contains JournalTable)
       _ <- {

@@ -17,6 +17,7 @@ import akka.stream.scaladsl._
 import java.util.ArrayList
 import akka.stream.stage._
 import akka.stream._
+import akka.persistence.dynamodb._
 
 object DynamoDBRecovery {
   case class ReplayBatch(items: Seq[Item], map: Map[AttributeValue, Long]) {
