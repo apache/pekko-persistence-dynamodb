@@ -1,12 +1,10 @@
 package akka.persistence.dynamodb.snapshot
 
 import akka.actor.ActorLogging
-import akka.persistence.dynamodb.journal._
 import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import akka.persistence.snapshot.SnapshotStore
 import akka.serialization.SerializationExtension
 import com.typesafe.config.Config
-import java.util.{ HashMap => JHMap, Map => JMap }
 
 import akka.persistence.dynamodb.journal.DynamoDBProvider
 import akka.persistence.dynamodb._
@@ -38,21 +36,6 @@ class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBS
   override def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
     delete(persistenceId, criteria)
   }
-
-  def keyLength(persistenceId: String, sequenceNr: Long): Int =
-    persistenceId.length + JournalName.length + KeyPayloadOverhead
-
-  //TODO remove this. unused
-  def messageKey(persistenceId: String, sequenceNr: Long): Item = {
-    val item: Item = new JHMap
-    item.put(Key, S(messagePartitionKey(persistenceId, sequenceNr)))
-    item.put(Sort, N(sequenceNr % 100))
-    item
-  }
-
-  //TODO remove this. unused
-  def messagePartitionKey(persistenceId: String, sequenceNr: Long): String =
-    s"$JournalName-P-$persistenceId-"
 
 }
 

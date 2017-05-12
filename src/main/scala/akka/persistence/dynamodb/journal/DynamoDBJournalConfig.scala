@@ -33,10 +33,6 @@ trait DynamoDBProvider {
   val settings: DynamoDBConfig
   val dynamo: DynamoDBHelper
   val serialization: Serialization
-
-  def keyLength(persistenceId: String, sequenceNr: Long): Int
-  def messageKey(persistenceId: String, sequenceNr: Long): Item
-  def messagePartitionKey(persistenceId: String, sequenceNr: Long): String
 }
 
 class DynamoDBClientConfig(c: Config) extends ClientConfig {
