@@ -1,9 +1,9 @@
 package akka.persistence.dynamodb.snapshot
 
-import java.util.{Collections, HashMap => JHMap, List => JList, Map => JMap}
+import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
 
 import akka.Done
-import akka.persistence.{SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria}
+import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import akka.persistence.dynamodb._
 import akka.persistence.dynamodb.journal.DynamoDBRequests
 import akka.persistence.serialization.Snapshot
@@ -32,11 +32,12 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   }
 
   def delete(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
-    for {result <- loadQueryResult(persistenceId, criteria).map(result => result.getItems.asScala.map(item => item.get(SequenceNr).getN.toLong))
-         _ <- doBatch(
-           batch => s"execute batch delete $batch",
-           result.map(snapshotDeleteReq(persistenceId, _))
-         )
+    for {
+      result <- loadQueryResult(persistenceId, criteria).map(result => result.getItems.asScala.map(item => item.get(SequenceNr).getN.toLong))
+      _ <- doBatch(
+        batch => s"execute batch delete $batch",
+        result.map(snapshotDeleteReq(persistenceId, _))
+      )
     } yield ()
   }
 
@@ -63,8 +64,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
         val results = result.getItems.asScala.map(item => (item.get(Key).getS, item.get(SequenceNr).getN.toLong))
         result.getItems.asScala.headOption
           .map(youngest =>
-            fromSnapshotItem(persistenceId, youngest)
-          )
+            fromSnapshotItem(persistenceId, youngest))
       }
   }
 
@@ -137,13 +137,10 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     val payloadValue = item.get(Payload).getB
     serialization.deserialize(payloadValue.array(), classOf[Snapshot])
       .map(snapshot =>
-        SelectedSnapshot(metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp), snapshot = snapshot.data)
-      ).get
+        SelectedSnapshot(metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp), snapshot = snapshot.data)).get
   }
-
 
   private def messagePartitionKey(persistenceId: String): String =
     s"$JournalName-P-$persistenceId"
-
 
 }

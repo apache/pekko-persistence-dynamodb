@@ -2,11 +2,11 @@ package akka.persistence.dynamodb.snapshot
 
 import akka.actor.ActorLogging
 import akka.persistence.dynamodb.journal._
-import akka.persistence.{SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria}
+import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import akka.persistence.snapshot.SnapshotStore
 import akka.serialization.SerializationExtension
 import com.typesafe.config.Config
-import java.util.{HashMap => JHMap, Map => JMap}
+import java.util.{ HashMap => JHMap, Map => JMap }
 
 import akka.persistence.dynamodb.journal.DynamoDBProvider
 import akka.persistence.dynamodb._
@@ -24,7 +24,7 @@ class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBS
   }
 
   override def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
-    load(persistenceId,criteria)
+    load(persistenceId, criteria)
   }
 
   override def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
@@ -36,7 +36,7 @@ class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBS
   }
 
   override def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
-    delete(persistenceId,criteria)
+    delete(persistenceId, criteria)
   }
 
   def keyLength(persistenceId: String, sequenceNr: Long): Int =
