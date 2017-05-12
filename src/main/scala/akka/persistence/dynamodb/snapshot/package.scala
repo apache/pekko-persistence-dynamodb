@@ -41,7 +41,6 @@ package object snapshot {
       new LocalSecondaryIndex()
         .withIndexName(TimestampIndex).withKeySchema(
           new KeySchemaElement().withAttributeName(Key).withKeyType(KeyType.HASH),
-          //        new KeySchemaElement().withAttributeName(SequenceNr).withKeyType(KeyType.RANGE),
           new KeySchemaElement().withAttributeName(Timestamp).withKeyType(KeyType.RANGE)
         ).withProjection(new Projection().withProjectionType(ProjectionType.ALL))
     )

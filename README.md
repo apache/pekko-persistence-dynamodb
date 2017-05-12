@@ -35,6 +35,7 @@ Substitute the `_2.11` suffix by `_2.12` when using Scala version 2.12.1 or grea
 Configuration
 -------------
 
+### Journal
 ~~~
 akka.persistence.journal.plugin = "my-dynamodb-journal"
 
@@ -54,6 +55,27 @@ Before you can use these settings you will have to create a table, e.g. using th
 
   * a hash key of type String with name `par`
   * a sort key of type Number with name `num`
+  
+### Snapshot
+~~~
+akka.persistence.snapshot-store.plugin = "my-dynamodb-snapshot"
+
+my-dynamodb-snapshot = ${dynamodb-snapshot} # include the default settings
+my-dynamodb-snapshot {                     # and add some overrides
+    snapshot-table =  <the name of the table to be used>
+    journal-name =  <prefix to be used for all keys stored by this plugin>
+    aws-access-key-id =  <your key>
+    aws-secret-access-key =  <your secret>
+    endpoint =  "https://dynamodb.us-east-1.amazonaws.com" # or where your deployment is
+}
+~~~
+
+The table to create for snapshot storage has the schema:
+ 
+* a hash key of type String with name `par`
+* a sort key of type Number with name `seq`
+* a sort key of type Number with name `ts`
+* a local secondary index with name `ts-idx` that is an index on the combination of `par` and `ts`
 
 Storage Semantics
 -----------------
