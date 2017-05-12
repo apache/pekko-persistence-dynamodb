@@ -1,3 +1,6 @@
+/**
+  * Copyright (C) 2016 Typesafe Inc. <http://www.typesafe.com>
+  */
 package akka.persistence.dynamodb.snapshot
 
 import akka.actor.ActorLogging
@@ -6,7 +9,6 @@ import akka.persistence.snapshot.SnapshotStore
 import akka.serialization.SerializationExtension
 import com.typesafe.config.Config
 
-import akka.persistence.dynamodb.journal.DynamoDBProvider
 import akka.persistence.dynamodb._
 import scala.concurrent.Future
 

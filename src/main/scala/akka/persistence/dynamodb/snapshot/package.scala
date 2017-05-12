@@ -1,3 +1,6 @@
+/**
+  * Copyright (C) 2016 Typesafe Inc. <http://www.typesafe.com>
+  */
 package akka.persistence.dynamodb
 
 import java.nio.ByteBuffer
@@ -16,16 +19,11 @@ package object snapshot {
 
   // field names
   val Key = "par"
-  //  val Sort = "num"
   val Timestamp = "ts"
   val TimestampIndex = "ts-idx"
 
   val Payload = "pay"
   val SequenceNr = "seq"
-  //    val AtomIndex = "idx"
-  //    val AtomEnd = "cnt"
-  //
-  //    val KeyPayloadOverhead = 26 // including fixed parts of partition key and 36 bytes fudge factor
 
   import com.amazonaws.services.dynamodbv2.model.{ KeySchemaElement, KeyType }
 

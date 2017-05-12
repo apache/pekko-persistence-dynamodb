@@ -1,3 +1,6 @@
+/**
+  * Copyright (C) 2016 Typesafe Inc. <http://www.typesafe.com>
+  */
 package akka.persistence
 
 import java.nio.ByteBuffer
@@ -5,7 +8,7 @@ import java.util.concurrent.Executors
 
 import akka.actor.{ ActorSystem, Scheduler }
 import akka.event.{ Logging, LoggingAdapter }
-import akka.persistence.dynamodb.journal.{ DynamoDBConfig, DynamoDBHelper }
+import akka.persistence.dynamodb.journal.DynamoDBHelper
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
 import com.amazonaws.services.dynamodbv2.model.AttributeValue

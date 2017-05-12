@@ -1,19 +1,16 @@
+/**
+  * Copyright (C) 2016 Typesafe Inc. <http://www.typesafe.com>
+  */
 package akka.persistence.dynamodb.snapshot
 
 import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
 
-import akka.Done
 import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
-import akka.persistence.dynamodb._
 import akka.persistence.dynamodb.journal.DynamoDBRequests
 import akka.persistence.serialization.Snapshot
 import com.amazonaws.services.dynamodbv2.model._
-import akka.pattern.after
 import collection.JavaConverters._
 import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
-import scala.util.control.NonFatal
-import scala.concurrent.duration._
 
 trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   this: DynamoDBSnapshotStore =>
