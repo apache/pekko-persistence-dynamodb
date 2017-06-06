@@ -56,7 +56,7 @@ Before you can use these settings you will have to create a table, e.g. using th
   * a hash key of type String with name `par`
   * a sort key of type Number with name `num`
   
-### Snapshot
+### Snapshot store
 ~~~
 akka.persistence.snapshot-store.plugin = "my-dynamodb-snapshot"
 
