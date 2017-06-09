@@ -77,6 +77,8 @@ The table to create for snapshot storage has the schema:
 * a sort key of type Number with name `ts`
 * a local secondary index with name `ts-idx` that is an index on the combination of `par` and `ts`
 
+The Dynamodb item of a snapshot [can be 400 kB](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html#limits-items). Using a binary serialisation format like ProtoBuf or Kryo will use that space most effectively.  
+
 Storage Semantics
 -----------------
 
