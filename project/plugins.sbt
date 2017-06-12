@@ -6,6 +6,6 @@ addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.3")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-pgp" % "0.8.3")
 
-addSbtPlugin("com.lightbend" % "sbt-whitesource"  % "0.1.1")
+addSbtPlugin("com.lightbend" % "sbt-whitesource"  % "0.1.2")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.9.3")
