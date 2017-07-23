@@ -23,21 +23,17 @@ class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBS
     self ! DynamoDBSnapshotStore.Init
   }
 
-  override def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
+  override def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] =
     load(persistenceId, criteria)
-  }
 
-  override def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
+  override def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] =
     save(metadata.persistenceId, metadata.sequenceNr, metadata.timestamp, snapshot)
-  }
 
-  override def deleteAsync(metadata: SnapshotMetadata): Future[Unit] = {
+  override def deleteAsync(metadata: SnapshotMetadata): Future[Unit] =
     delete(metadata)
-  }
 
-  override def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
+  override def deleteAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] =
     delete(persistenceId, criteria)
-  }
 
 }
 
