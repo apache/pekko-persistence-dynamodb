@@ -4,7 +4,6 @@
 package akka.persistence.dynamodb
 
 import java.nio.ByteBuffer
-import java.util.{ Map => JMap }
 
 import com.amazonaws.services.dynamodbv2.model._
 
@@ -13,9 +12,6 @@ import scala.concurrent._
 import scala.util.{ Failure, Success, Try }
 
 package object snapshot {
-
-  type Item = JMap[String, AttributeValue]
-  type ItemUpdates = JMap[String, AttributeValueUpdate]
 
   // field names
   val Key = "par"

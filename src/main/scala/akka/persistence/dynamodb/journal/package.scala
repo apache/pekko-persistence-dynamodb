@@ -19,9 +19,6 @@ import java.nio.ByteBuffer
 
 package object journal {
 
-  type Item = JMap[String, AttributeValue]
-  type ItemUpdates = JMap[String, AttributeValueUpdate]
-
   // field names
   val Key = "par"
   val Sort = "num"

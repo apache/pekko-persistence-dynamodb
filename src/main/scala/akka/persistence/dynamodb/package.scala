@@ -6,18 +6,21 @@ package akka.persistence
 import java.nio.ByteBuffer
 import java.util.concurrent.Executors
 
-import akka.actor.{ ActorSystem, Scheduler }
-import akka.event.{ Logging, LoggingAdapter }
+import akka.actor.{ActorSystem, Scheduler}
+import akka.event.{Logging, LoggingAdapter}
 import akka.persistence.dynamodb.journal.DynamoDBHelper
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
-import com.amazonaws.services.dynamodbv2.model.AttributeValue
-
+import com.amazonaws.services.dynamodbv2.model.{AttributeValue, AttributeValueUpdate}
+import java.util.{ Map => JMap }
 import scala.collection.generic.CanBuildFrom
-import scala.concurrent.{ ExecutionContext, Future, Promise }
-import scala.util.{ Failure, Success, Try }
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Failure, Success, Try}
 
 package object dynamodb {
+  type Item = JMap[String, AttributeValue]
+  type ItemUpdates = JMap[String, AttributeValueUpdate]
+
   def S(value: String): AttributeValue = new AttributeValue().withS(value)
 
   def N(value: Long): AttributeValue = new AttributeValue().withN(value.toString)

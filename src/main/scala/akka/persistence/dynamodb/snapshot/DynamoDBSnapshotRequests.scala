@@ -5,7 +5,7 @@ package akka.persistence.dynamodb.snapshot
 
 import java.util.{Collections, HashMap => JHMap, List => JList, Map => JMap}
 
-import akka.persistence.dynamodb.DynamoDBRequests
+import akka.persistence.dynamodb.{DynamoDBRequests, Item}
 import akka.persistence.{SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria}
 import akka.persistence.serialization.Snapshot
 import com.amazonaws.services.dynamodbv2.model._

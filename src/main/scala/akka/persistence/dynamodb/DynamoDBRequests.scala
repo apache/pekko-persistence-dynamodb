@@ -8,7 +8,7 @@ import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
 
 import akka.Done
 import akka.actor.{Actor, ActorLogging}
-import akka.persistence.dynamodb.journal.{DynamoDBHelper, Item}
+import akka.persistence.dynamodb.journal.{DynamoDBHelper}
 import com.amazonaws.services.dynamodbv2.model._
 import scala.collection.JavaConverters._
 import scala.concurrent.Future

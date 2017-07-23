@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.control.NoStackTrace
 import akka.actor.ActorRef
-import akka.persistence.dynamodb.DynamoDBConfig
+import akka.persistence.dynamodb.{DynamoDBConfig, Item}
 
 case class LatencyReport(nanos: Long, retries: Int)
 private class RetryStateHolder(var retries: Int = 10, var backoff: FiniteDuration = 1.millis)
