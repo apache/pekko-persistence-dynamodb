@@ -28,11 +28,6 @@ trait DynamoDBConfig {
 
 }
 
-trait DynamoDBProvider {
-  val settings: DynamoDBConfig
-  def dynamo: DynamoDBHelper
-}
-
 class DynamoDBClientConfig(c: Config) extends ClientConfig {
   private val cc = c getConfig "aws-client-config"
   private def get[T](path: String, extract: (Config, String) => T, set: T => Unit): Unit =

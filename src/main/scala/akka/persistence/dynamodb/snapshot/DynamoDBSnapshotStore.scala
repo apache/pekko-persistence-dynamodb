@@ -12,9 +12,9 @@ import com.typesafe.config.Config
 import akka.persistence.dynamodb._
 import scala.concurrent.Future
 
-class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBSnapshotRequests with ActorLogging with DynamoDBProvider {
-  override val settings = new DynamoDBSnapshotConfig(config)
-  override def dynamo = dynamoClient(context.system, settings)
+class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBSnapshotRequests with ActorLogging {
+  val settings = new DynamoDBSnapshotConfig(config)
+  def dynamo = dynamoClient(context.system, settings)
   val serialization = SerializationExtension(context.system)
   import settings._
 

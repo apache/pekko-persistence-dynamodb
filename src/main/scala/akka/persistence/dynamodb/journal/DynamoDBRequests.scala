@@ -20,7 +20,10 @@ import akka.pattern.after
 import akka.persistence.dynamodb._
 
 trait DynamoDBRequests {
-  this: DynamoDBProvider with ActorLogging with Actor =>
+  this:  ActorLogging with Actor =>
+
+  val settings: DynamoDBConfig
+  def dynamo: DynamoDBHelper
 
   import settings._
   import context.dispatcher
