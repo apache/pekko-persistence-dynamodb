@@ -60,10 +60,13 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
 
     loadQueryResult(persistenceId, criteria)
       .map { result =>
-        val results = result.getItems.asScala.map(item => (item.get(Key).getS, item.get(SequenceNr).getN.toLong))
-        result.getItems.asScala.headOption
-          .map(youngest =>
-            fromSnapshotItem(persistenceId, youngest))
+        if(result.getItems.size()>0){
+          result.getItems.asScala.headOption
+            .map(youngest =>
+              fromSnapshotItem(persistenceId, youngest))
+        } else {
+          None
+        }
       }
   }
 
