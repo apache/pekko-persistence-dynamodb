@@ -14,8 +14,8 @@ import scala.concurrent.Future
 
 class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBSnapshotRequests with ActorLogging with DynamoDBProvider {
   override val settings = new DynamoDBSnapshotConfig(config)
-  override val dynamo = dynamoClient(context.system, settings)
-  override val serialization = SerializationExtension(context.system)
+  override def dynamo = dynamoClient(context.system, settings)
+  val serialization = SerializationExtension(context.system)
   import settings._
 
   override def preStart(): Unit = {

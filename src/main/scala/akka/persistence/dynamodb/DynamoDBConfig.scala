@@ -30,8 +30,7 @@ trait DynamoDBConfig {
 
 trait DynamoDBProvider {
   val settings: DynamoDBConfig
-  val dynamo: DynamoDBHelper
-  val serialization: Serialization
+  def dynamo: DynamoDBHelper
 }
 
 class DynamoDBClientConfig(c: Config) extends ClientConfig {
