@@ -12,6 +12,7 @@ import com.amazonaws.services.dynamodbv2.model._
 
 import collection.JavaConverters._
 import scala.concurrent.Future
+import akka.persistence.dynamodb._
 
 trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   this: DynamoDBSnapshotStore =>

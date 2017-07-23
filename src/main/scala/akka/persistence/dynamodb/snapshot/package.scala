@@ -40,38 +40,4 @@ package object snapshot {
           new KeySchemaElement().withAttributeName(Timestamp).withKeyType(KeyType.RANGE)
         ).withProjection(new Projection().withProjectionType(ProjectionType.ALL))
     )
-
-  def S(value: String): AttributeValue = new AttributeValue().withS(value)
-
-  def N(value: Long): AttributeValue = new AttributeValue().withN(value.toString)
-
-  def N(value: String): AttributeValue = new AttributeValue().withN(value)
-
-  val Naught = N(0)
-
-  def B(value: Array[Byte]): AttributeValue = new AttributeValue().withB(ByteBuffer.wrap(value))
-
-  def lift[T](f: Future[T]): Future[Try[T]] = {
-    val p = Promise[Try[T]]
-    f.onComplete(p.success)(akka.dispatch.ExecutionContexts.sameThreadExecutionContext)
-    p.future
-  }
-
-  def liftUnit(f: Future[Any]): Future[Try[Unit]] = {
-    val p = Promise[Try[Unit]]
-    f.onComplete {
-      case Success(_)     => p.success(Success(()))
-      case f @ Failure(_) => p.success(f.asInstanceOf[Failure[Unit]])
-    }(akka.dispatch.ExecutionContexts.sameThreadExecutionContext)
-    p.future
-  }
-
-  def trySequence[A, M[X] <: TraversableOnce[X]](in: M[Future[A]])(implicit
-    cbf: CanBuildFrom[M[Future[A]], Try[A], M[Try[A]]],
-                                                                   executor: ExecutionContext): Future[M[Try[A]]] =
-    in.foldLeft(Future.successful(cbf(in))) { (fr, a) =>
-      val fb = lift(a)
-      for (r <- fr; b <- fb) yield (r += b)
-    }.map(_.result())
-
 }
