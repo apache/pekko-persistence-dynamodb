@@ -20,6 +20,8 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   import settings._
   import context.dispatcher
 
+  val toUnit: Any => Unit = _ => ()
+
   def delete(metadata: SnapshotMetadata): Future[Unit] = {
     val request = new DeleteItemRequest()
       .withTableName(Table)
@@ -27,7 +29,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .addKeyEntry(SequenceNr, N(metadata.sequenceNr))
 
     dynamo.deleteItem(request)
-      .map(_ => ())
+      .map(toUnit)
   }
 
   def delete(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
@@ -37,7 +39,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
         batch => s"execute batch delete $batch",
         result.map(snapshotDeleteReq(persistenceId, _))
       )
-        .map(_ => ())
+        .map(toUnit)
     }
   }
 
@@ -52,9 +54,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
 
   def save(persistenceId: String, sequenceNr: Long, timestamp: Long, snapshot: Any): Future[Unit] = {
     dynamo.putItem(putItem(toSnapshotItem(persistenceId, sequenceNr, timestamp, snapshot)))
-      .map { _ =>
-        ()
-      }
+      .map(toUnit)
   }
 
   def load(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
