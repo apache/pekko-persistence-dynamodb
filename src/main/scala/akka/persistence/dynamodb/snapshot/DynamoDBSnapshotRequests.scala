@@ -137,9 +137,8 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     val seqNr = item.get(SequenceNr).getN.toLong
     val timestamp = item.get(Timestamp).getN.toLong
     val payloadValue = item.get(Payload).getB
-    serialization.deserialize(payloadValue.array(), classOf[Snapshot])
-      .map(snapshot =>
-        SelectedSnapshot(metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp), snapshot = snapshot.data)).get
+    val snapshot = serialization.deserialize(payloadValue.array(), classOf[Snapshot]).get
+    SelectedSnapshot(metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp), snapshot = snapshot.data)
   }
 
   private def messagePartitionKey(persistenceId: String): String =
