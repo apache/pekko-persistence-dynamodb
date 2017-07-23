@@ -30,13 +30,14 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   }
 
   def delete(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
-    for {
-      result <- loadQueryResult(persistenceId, criteria).map(result => result.getItems.asScala.map(item => item.get(SequenceNr).getN.toLong))
-      _ <- doBatch(
+    loadQueryResult(persistenceId, criteria).flatMap { queryResult =>
+      val result =queryResult.getItems.asScala.map(item => item.get(SequenceNr).getN.toLong)
+      doBatch(
         batch => s"execute batch delete $batch",
         result.map(snapshotDeleteReq(persistenceId, _))
       )
-    } yield ()
+        .map(_ => ())
+    }
   }
 
   private def snapshotDeleteReq(persistenceId: String, sequenceNr: Long): WriteRequest = {
