@@ -17,8 +17,8 @@ import akka.persistence.dynamodb.dynamoClient
 
 trait DynamoDBUtils {
 
-  val system: ActorSystem
-  import system.dispatcher
+  def system: ActorSystem
+  implicit val executionContext=system.dispatcher
 
   lazy val settings: DynamoDBSnapshotConfig = {
     val c = system.settings.config
