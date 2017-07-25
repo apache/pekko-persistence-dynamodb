@@ -7,8 +7,7 @@ import akka.persistence.dynamodb.{ClientConfig, DynamoDBClientConfig, DynamoDBCo
 import com.typesafe.config.Config
 
 class DynamoDBSnapshotConfig(c: Config) extends DynamoDBConfig {
-  val SnapshotTable = c getString "snapshot-table"
-  val Table = SnapshotTable
+  val Table = c getString "snapshot-table"
   val JournalName = c getString "journal-name"
   val AwsKey = c getString "aws-access-key-id"
   val AwsSecret = c getString "aws-secret-access-key"
@@ -19,7 +18,7 @@ class DynamoDBSnapshotConfig(c: Config) extends DynamoDBConfig {
   val MaxItemSize = c getInt "aws-api-limits.max-item-size"
 
   override def toString: String = "DynamoDBJournalConfig(" +
-    "SnapshotTable:" + SnapshotTable +
+    "SnapshotTable:" + Table +
     ",AwsKey:" + AwsKey +
     ",Endpoint:" + Endpoint + ")"
 

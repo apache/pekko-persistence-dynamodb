@@ -53,7 +53,7 @@ trait DynamoDBUtils {
 
   def ensureSnapshotTableExists(read: Long = 10L, write: Long = 10L): Unit = {
     val create = schema
-      .withTableName(SnapshotTable)
+      .withTableName(Table)
       .withProvisionedThroughput(new ProvisionedThroughput(read, write))
 
     var names = Vector.empty[String]
@@ -68,7 +68,7 @@ trait DynamoDBUtils {
     val list = client.listTables(new ListTablesRequest).flatMap(complete)
 
     val setup = for {
-      exists <- list.map(_ contains SnapshotTable)
+      exists <- list.map(_ contains Table)
       _ <- {
         if (exists) Future.successful(())
         else client.createTable(create)
