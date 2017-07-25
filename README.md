@@ -60,8 +60,8 @@ Before you can use these settings you will have to create a table, e.g. using th
 ~~~
 akka.persistence.snapshot-store.plugin = "my-dynamodb-snapshot"
 
-my-dynamodb-snapshot = ${dynamodb-snapshot} # include the default settings
-my-dynamodb-snapshot {                     # and add some overrides
+my-dynamodb-snapshot-store = ${dynamodb-snapshot-store} # include the default settings
+my-dynamodb-snapshot-store {                     # and add some overrides
     snapshot-table =  <the name of the table to be used>
     journal-name =  <prefix to be used for all keys stored by this plugin>
     aws-access-key-id =  <your key>
