@@ -92,6 +92,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .addExpressionAttributeValuesEntry(":tsMinVal", N(minTimestamp))
       .addExpressionAttributeValuesEntry(":tsMaxVal", N(maxTimestamp))
       .withScanIndexForward(false)
+      .withConsistentRead(true)
 
     dynamo.query(request)
   }
@@ -104,6 +105,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .addExpressionAttributeValuesEntry(":seqMinVal", N(minSequenceNr))
       .addExpressionAttributeValuesEntry(":seqMaxVal", N(maxSequenceNr))
       .withScanIndexForward(false)
+      .withConsistentRead(true)
 
     dynamo.query(request)
   }
@@ -119,6 +121,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .withFilterExpression(s"$Timestamp BETWEEN :tsMinVal AND :tsMaxVal ")
       .addExpressionAttributeValuesEntry(":tsMinVal", N(criteria.minTimestamp))
       .addExpressionAttributeValuesEntry(":tsMaxVal", N(criteria.maxTimestamp))
+      .withConsistentRead(true)
 
     dynamo.query(request)
   }
