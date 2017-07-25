@@ -85,6 +85,4 @@ trait DynamoDBUtils {
     nextSeqNr += 1
     ret
   }
-  var generatedMessages: Vector[PersistentRepr] = Vector(null) // we start counting at 1
-
 }
