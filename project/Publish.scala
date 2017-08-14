@@ -33,10 +33,6 @@ object Publish extends AutoPlugin {
   )
 
   def akkaPomExtra = {
-    <scm>
-      <url>git@github.com:akka/akka-persistence-dynamodb.git</url>
-      <connection>scm:git:git@github.com:akka/akka-persistence-dynamodb.git</connection>
-    </scm>
     <developers>
       <developer>
         <id>contributors</id>
