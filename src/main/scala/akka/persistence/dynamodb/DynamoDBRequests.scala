@@ -1,14 +1,14 @@
 /**
-  * Copyright (C) 2016 Typesafe Inc. <http://www.typesafe.com>
-  */
+ * Copyright (C) 2016 Typesafe Inc. <http://www.typesafe.com>
+ */
 package akka.persistence.dynamodb
 
 import java.util.Collections
 import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
 
 import akka.Done
-import akka.actor.{Actor, ActorLogging}
-import akka.persistence.dynamodb.journal.{DynamoDBHelper}
+import akka.actor.{ Actor, ActorLogging }
+import akka.persistence.dynamodb.journal.{ DynamoDBHelper }
 import com.amazonaws.services.dynamodbv2.model._
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 import akka.pattern.after
 
 private[dynamodb] trait DynamoDBRequests {
-  this:  ActorLogging with Actor =>
+  this: ActorLogging with Actor =>
 
   val settings: DynamoDBConfig
   def dynamo: DynamoDBHelper

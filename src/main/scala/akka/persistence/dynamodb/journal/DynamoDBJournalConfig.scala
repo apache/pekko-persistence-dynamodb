@@ -5,8 +5,7 @@ package akka.persistence.dynamodb.journal
 
 import com.typesafe.config.Config
 
-import akka.persistence.dynamodb.{DynamoDBClientConfig, DynamoDBConfig}
-
+import akka.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
 
 class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
   val JournalTable = c getString "journal-table"

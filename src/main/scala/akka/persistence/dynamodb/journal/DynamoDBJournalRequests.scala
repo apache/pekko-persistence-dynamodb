@@ -19,8 +19,6 @@ import akka.actor.{ Actor, ActorLogging }
 import akka.pattern.after
 import akka.persistence.dynamodb._
 
-
-
 trait DynamoDBJournalRequests extends DynamoDBRequests {
   this: DynamoDBJournal =>
   import settings._

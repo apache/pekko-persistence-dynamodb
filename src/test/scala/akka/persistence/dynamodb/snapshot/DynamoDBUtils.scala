@@ -18,7 +18,7 @@ import akka.persistence.dynamodb.dynamoClient
 trait DynamoDBUtils {
 
   def system: ActorSystem
-  implicit val executionContext=system.dispatcher
+  implicit val executionContext = system.dispatcher
 
   lazy val settings: DynamoDBSnapshotConfig = {
     val c = system.settings.config
@@ -46,9 +46,9 @@ trait DynamoDBUtils {
     .withLocalSecondaryIndexes(
       new LocalSecondaryIndex()
         .withIndexName(TimestampIndex).withKeySchema(
-        new KeySchemaElement().withAttributeName(Key).withKeyType(KeyType.HASH),
-        new KeySchemaElement().withAttributeName(Timestamp).withKeyType(KeyType.RANGE)
-      ).withProjection(new Projection().withProjectionType(ProjectionType.ALL))
+          new KeySchemaElement().withAttributeName(Key).withKeyType(KeyType.HASH),
+          new KeySchemaElement().withAttributeName(Timestamp).withKeyType(KeyType.RANGE)
+        ).withProjection(new Projection().withProjectionType(ProjectionType.ALL))
     )
 
   def ensureSnapshotTableExists(read: Long = 10L, write: Long = 10L): Unit = {
