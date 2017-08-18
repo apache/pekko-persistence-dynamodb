@@ -62,7 +62,7 @@ Before you can use these settings you will have to create a table, e.g. using th
 (**Since:** `1.1.0`; contributed by [@joost-de-vries](https://github.com/joost-de-vries))
 
 ~~~
-akka.persistence.snapshot-store.plugin = "my-dynamodb-snapshot"
+akka.persistence.snapshot-store.plugin = "my-dynamodb-snapshot-store"
 
 my-dynamodb-snapshot-store = ${dynamodb-snapshot-store} # include the default settings
 my-dynamodb-snapshot-store {                     # and add some overrides
