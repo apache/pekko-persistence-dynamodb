@@ -94,7 +94,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .addExpressionAttributeValuesEntry(":tsMaxVal", N(maxTimestamp))
       .withScanIndexForward(false)
       .withConsistentRead(true)
-    limit.foreach(l => request.setLimit(new Integer(l)))
+    limit.foreach(request.setLimit(_))
 
     dynamo.query(request)
   }
@@ -108,7 +108,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .addExpressionAttributeValuesEntry(":seqMaxVal", N(maxSequenceNr))
       .withScanIndexForward(false)
       .withConsistentRead(true)
-    limit.foreach(l => request.setLimit(new Integer(l)))
+    limit.foreach(request.setLimit(_))
 
     dynamo.query(request)
   }
@@ -125,7 +125,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .addExpressionAttributeValuesEntry(":tsMinVal", N(criteria.minTimestamp))
       .addExpressionAttributeValuesEntry(":tsMaxVal", N(criteria.maxTimestamp))
       .withConsistentRead(true)
-    limit.foreach(l => request.setLimit(new Integer(l)))
+    limit.foreach(request.setLimit(_))
 
     dynamo.query(request)
   }
