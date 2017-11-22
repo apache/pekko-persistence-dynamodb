@@ -3,6 +3,7 @@
  */
 package akka.persistence.dynamodb.snapshot
 
+import java.lang.Integer
 import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
 
 import akka.persistence.dynamodb.{ DynamoDBRequests, Item }
@@ -59,7 +60,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
 
   def load(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
 
-    loadQueryResult(persistenceId, criteria)
+    loadQueryResult(persistenceId, criteria, Some(1))
       .map { result =>
         if (result.getItems.size() > 0) {
           result.getItems.asScala.headOption
@@ -71,19 +72,19 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       }
   }
 
-  private def loadQueryResult(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[QueryResult] = {
+  private def loadQueryResult(persistenceId: String, criteria: SnapshotSelectionCriteria, limit: Option[Int] = None): Future[QueryResult] = {
     criteria match {
       case SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp, minSequenceNr, minTimestamp) if minSequenceNr == 0 && maxSequenceNr == Long.MaxValue =>
-        loadByTimestamp(persistenceId, minTimestamp = minTimestamp, maxTimestamp = maxTimestamp)
+        loadByTimestamp(persistenceId, minTimestamp = minTimestamp, maxTimestamp = maxTimestamp, limit)
       case SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp, minSequenceNr, minTimestamp) if minTimestamp == 0 && maxTimestamp == Long.MaxValue =>
-        loadBySeqNr(persistenceId, minSequenceNr = minSequenceNr, maxSequenceNr = maxSequenceNr)
+        loadBySeqNr(persistenceId, minSequenceNr = minSequenceNr, maxSequenceNr = maxSequenceNr, limit)
       case _ =>
-        loadByBoth(persistenceId, criteria)
+        loadByBoth(persistenceId, criteria, limit)
 
     }
   }
 
-  private def loadByTimestamp(persistenceId: String, minTimestamp: Long, maxTimestamp: Long): Future[QueryResult] = {
+  private def loadByTimestamp(persistenceId: String, minTimestamp: Long, maxTimestamp: Long, limit: Option[Int]): Future[QueryResult] = {
     val request = new QueryRequest()
       .withTableName(Table)
       .withIndexName(TimestampIndex)
@@ -93,11 +94,12 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .addExpressionAttributeValuesEntry(":tsMaxVal", N(maxTimestamp))
       .withScanIndexForward(false)
       .withConsistentRead(true)
+    limit.foreach(request.setLimit(_))
 
     dynamo.query(request)
   }
 
-  private def loadBySeqNr(persistenceId: String, minSequenceNr: Long, maxSequenceNr: Long): Future[QueryResult] = {
+  private def loadBySeqNr(persistenceId: String, minSequenceNr: Long, maxSequenceNr: Long, limit: Option[Int]): Future[QueryResult] = {
     val request = new QueryRequest()
       .withTableName(Table)
       .withKeyConditionExpression(s" $Key = :partitionKeyVal AND $SequenceNr BETWEEN :seqMinVal AND :seqMaxVal")
@@ -106,11 +108,12 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .addExpressionAttributeValuesEntry(":seqMaxVal", N(maxSequenceNr))
       .withScanIndexForward(false)
       .withConsistentRead(true)
+    limit.foreach(request.setLimit(_))
 
     dynamo.query(request)
   }
 
-  private def loadByBoth(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[QueryResult] = {
+  private def loadByBoth(persistenceId: String, criteria: SnapshotSelectionCriteria, limit: Option[Int]): Future[QueryResult] = {
     val request = new QueryRequest()
       .withTableName(Table)
       .withKeyConditionExpression(s" $Key = :partitionKeyVal AND $SequenceNr BETWEEN :seqMinVal AND :seqMaxVal")
@@ -122,6 +125,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .addExpressionAttributeValuesEntry(":tsMinVal", N(criteria.minTimestamp))
       .addExpressionAttributeValuesEntry(":tsMaxVal", N(criteria.maxTimestamp))
       .withConsistentRead(true)
+    limit.foreach(request.setLimit(_))
 
     dynamo.query(request)
   }
