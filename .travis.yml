@@ -17,7 +17,7 @@ script:
   - git branch -f "$TRAVIS_BRANCH" && git checkout "$TRAVIS_BRANCH"
   - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M -Dakka.test.timefactor=2.0 test
   # check policies, if on master also upload
-  - if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_EVENT_TYPE" == "push" ]]; then sbt 'set credentials += Credentials("whitesource", "whitesourcesoftware.com", "", System.getenv("WHITESOURCE_KEY"))' whitesourceCheckPolicies whitesourceUpdate; else sbt 'set credentials += Credentials("whitesource", "whitesourcesoftware.com", "", System.getenv("WHITESOURCE_KEY"))' whitesourceCheckPolicies; fi
+  - if [[ "$TRAVIS_SECURE_ENV_VARS" == "true" ]]; then if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_EVENT_TYPE" == "push" ]]; then sbt 'set credentials += Credentials("whitesource", "whitesourcesoftware.com", "", System.getenv("WHITESOURCE_KEY"))' whitesourceCheckPolicies whitesourceUpdate; else sbt 'set credentials += Credentials("whitesource", "whitesourcesoftware.com", "", System.getenv("WHITESOURCE_KEY"))' whitesourceCheckPolicies; fi; fi
   - find $HOME/.sbt -name "*.lock" | xargs rm
   - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
   - find $HOME/.ivy2 -name "ivydata-*.properties"
