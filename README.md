@@ -207,3 +207,8 @@ Credits
 - Initial development was done by [Scott Clasen](https://github.com/sclasen/akka-persistence-dynamodb). 
 - Update to Akka 2.4 and further development up to version 1.0 was kindly sponsored by [Zynga Inc.](https://www.zynga.com/).
 - The snapshot store was contributed by [Joost de Vries](https://github.com/joost-de-vries)
+
+Support
+-------
+
+This project is *community maintained*. The Lightbend subscription does not cover support for this project.
