@@ -187,7 +187,7 @@ class DynamoDBIntegrationLoadSpec
       val persistenceId = UUID.randomUUID().toString
       testRangeDelete(persistenceId)
     }
-    /*  "replay messages incrementally" in {
+    /* "replay messages incrementally" in {
       val persistenceId = UUID.randomUUID().toString
       val probe = TestProbe()
       val processor1 = system.actorOf(Props(classOf[ProcessorA], persistenceId, self))

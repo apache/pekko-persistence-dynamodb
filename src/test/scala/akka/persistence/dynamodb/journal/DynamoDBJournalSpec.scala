@@ -30,5 +30,5 @@ class DynamoDBJournalSpec extends JournalSpec(ConfigFactory.load()) with DynamoD
     super.writeMessages(fromSnr, toSnr, pid, sender, writerUuid)
   }
 
-  def supportsRejectingNonSerializableObjects = CapabilityFlag.on()
+  def supportsRejectingNonSerializableObjects = CapabilityFlag.off()
 }
