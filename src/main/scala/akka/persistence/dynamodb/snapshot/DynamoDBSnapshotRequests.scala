@@ -14,6 +14,7 @@ import com.amazonaws.services.dynamodbv2.model._
 import collection.JavaConverters._
 import scala.concurrent.Future
 import akka.persistence.dynamodb._
+import akka.serialization.{ AsyncSerializer, Serializers }
 
 trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   this: DynamoDBSnapshotStore =>
@@ -54,20 +55,19 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   }
 
   def save(persistenceId: String, sequenceNr: Long, timestamp: Long, snapshot: Any): Future[Unit] = {
-    dynamo.putItem(putItem(toSnapshotItem(persistenceId, sequenceNr, timestamp, snapshot)))
-      .map(toUnit)
+    toSnapshotItem(persistenceId, sequenceNr, timestamp, snapshot).flatMap { snapshotItem =>
+      dynamo.putItem(putItem(snapshotItem))
+        .map(toUnit)
+    }
   }
 
   def load(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
 
     loadQueryResult(persistenceId, criteria, Some(1))
-      .map { result =>
-        if (result.getItems.size() > 0) {
-          result.getItems.asScala.headOption
-            .map(youngest =>
-              fromSnapshotItem(persistenceId, youngest))
-        } else {
-          None
+      .flatMap { result =>
+        result.getItems.asScala.headOption match {
+          case Some(youngest) => fromSnapshotItem(persistenceId, youngest).map(Some(_))
+          case None           => Future.successful(None)
         }
       }
   }
@@ -130,23 +130,42 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     dynamo.query(request)
   }
 
-  private def toSnapshotItem(persistenceId: String, sequenceNr: Long, timestamp: Long, snapshot: Any): Item = {
+  private def toSnapshotItem(persistenceId: String, sequenceNr: Long, timestamp: Long, snapshot: Any): Future[Item] = {
     val item: Item = new JHMap
 
     item.put(Key, S(messagePartitionKey(persistenceId)))
     item.put(SequenceNr, N(sequenceNr))
     item.put(Timestamp, N(timestamp))
-    val snp = B(serialization.serialize(Snapshot(snapshot)).get)
-    item.put(Payload, snp)
-    item
+    val snapshotWrapped = Snapshot(snapshot)
+    val fut = serialization.serializerFor(classOf[Snapshot]) match {
+      case aS: AsyncSerializer => aS.toBinaryAsync(snapshotWrapped).map(payload => (payload, aS))
+      case s                   => Future.successful(s.toBinary(snapshotWrapped), s)
+    }
+    fut.map {
+      case (serialized, serializer) =>
+        item.put(Payload, B(serialized))
+        val manifest = Serializers.manifestFor(serializer, snapshotWrapped)
+        if (manifest.nonEmpty) {
+          item.put(SerializerManifest, S(manifest))
+        }
+        item
+    }
   }
 
-  private def fromSnapshotItem(persistenceId: String, item: Item): SelectedSnapshot = {
+  private def fromSnapshotItem(persistenceId: String, item: Item): Future[SelectedSnapshot] = {
     val seqNr = item.get(SequenceNr).getN.toLong
     val timestamp = item.get(Timestamp).getN.toLong
     val payloadValue = item.get(Payload).getB
-    val snapshot = serialization.deserialize(payloadValue.array(), classOf[Snapshot]).get
-    SelectedSnapshot(metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp), snapshot = snapshot.data)
+    val manifest = if (item.containsKey(SerializerManifest)) Option(item.get(SerializerManifest).getS) else None
+    val clazz = classOf[Snapshot]
+    val snapshotFuture = (serialization.serializerFor(clazz), manifest) match {
+      case (aS: AsyncSerializer, Some(m)) => aS.fromBinaryAsync(payloadValue.array(), m).map(_.asInstanceOf[Snapshot])
+      case (s, _)                         => Future.successful(s.fromBinary(payloadValue.array(), clazz).asInstanceOf[Snapshot])
+    }
+
+    snapshotFuture.map { snapshot =>
+      SelectedSnapshot(metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp), snapshot = snapshot.data)
+    }
   }
 
   private def messagePartitionKey(persistenceId: String): String =

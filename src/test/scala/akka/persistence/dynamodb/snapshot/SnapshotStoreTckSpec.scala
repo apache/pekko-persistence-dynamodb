@@ -13,7 +13,7 @@ import com.typesafe.config.{ Config, ConfigFactory }
 
 import scala.collection.immutable.Seq
 
-class gSnapshotStoreTckSpec extends SnapshotStoreSpec(
+class SnapshotStoreTckSpec extends SnapshotStoreSpec(
   ConfigFactory.load()
 ) with DynamoDBUtils {
   override def beforeAll(): Unit = {

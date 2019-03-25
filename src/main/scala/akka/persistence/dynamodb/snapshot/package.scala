@@ -20,5 +20,5 @@ package object snapshot {
 
   val Payload = "pay"
   val SequenceNr = "seq"
-
+  val SerializerManifest = "ser_manifest"
 }
