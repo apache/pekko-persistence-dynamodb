@@ -121,11 +121,11 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
         Source(start to toSequenceNr)
           .grouped(MaxBatchGet)
           .mapAsync(ReplayParallelism)(batch => getReplayBatch(persistenceId, batch).map(_.sorted))
-          .mapConcat(conforms)
+          .mapConcat(identity)
           .take(max)
           .via(RemoveIncompleteAtoms)
-          .mapConcat(conforms)
-          .map(readPersistentRepr)
+          .mapConcat(identity)
+          .mapAsync(ReplayParallelism)(readPersistentRepr)
           .runFold(0) { (count, next) => replayCallback(next); count + 1 }
           .map(count => log.debug("replay finished for {} with {} events", persistenceId, count))
       }
@@ -136,7 +136,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     val keyAttr = new KeysAndAttributes()
       .withKeys(batchKeys.map(_._1).asJava)
       .withConsistentRead(true)
-      .withAttributesToGet(Key, Sort, Payload, AtomEnd, AtomIndex)
+      .withAttributesToGet(Key, Sort, Payload, SerializerManifest, AtomEnd, AtomIndex)
     val get = batchGetReq(Collections.singletonMap(JournalTable, keyAttr))
     dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_)).map {
       result =>
@@ -251,8 +251,10 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       ret
     }
 
-  def readPersistentRepr(item: JMap[String, AttributeValue]): PersistentRepr =
-    persistentFromByteBuffer(item.get(Payload).getB)
+  def readPersistentRepr(item: JMap[String, AttributeValue]): Future[PersistentRepr] = {
+    val manifest = if (item.containsKey(SerializerManifest)) Option(item.get(SerializerManifest).getS) else None
+    persistentFromByteBuffer(item.get(Payload).getB, manifest)
+  }
 
   def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int = 10): Future[BatchGetItemResult] = {
     val unprocessed = result.getUnprocessedKeys.get(JournalTable) match {

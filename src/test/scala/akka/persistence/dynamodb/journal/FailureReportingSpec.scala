@@ -8,13 +8,15 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalactic.ConversionCheckedTripleEquals
 import akka.actor._
 import akka.testkit._
+
 import scala.concurrent.duration._
 import com.typesafe.config.ConfigFactory
 import akka.persistence._
 import com.amazonaws.services.dynamodbv2.model._
 import akka.event.Logging
-import akka.persistence.JournalProtocol._
+import akka.persistence.JournalProtocol.{ WriteMessageRejected, _ }
 import java.util.UUID
+
 import scala.collection.JavaConverters._
 import akka.persistence.dynamodb._
 
