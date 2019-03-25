@@ -101,7 +101,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
           trySequence(futures).map(seq => Try(seq.foreach(_.get)))
         }
         .recover {
-          case e: Throwable =>
+          case NonFatal(e) =>
             log.error(e, "Failure during message batch write preparation: {}", e.getMessage)
             val rej = new DynamoDBJournalRejection(s"AtomicWrite rejected as a whole due to ${e.getMessage}", e)
             Failure(rej)
