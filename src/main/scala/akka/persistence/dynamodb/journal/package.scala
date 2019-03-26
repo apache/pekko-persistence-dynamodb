@@ -23,6 +23,7 @@ package object journal {
   val Key = "par"
   val Sort = "num"
   val Payload = "pay"
+  val Message = "mes"
   val SerializerId = "ser_id"
   val SerializerManifest = "ser_manifest"
   val SequenceNr = "seq"

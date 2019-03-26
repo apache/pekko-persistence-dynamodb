@@ -3,6 +3,7 @@
  */
 package akka.persistence.dynamodb.journal
 
+import java.nio.ByteBuffer
 import java.util.Collections
 
 import akka.persistence.{ AtomicWrite, PersistentRepr }
@@ -14,9 +15,10 @@ import scala.concurrent.duration._
 import scala.util.{ Failure, Success, Try }
 import scala.util.control.NonFatal
 import akka.Done
+import akka.actor.ExtendedActorSystem
 import akka.pattern.after
 import akka.persistence.dynamodb._
-import akka.serialization.{ AsyncSerializer, Serializers }
+import akka.serialization.{ AsyncSerializer, Serialization, Serializers }
 
 trait DynamoDBJournalRequests extends DynamoDBRequests {
   this: DynamoDBJournal =>
@@ -163,28 +165,45 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
    * if the MaxItemSize constraint of the database would be violated.
    */
   private def toMsgItem(repr: PersistentRepr): Future[Item] = {
-    val fut = serialization.serializerFor(classOf[PersistentRepr]) match {
-      case aS: AsyncSerializer => aS.toBinaryAsync(repr).map(payload => (payload, aS))
-      case s                   => Future.successful(s.toBinary(repr), s)
-    }
-    fut.map {
-      case (serialized, serializer) =>
+    try {
+      val reprPayload: AnyRef = repr.payload.asInstanceOf[AnyRef]
+      val serializer = serialization.serializerFor(reprPayload.getClass)
+      val fut = serializer match {
+        case aS: AsyncSerializer =>
+          Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
+            aS.toBinaryAsync(reprPayload)
+          }
+        case _ =>
+          Future {
+            ByteBuffer.wrap(serialization.serialize(reprPayload).get).array()
+          }
+      }
+
+      fut.map { serialized =>
+        val reprWithoutPayload = repr.withPayload(null)
+        val serializedMessage = serialization.serialize(reprWithoutPayload)
+        val m = B(serializedMessage.get)
         val v = B(serialized)
-        val manifest = Serializers.manifestFor(serializer, repr)
+        val n = N(serializer.identifier)
+        val manifest = Serializers.manifestFor(serializer, reprPayload)
         val manifestLength = if (manifest.isEmpty) 0 else manifest.getBytes.length
-        val itemSize = keyLength(repr.persistenceId, repr.sequenceNr) + v.getB.remaining + manifestLength
+        val itemSize = keyLength(repr.persistenceId, repr.sequenceNr) + v.getB.remaining + m.getB.remaining + n.getN.getBytes.length + manifestLength
 
         if (itemSize > MaxItemSize) {
           throw new DynamoDBJournalRejection(s"MaxItemSize exceeded: $itemSize > $MaxItemSize")
         }
         val item: Item = messageKey(repr.persistenceId, repr.sequenceNr)
-        repr.payload
+
         item.put(Payload, v)
+        item.put(Message, m)
+        item.put(SerializerId, n)
         if (manifest.nonEmpty) {
-          item.put(SerializerManifest, S((manifest)))
+          item.put(SerializerManifest, S(manifest))
         }
         item
-
+      }
+    } catch {
+      case NonFatal(e) => Future.failed(e)
     }
   }
 

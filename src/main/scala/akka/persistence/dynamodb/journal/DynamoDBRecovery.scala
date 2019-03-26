@@ -3,11 +3,14 @@
  */
 package akka.persistence.dynamodb.journal
 
+import java.nio.ByteBuffer
 import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
 import java.util.function.Consumer
+
 import akka.persistence.PersistentRepr
 import akka.persistence.journal.AsyncRecovery
 import com.amazonaws.services.dynamodbv2.model._
+
 import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.concurrent.Future
@@ -15,9 +18,13 @@ import scala.util.{ Failure, Success }
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import java.util.ArrayList
+
+import akka.actor.ExtendedActorSystem
 import akka.stream.stage._
 import akka.stream._
 import akka.persistence.dynamodb._
+import akka.serialization.{ AsyncSerializer, Serialization }
+import akka.util.ByteString
 
 object DynamoDBRecovery {
   case class ReplayBatch(items: Seq[Item], map: Map[AttributeValue, Long]) {
@@ -118,6 +125,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       // toSequenceNr is already capped to highest and guaranteed to be no less than fromSequenceNr
       readSequenceNr(persistenceId, highest = false).flatMap { lowest =>
         val start = Math.max(fromSequenceNr, lowest)
+        val async = ReplayParallelism > 1
         Source(start to toSequenceNr)
           .grouped(MaxBatchGet)
           .mapAsync(ReplayParallelism)(batch => getReplayBatch(persistenceId, batch).map(_.sorted))
@@ -125,7 +133,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
           .take(max)
           .via(RemoveIncompleteAtoms)
           .mapConcat(identity)
-          .mapAsync(ReplayParallelism)(readPersistentRepr)
+          .mapAsync(ReplayParallelism)(readPersistentRepr(_, async))
           .runFold(0) { (count, next) => replayCallback(next); count + 1 }
           .map(count => log.debug("replay finished for {} with {} events", persistenceId, count))
       }
@@ -136,7 +144,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     val keyAttr = new KeysAndAttributes()
       .withKeys(batchKeys.map(_._1).asJava)
       .withConsistentRead(true)
-      .withAttributesToGet(Key, Sort, Payload, SerializerManifest, AtomEnd, AtomIndex)
+      .withAttributesToGet(Key, Sort, Payload, Message, SerializerId, SerializerManifest, AtomEnd, AtomIndex)
     val get = batchGetReq(Collections.singletonMap(JournalTable, keyAttr))
     dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_)).map {
       result =>
@@ -251,9 +259,37 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       ret
     }
 
-  def readPersistentRepr(item: JMap[String, AttributeValue]): Future[PersistentRepr] = {
+  def readPersistentRepr(item: JMap[String, AttributeValue], async: Boolean): Future[PersistentRepr] = {
     val manifest = if (item.containsKey(SerializerManifest)) Option(item.get(SerializerManifest).getS) else None
-    persistentFromByteBuffer(item.get(Payload).getB, manifest)
+
+    val clazz = classOf[PersistentRepr]
+    val deserialized = serialization.deserialize(item.get(Message).getB.array(), clazz)
+
+    val repr: PersistentRepr = deserialized.get
+
+    val payloadB = item.get(Payload).getB
+    val serId = item.get(SerializerId).getN.toInt
+
+    val fut = serialization.serializerByIdentity.get(serId) match {
+      case Some(asyncSerializer: AsyncSerializer) =>
+        Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
+          asyncSerializer.fromBinaryAsync(ByteString(payloadB).toArray, manifest.get)
+        }
+      case _ =>
+        def deserializedEvent: AnyRef = {
+          // Serialization.deserialize adds transport info
+          serialization.deserialize(payloadB.array(), serId, manifest.getOrElse("")).get
+        }
+
+        if (async) Future(deserializedEvent)
+        else
+          Future.successful(deserializedEvent)
+    }
+
+    fut.map { event: AnyRef =>
+      repr.withPayload(event)
+    }
+
   }
 
   def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int = 10): Future[BatchGetItemResult] = {
