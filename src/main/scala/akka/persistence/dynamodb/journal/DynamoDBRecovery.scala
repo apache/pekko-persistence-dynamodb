@@ -144,7 +144,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     val keyAttr = new KeysAndAttributes()
       .withKeys(batchKeys.map(_._1).asJava)
       .withConsistentRead(true)
-      .withAttributesToGet(Key, Sort, Payload, Message, SerializerId, SerializerManifest, AtomEnd, AtomIndex)
+      .withAttributesToGet(Key, Sort, Payload, Event, SerializerId, SerializerManifest, AtomEnd, AtomIndex)
     val get = batchGetReq(Collections.singletonMap(JournalTable, keyAttr))
     dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_)).map {
       result =>
@@ -260,36 +260,47 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     }
 
   def readPersistentRepr(item: JMap[String, AttributeValue], async: Boolean): Future[PersistentRepr] = {
-    val manifest = if (item.containsKey(SerializerManifest)) Option(item.get(SerializerManifest).getS) else None
-
     val clazz = classOf[PersistentRepr]
-    val deserialized = serialization.deserialize(item.get(Message).getB.array(), clazz)
 
-    val repr: PersistentRepr = deserialized.get
+    if (item.containsKey(Event)) {
+      val manifest = if (item.containsKey(SerializerManifest)) item.get(SerializerManifest).getS else ""
 
-    val payloadB = item.get(Payload).getB
-    val serId = item.get(SerializerId).getN.toInt
+      val repr: PersistentRepr = serialization.deserialize(item.get(Payload).getB.array(), clazz).get
 
-    val fut = serialization.serializerByIdentity.get(serId) match {
-      case Some(asyncSerializer: AsyncSerializer) =>
-        Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
-          asyncSerializer.fromBinaryAsync(ByteString(payloadB).toArray, manifest.get)
-        }
-      case _ =>
-        def deserializedEvent: AnyRef = {
-          // Serialization.deserialize adds transport info
-          serialization.deserialize(payloadB.array(), serId, manifest.getOrElse("")).get
-        }
+      val eventPayload = item.get(Event).getB
+      val serId = item.get(SerializerId).getN.toInt
 
-        if (async) Future(deserializedEvent)
-        else
-          Future.successful(deserializedEvent)
+      val fut = serialization.serializerByIdentity.get(serId) match {
+        case Some(asyncSerializer: AsyncSerializer) =>
+          Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
+            asyncSerializer.fromBinaryAsync(ByteString(eventPayload).toArray, manifest)
+          }
+        case _ =>
+          def deserializedEvent: AnyRef = {
+            // Serialization.deserialize adds transport info
+            serialization.deserialize(eventPayload.array(), serId, manifest).get
+          }
+          if (async) Future(deserializedEvent)
+          else
+            Future.successful(deserializedEvent)
+      }
+
+      fut.map { event: AnyRef =>
+        repr.withPayload(event)
+      }
+
+    } else {
+
+      def deserializedEvent: PersistentRepr = {
+        // Serialization.deserialize adds transport info
+        serialization.deserialize(item.get(Payload).getB.array(), clazz).get
+      }
+
+      if (async) Future(deserializedEvent)
+      else
+        Future.successful(deserializedEvent)
+
     }
-
-    fut.map { event: AnyRef =>
-      repr.withPayload(event)
-    }
-
   }
 
   def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int = 10): Future[BatchGetItemResult] = {

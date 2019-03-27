@@ -194,8 +194,8 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
         }
         val item: Item = messageKey(repr.persistenceId, repr.sequenceNr)
 
-        item.put(Payload, v)
-        item.put(Message, m)
+        item.put(Payload, m)
+        item.put(Event, v)
         item.put(SerializerId, n)
         if (manifest.nonEmpty) {
           item.put(SerializerManifest, S(manifest))
