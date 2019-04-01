@@ -3,7 +3,6 @@
  */
 package akka.persistence.dynamodb.snapshot
 
-import java.nio.ByteBuffer
 import java.util.{ HashMap => JHMap }
 
 import akka.actor.ExtendedActorSystem
