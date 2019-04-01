@@ -3,9 +3,10 @@
  */
 package akka.persistence.dynamodb.snapshot
 
-import java.lang.Integer
-import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
+import java.nio.ByteBuffer
+import java.util.{ HashMap => JHMap }
 
+import akka.actor.ExtendedActorSystem
 import akka.persistence.dynamodb.{ DynamoDBRequests, Item }
 import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import akka.persistence.serialization.Snapshot
@@ -14,7 +15,7 @@ import com.amazonaws.services.dynamodbv2.model._
 import collection.JavaConverters._
 import scala.concurrent.Future
 import akka.persistence.dynamodb._
-import akka.serialization.{ AsyncSerializer, Serializers }
+import akka.serialization.{ AsyncSerializer, Serialization, Serializers }
 
 trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   this: DynamoDBSnapshotStore =>
@@ -136,35 +137,63 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     item.put(Key, S(messagePartitionKey(persistenceId)))
     item.put(SequenceNr, N(sequenceNr))
     item.put(Timestamp, N(timestamp))
-    val snapshotWrapped = Snapshot(snapshot)
-    val fut = serialization.serializerFor(classOf[Snapshot]) match {
-      case aS: AsyncSerializer => aS.toBinaryAsync(snapshotWrapped).map(payload => (payload, aS))
-      case s                   => Future.successful(s.toBinary(snapshotWrapped), s)
-    }
-    fut.map {
-      case (serialized, serializer) =>
-        item.put(Payload, B(serialized))
-        val manifest = Serializers.manifestFor(serializer, snapshotWrapped)
-        if (manifest.nonEmpty) {
-          item.put(SerializerManifest, S(manifest))
+    val snapshotData = snapshot.asInstanceOf[AnyRef]
+    val serializer = serialization.findSerializerFor(snapshot.asInstanceOf[AnyRef])
+    val manifest = Serializers.manifestFor(serializer, snapshotData)
+
+    val fut = serializer match {
+      case asyncSer: AsyncSerializer =>
+        Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
+          asyncSer.toBinaryAsync(snapshotData)
         }
-        item
+      case _ =>
+        Future {
+          // Serialization.serialize adds transport info
+          serialization.serialize(snapshotData).get
+        }
+    }
+
+    fut.map { data =>
+      item.put(PayloadData, B(data))
+      if (manifest.nonEmpty) {
+        item.put(SerializerManifest, S(manifest))
+      }
+      item.put(SerializerId, N(serializer.identifier))
+      item
     }
   }
 
   private def fromSnapshotItem(persistenceId: String, item: Item): Future[SelectedSnapshot] = {
     val seqNr = item.get(SequenceNr).getN.toLong
     val timestamp = item.get(Timestamp).getN.toLong
-    val payloadValue = item.get(Payload).getB
-    val manifest = if (item.containsKey(SerializerManifest)) Option(item.get(SerializerManifest).getS) else None
-    val clazz = classOf[Snapshot]
-    val snapshotFuture = (serialization.serializerFor(clazz), manifest) match {
-      case (aS: AsyncSerializer, Some(m)) => aS.fromBinaryAsync(payloadValue.array(), m).map(_.asInstanceOf[Snapshot])
-      case (s, _)                         => Future.successful(s.fromBinary(payloadValue.array(), clazz).asInstanceOf[Snapshot])
-    }
 
-    snapshotFuture.map { snapshot =>
-      SelectedSnapshot(metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp), snapshot = snapshot.data)
+    if (item.containsKey(PayloadData)) {
+
+      val payloadData = item.get(PayloadData).getB
+      val serId = item.get(SerializerId).getN.toInt
+      val manifest = if (item.containsKey(SerializerManifest)) item.get(SerializerManifest).getS else ""
+
+      val serialized = serialization.serializerByIdentity(serId) match {
+        case aS: AsyncSerializer =>
+          Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
+            aS.fromBinaryAsync(payloadData.array(), manifest)
+          }
+        case _ =>
+          Future.successful(
+            serialization.deserialize(payloadData.array(), serId, manifest).get
+          )
+      }
+
+      serialized.map(data => SelectedSnapshot(metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp), snapshot = data))
+
+    } else {
+      val payloadValue = item.get(Payload).getB
+      Future.successful(
+        SelectedSnapshot(
+          metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp),
+          snapshot = serialization.deserialize(payloadValue.array(), classOf[Snapshot]).get.data
+        )
+      )
     }
   }
 

@@ -3,14 +3,6 @@
  */
 package akka.persistence.dynamodb
 
-import java.nio.ByteBuffer
-
-import com.amazonaws.services.dynamodbv2.model._
-
-import scala.collection.generic.CanBuildFrom
-import scala.concurrent._
-import scala.util.{ Failure, Success, Try }
-
 package object snapshot {
 
   // field names
@@ -20,5 +12,7 @@ package object snapshot {
 
   val Payload = "pay"
   val SequenceNr = "seq"
+  val SerializerId = "ser_id"
   val SerializerManifest = "ser_manifest"
+  val PayloadData = "pay_data"
 }
