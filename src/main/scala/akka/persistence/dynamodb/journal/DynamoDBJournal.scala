@@ -195,17 +195,6 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     item
   }
 
-  def persistentToByteBuffer(p: PersistentRepr): ByteBuffer =
-    ByteBuffer.wrap(serialization.serialize(p).get)
-
-  def persistentFromByteBuffer(b: ByteBuffer, manifest: Option[String]): Future[PersistentRepr] = {
-    val clazz = classOf[PersistentRepr]
-    (serialization.serializerFor(clazz), manifest) match {
-      case (aS: AsyncSerializer, Some(m)) => aS.fromBinaryAsync(ByteString(b).toArray, m).map(_.asInstanceOf[PersistentRepr])
-      case (s, _)                         => Future.successful(s.fromBinary(ByteString(b).toArray, clazz).asInstanceOf[PersistentRepr])
-    }
-  }
-
   def logFailure[T](desc: String)(f: Future[T]): Future[T] = f.transform(conforms, ex => {
     log.error(ex, "operation failed: " + desc)
     ex
