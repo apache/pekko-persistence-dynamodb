@@ -1,3 +1,6 @@
+/*
+ * Copyright (C) 2019 Lightbend Inc. <https://www.lightbend.com>
+ */
 package akka.persistence.dynamodb.journal
 
 import java.util.Base64
@@ -9,6 +12,7 @@ import akka.actor.ActorSystem
 import akka.persistence._
 import akka.persistence.JournalProtocol._
 import akka.testkit._
+import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClient }
 import com.amazonaws.services.dynamodbv2.document.{ DynamoDB, Item }
@@ -27,8 +31,10 @@ class BackwardsCompatibilityV1Spec extends TestKit(ActorSystem("PartialAsyncSeri
     val config = ConfigFactory.load()
     val endpoint = config.getString("my-dynamodb-journal.endpoint")
     val tableName = config.getString("my-dynamodb-journal.journal-table")
+    val accesKey = config.getString("my-dynamodb-journal.aws-access-key-id")
+    val secretKey = config.getString("my-dynamodb-journal.aws-secret-access-key")
 
-    val client: AmazonDynamoDB = new AmazonDynamoDBClient()
+    val client: AmazonDynamoDB = new AmazonDynamoDBClient(new BasicAWSCredentials(accesKey, secretKey))
       .withRegion(Regions.US_EAST_1)
 
     client.setEndpoint(endpoint)
