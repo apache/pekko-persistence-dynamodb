@@ -201,6 +201,33 @@ it is completely compatible to use this plugin with Akka 2.5.x.
 
 Please make sure to depend on all Akka artifacts (those with the artifact name begining with `akka-*`) are depended on in the same version - as mixing versions is *not* legal. For example, if you depend on Akka Persistence in `2.5.3`, make sure that Akka Streams and Actors are also depended on in the same version. Please always use the latest patch version available (!).
 
+v 1.2.0
+---------------------
+* Depends on Akka 2.5.
+* Adds Support for the Async Serializers - which enables the use of the plugin with Lightbend extensions [GDPR Addons](https://developer.lightbend.com/docs/akka-commercial-addons/current/gdpr/index.html)
+
+Schema changes are required in to support async serializers as we need to know what data deserializer to use for the data payload. 
+The data payload is stored in a dedicated `event` field. Going towards similar schema as [akka-persistence-cassandra](https://github.com/akka/akka-persistence-cassandra)
+
+*Journal Plugin*
+~~~
+val Event = "event" -> PeristentRepr.payload
+val SerializerId = "ser_id" -> SerializerId used for serializing event above
+val SerializerManifest = "ser_manifest" -> String manifest used for serializing event above 
+~~~
+Still stores the PersistentRepr Envelope - in the original payload field.
+
+*Snapshot Plugin*
+~~~
+val SerializerId = "ser_id" -> SerializerId used for serializing event above
+val SerializerManifest = "ser_manifest" -> String manifest used for serializing event above
+val PayloadData = "pay_data" -> the actual serialized data of the snapshot, need to distinguish between the old a new format
+~~~
+Still stores the PersistentRepr Envelope - in the original payload field.
+
+Both Journal and Snapshot checks the existence of new data fields first and switches the behaviour in order
+to make the change backwards compatible.
+
 Credits
 -------
 
