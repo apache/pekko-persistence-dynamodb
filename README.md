@@ -201,8 +201,12 @@ it is completely compatible to use this plugin with Akka 2.5.x.
 
 Please make sure to depend on all Akka artifacts (those with the artifact name begining with `akka-*`) are depended on in the same version - as mixing versions is *not* legal. For example, if you depend on Akka Persistence in `2.5.3`, make sure that Akka Streams and Actors are also depended on in the same version. Please always use the latest patch version available (!).
 
+Changelog
+---------------------
+
 v 1.2.0
 ---------------------
+
 * Depends on Akka 2.5.
 * Adds Support for the Async Serializers - which enables the use of the plugin with Lightbend extensions [GDPR Addons](https://developer.lightbend.com/docs/akka-commercial-addons/current/gdpr/index.html)
 
