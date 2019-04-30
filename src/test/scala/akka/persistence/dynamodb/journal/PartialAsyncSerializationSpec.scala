@@ -37,7 +37,10 @@ class PartialAsyncSerializationSpec extends TestKit(ActorSystem("PartialAsyncSer
     with TypeCheckedTripleEquals
     with DynamoDBUtils {
 
-  override def beforeAll(): Unit = ensureJournalTableExists()
+  override def beforeAll(): Unit = {
+    ensureJournalTableExists()
+
+  }
   override def afterAll(): Unit = {
     client.shutdown()
     system.terminate().futureValue
@@ -48,9 +51,8 @@ class PartialAsyncSerializationSpec extends TestKit(ActorSystem("PartialAsyncSer
 
   import settings._
 
-  "DynamoDB Journal (Recovery)" must {
+  "DynamoDB Journal (Serialization Test)" must {
 
-    val repetitions = 50
     val messages = 20
     val writes = (1 to messages).map(i =>
       if (i % 2 == 0) {
@@ -60,7 +62,8 @@ class PartialAsyncSerializationSpec extends TestKit(ActorSystem("PartialAsyncSer
       })
     val probe = TestProbe()
 
-    for (i <- 1 to repetitions) s"should successfully serialize using async and not async serializers the highest sequence number ($i of $repetitions)" in {
+    s"should successfully serialize using async and not async serializers" in {
+
       journal ! Purge(persistenceId, testActor)
       expectMsg(Purged(persistenceId))
       journal ! WriteMessages(writes, testActor, 1)
