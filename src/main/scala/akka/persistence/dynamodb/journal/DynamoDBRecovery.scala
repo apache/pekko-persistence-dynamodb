@@ -144,7 +144,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     val keyAttr = new KeysAndAttributes()
       .withKeys(batchKeys.map(_._1).asJava)
       .withConsistentRead(true)
-      .withAttributesToGet(Key, Sort, Payload, Event, SerializerId, SerializerManifest, AtomEnd, AtomIndex)
+      .withAttributesToGet(Key, Sort, PersistentId, SequenceNr, Payload, Event, Manifest, SerializerId, SerializerManifest, WriterUuid, AtomEnd, AtomIndex)
     val get = batchGetReq(Collections.singletonMap(JournalTable, keyAttr))
     dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_)).map {
       result =>
@@ -259,13 +259,20 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       ret
     }
 
+  private def getValueOrEmptyString(item: JMap[String, AttributeValue], key: String): String = {
+    if (item.containsKey(key)) item.get(key).getS else ""
+  }
+
   def readPersistentRepr(item: JMap[String, AttributeValue], async: Boolean): Future[PersistentRepr] = {
     val clazz = classOf[PersistentRepr]
 
     if (item.containsKey(Event)) {
-      val manifest = if (item.containsKey(SerializerManifest)) item.get(SerializerManifest).getS else ""
+      val serializerManifest = getValueOrEmptyString(item, SerializerManifest)
 
-      val repr: PersistentRepr = serialization.deserialize(item.get(Payload).getB.array(), clazz).get
+      val pI = item.get(PersistentId).getS
+      val sN = item.get(SequenceNr).getN.toLong
+      val wU = item.get(WriterUuid).getS
+      val reprManifest = getValueOrEmptyString(item, Manifest)
 
       val eventPayload = item.get(Event).getB
       val serId = item.get(SerializerId).getN.toInt
@@ -273,12 +280,12 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       val fut = serialization.serializerByIdentity.get(serId) match {
         case Some(asyncSerializer: AsyncSerializer) =>
           Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
-            asyncSerializer.fromBinaryAsync(ByteString(eventPayload).toArray, manifest)
+            asyncSerializer.fromBinaryAsync(eventPayload.array(), serializerManifest)
           }
         case _ =>
           def deserializedEvent: AnyRef = {
             // Serialization.deserialize adds transport info
-            serialization.deserialize(eventPayload.array(), serId, manifest).get
+            serialization.deserialize(eventPayload.array(), serId, serializerManifest).get
           }
           if (async) Future(deserializedEvent)
           else
@@ -286,7 +293,14 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       }
 
       fut.map { event: AnyRef =>
-        repr.withPayload(event)
+        PersistentRepr(
+          event,
+          sequenceNr    = sN,
+          persistenceId = pI,
+          manifest      = reprManifest,
+          writerUuid    = wU,
+          sender        = null
+        )
       }
 
     } else {

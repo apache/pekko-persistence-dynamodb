@@ -180,23 +180,31 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
       }
 
       fut.map { serialized =>
-        val reprWithoutPayload = repr.withPayload(null)
-        val serializedMessage = serialization.serialize(reprWithoutPayload)
-        val m = B(serializedMessage.get)
-        val v = B(serialized)
-        val n = N(serializer.identifier)
+
+        val eventData = B(serialized)
+        val serializerId = N(serializer.identifier)
+
+        val fieldLength = repr.persistenceId.getBytes.length + repr.sequenceNr.toString.getBytes.length +
+          repr.writerUuid.getBytes.length + repr.manifest.getBytes.length
+
         val manifest = Serializers.manifestFor(serializer, reprPayload)
         val manifestLength = if (manifest.isEmpty) 0 else manifest.getBytes.length
-        val itemSize = keyLength(repr.persistenceId, repr.sequenceNr) + v.getB.remaining + m.getB.remaining + n.getN.getBytes.length + manifestLength
+
+        val itemSize = keyLength(repr.persistenceId, repr.sequenceNr) + eventData.getB.remaining + serializerId.getN.getBytes.length + manifestLength + fieldLength
 
         if (itemSize > MaxItemSize) {
           throw new DynamoDBJournalRejection(s"MaxItemSize exceeded: $itemSize > $MaxItemSize")
         }
         val item: Item = messageKey(repr.persistenceId, repr.sequenceNr)
 
-        item.put(Payload, m)
-        item.put(Event, v)
-        item.put(SerializerId, n)
+        item.put(PersistentId, S(repr.persistenceId))
+        item.put(SequenceNr, N(repr.sequenceNr))
+        item.put(Event, eventData)
+        item.put(WriterUuid, S(repr.writerUuid))
+        item.put(SerializerId, serializerId)
+        if (repr.manifest.nonEmpty) {
+          item.put(Manifest, S(repr.manifest))
+        }
         if (manifest.nonEmpty) {
           item.put(SerializerManifest, S(manifest))
         }
