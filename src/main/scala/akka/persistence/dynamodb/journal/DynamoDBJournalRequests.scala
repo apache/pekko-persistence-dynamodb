@@ -78,8 +78,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
       }
 
     } else {
-      val itemFuture = Future.sequence(atomicWrite.payload.map(repr => toMsgItem(repr)))
-      itemFuture
+      Future.sequence(atomicWrite.payload.map(repr => toMsgItem(repr)))
         .flatMap { items =>
           // we created our writes successfully, send them off to DynamoDB
           val low = atomicWrite.lowestSequenceNr
