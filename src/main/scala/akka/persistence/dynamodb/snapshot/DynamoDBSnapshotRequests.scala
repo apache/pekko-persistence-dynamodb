@@ -137,7 +137,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     item.put(SequenceNr, N(sequenceNr))
     item.put(Timestamp, N(timestamp))
     val snapshotData = snapshot.asInstanceOf[AnyRef]
-    val serializer = serialization.findSerializerFor(snapshot.asInstanceOf[AnyRef])
+    val serializer = serialization.findSerializerFor(snapshotData)
     val manifest = Serializers.manifestFor(serializer, snapshotData)
 
     val fut = serializer match {
