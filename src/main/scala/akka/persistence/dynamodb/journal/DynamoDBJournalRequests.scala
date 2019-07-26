@@ -3,21 +3,22 @@
  */
 package akka.persistence.dynamodb.journal
 
-import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
+import java.nio.ByteBuffer
+import java.util.Collections
 
 import akka.persistence.{ AtomicWrite, PersistentRepr }
 import com.amazonaws.services.dynamodbv2.model._
 
 import scala.collection.JavaConverters._
-import scala.collection.{ immutable, mutable }
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success, Try }
 import scala.util.control.NonFatal
 import akka.Done
-import akka.actor.{ Actor, ActorLogging }
+import akka.actor.ExtendedActorSystem
 import akka.pattern.after
 import akka.persistence.dynamodb._
+import akka.serialization.{ AsyncSerializer, Serialization, Serializers }
 
 trait DynamoDBJournalRequests extends DynamoDBRequests {
   this: DynamoDBJournal =>
@@ -57,23 +58,28 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
   def writeMessages(atomicWrite: AtomicWrite): Future[Try[Unit]] =
     // optimize the common case
     if (atomicWrite.size == 1) {
-      try {
-        val event = toMsgItem(atomicWrite.payload.head)
-        if (event.get(Sort).getN == "0") {
-          val hs = toHSItem(atomicWrite.persistenceId, atomicWrite.lowestSequenceNr)
-          liftUnit(dynamo.batchWriteItem(batchWriteReq(putReq(event) :: putReq(hs) :: Nil)))
-        } else
-          liftUnit(dynamo.putItem(putItem(event)))
-      } catch {
+      toMsgItem(atomicWrite.payload.head).flatMap { event =>
+        try {
+          if (event.get(Sort).getN == "0") {
+            val hs = toHSItem(atomicWrite.persistenceId, atomicWrite.lowestSequenceNr)
+            liftUnit(dynamo.batchWriteItem(batchWriteReq(putReq(event) :: putReq(hs) :: Nil)))
+          } else {
+            liftUnit(dynamo.putItem(putItem(event)))
+          }
+        } catch {
+          case NonFatal(ex) =>
+            log.error(ex, "Failure during message write preparation: {}", ex.getMessage)
+            Future.successful(Failure(new DynamoDBJournalRejection("write rejected due to " + ex.getMessage, ex)))
+        }
+      }.recover {
         case NonFatal(ex) =>
           log.error(ex, "Failure during message write preparation: {}", ex.getMessage)
-          Future.successful(Failure(new DynamoDBJournalRejection("write rejected due to " + ex.getMessage, ex)))
+          Failure(new DynamoDBJournalRejection("write rejected due to " + ex.getMessage, ex))
       }
-    } else {
-      val itemTry = Try { atomicWrite.payload.map(repr => toMsgItem(repr)) }
 
-      itemTry match {
-        case Success(items) =>
+    } else {
+      Future.sequence(atomicWrite.payload.map(repr => toMsgItem(repr)))
+        .flatMap { items =>
           // we created our writes successfully, send them off to DynamoDB
           val low = atomicWrite.lowestSequenceNr
           val high = atomicWrite.highestSequenceNr
@@ -94,12 +100,13 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
 
           // Squash all of the futures into a single result
           trySequence(futures).map(seq => Try(seq.foreach(_.get)))
-
-        case Failure(e) =>
-          log.error(e, "Failure during message batch write preparation: {}", e.getMessage)
-          val rej = new DynamoDBJournalRejection(s"AtomicWrite rejected as a whole due to ${e.getMessage}", e)
-          Future.successful(Failure(rej))
-      }
+        }
+        .recover {
+          case NonFatal(e) =>
+            log.error(e, "Failure during message batch write preparation: {}", e.getMessage)
+            val rej = new DynamoDBJournalRejection(s"AtomicWrite rejected as a whole due to ${e.getMessage}", e)
+            Failure(rej)
+        }
     }
 
   def deleteMessages(persistenceId: String, start: Long, end: Long): Future[Done] =
@@ -137,29 +144,74 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
   /**
    * Converts a sequence of PersistentRepr to a single batch write request
    */
-  private def toBatchWriteItemRequest(msgs: Seq[PersistentRepr]): BatchWriteItemRequest = {
-    val writes = msgs.foldLeft(new mutable.ArrayBuffer[WriteRequest](msgs.length)) {
-      case (ws, repr) =>
-        ws += putReq(toMsgItem(repr))
-        ws += putReq(toHSItem(repr.persistenceId, repr.sequenceNr))
-        ws
+  private def toBatchWriteItemRequest(msgs: Seq[PersistentRepr]): Future[BatchWriteItemRequest] = {
+    Future.traverse(msgs) { repr =>
+      for {
+        item <- toMsgItem(repr)
+      } yield Seq(
+        putReq(item),
+        putReq(toHSItem(repr.persistenceId, repr.sequenceNr))
+      )
+    }.map { writesSeq =>
+      val writes = writesSeq.flatten
+      val reqItems = Collections.singletonMap(JournalTable, writes.asJava)
+      batchWriteReq(reqItems)
     }
-    val reqItems = Collections.singletonMap(JournalTable, writes.asJava)
-    batchWriteReq(reqItems)
   }
 
   /**
    * Convert a PersistentRepr into a DynamoDB item, throwing a rejection exception
    * if the MaxItemSize constraint of the database would be violated.
    */
-  private def toMsgItem(repr: PersistentRepr): Item = {
-    val v = B(serialization.serialize(repr).get)
-    val itemSize = keyLength(repr.persistenceId, repr.sequenceNr) + v.getB.remaining
-    if (itemSize > MaxItemSize)
-      throw new DynamoDBJournalRejection(s"MaxItemSize exceeded: $itemSize > $MaxItemSize")
-    val item: Item = messageKey(repr.persistenceId, repr.sequenceNr)
-    item.put(Payload, v)
-    item
+  private def toMsgItem(repr: PersistentRepr): Future[Item] = {
+    try {
+      val reprPayload: AnyRef = repr.payload.asInstanceOf[AnyRef]
+      val serializer = serialization.serializerFor(reprPayload.getClass)
+      val fut = serializer match {
+        case aS: AsyncSerializer =>
+          Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
+            aS.toBinaryAsync(reprPayload)
+          }
+        case _ =>
+          Future {
+            ByteBuffer.wrap(serialization.serialize(reprPayload).get).array()
+          }
+      }
+
+      fut.map { serialized =>
+
+        val eventData = B(serialized)
+        val serializerId = N(serializer.identifier)
+
+        val fieldLength = repr.persistenceId.getBytes.length + repr.sequenceNr.toString.getBytes.length +
+          repr.writerUuid.getBytes.length + repr.manifest.getBytes.length
+
+        val manifest = Serializers.manifestFor(serializer, reprPayload)
+        val manifestLength = if (manifest.isEmpty) 0 else manifest.getBytes.length
+
+        val itemSize = keyLength(repr.persistenceId, repr.sequenceNr) + eventData.getB.remaining + serializerId.getN.getBytes.length + manifestLength + fieldLength
+
+        if (itemSize > MaxItemSize) {
+          throw new DynamoDBJournalRejection(s"MaxItemSize exceeded: $itemSize > $MaxItemSize")
+        }
+        val item: Item = messageKey(repr.persistenceId, repr.sequenceNr)
+
+        item.put(PersistentId, S(repr.persistenceId))
+        item.put(SequenceNr, N(repr.sequenceNr))
+        item.put(Event, eventData)
+        item.put(WriterUuid, S(repr.writerUuid))
+        item.put(SerializerId, serializerId)
+        if (repr.manifest.nonEmpty) {
+          item.put(Manifest, S(repr.manifest))
+        }
+        if (manifest.nonEmpty) {
+          item.put(SerializerManifest, S(manifest))
+        }
+        item
+      }
+    } catch {
+      case NonFatal(e) => Future.failed(e)
+    }
   }
 
   /**

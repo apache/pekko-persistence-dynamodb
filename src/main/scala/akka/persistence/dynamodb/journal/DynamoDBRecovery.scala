@@ -3,11 +3,14 @@
  */
 package akka.persistence.dynamodb.journal
 
+import java.nio.ByteBuffer
 import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
 import java.util.function.Consumer
+
 import akka.persistence.PersistentRepr
 import akka.persistence.journal.AsyncRecovery
 import com.amazonaws.services.dynamodbv2.model._
+
 import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.concurrent.Future
@@ -15,9 +18,13 @@ import scala.util.{ Failure, Success }
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import java.util.ArrayList
+
+import akka.actor.ExtendedActorSystem
 import akka.stream.stage._
 import akka.stream._
 import akka.persistence.dynamodb._
+import akka.serialization.{ AsyncSerializer, Serialization }
+import akka.util.ByteString
 
 object DynamoDBRecovery {
   case class ReplayBatch(items: Seq[Item], map: Map[AttributeValue, Long]) {
@@ -118,14 +125,15 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       // toSequenceNr is already capped to highest and guaranteed to be no less than fromSequenceNr
       readSequenceNr(persistenceId, highest = false).flatMap { lowest =>
         val start = Math.max(fromSequenceNr, lowest)
+        val async = ReplayParallelism > 1
         Source(start to toSequenceNr)
           .grouped(MaxBatchGet)
           .mapAsync(ReplayParallelism)(batch => getReplayBatch(persistenceId, batch).map(_.sorted))
-          .mapConcat(conforms)
+          .mapConcat(identity)
           .take(max)
           .via(RemoveIncompleteAtoms)
-          .mapConcat(conforms)
-          .map(readPersistentRepr)
+          .mapConcat(identity)
+          .mapAsync(ReplayParallelism)(readPersistentRepr(_, async))
           .runFold(0) { (count, next) => replayCallback(next); count + 1 }
           .map(count => log.debug("replay finished for {} with {} events", persistenceId, count))
       }
@@ -136,7 +144,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     val keyAttr = new KeysAndAttributes()
       .withKeys(batchKeys.map(_._1).asJava)
       .withConsistentRead(true)
-      .withAttributesToGet(Key, Sort, Payload, AtomEnd, AtomIndex)
+      .withAttributesToGet(Key, Sort, PersistentId, SequenceNr, Payload, Event, Manifest, SerializerId, SerializerManifest, WriterUuid, AtomEnd, AtomIndex)
     val get = batchGetReq(Collections.singletonMap(JournalTable, keyAttr))
     dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_)).map {
       result =>
@@ -251,8 +259,63 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       ret
     }
 
-  def readPersistentRepr(item: JMap[String, AttributeValue]): PersistentRepr =
-    persistentFromByteBuffer(item.get(Payload).getB)
+  private def getValueOrEmptyString(item: JMap[String, AttributeValue], key: String): String = {
+    if (item.containsKey(key)) item.get(key).getS else ""
+  }
+
+  def readPersistentRepr(item: JMap[String, AttributeValue], async: Boolean): Future[PersistentRepr] = {
+    val clazz = classOf[PersistentRepr]
+
+    if (item.containsKey(Event)) {
+      val serializerManifest = getValueOrEmptyString(item, SerializerManifest)
+
+      val pI = item.get(PersistentId).getS
+      val sN = item.get(SequenceNr).getN.toLong
+      val wU = item.get(WriterUuid).getS
+      val reprManifest = getValueOrEmptyString(item, Manifest)
+
+      val eventPayload = item.get(Event).getB
+      val serId = item.get(SerializerId).getN.toInt
+
+      val fut = serialization.serializerByIdentity.get(serId) match {
+        case Some(asyncSerializer: AsyncSerializer) =>
+          Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
+            asyncSerializer.fromBinaryAsync(eventPayload.array(), serializerManifest)
+          }
+        case _ =>
+          def deserializedEvent: AnyRef = {
+            // Serialization.deserialize adds transport info
+            serialization.deserialize(eventPayload.array(), serId, serializerManifest).get
+          }
+          if (async) Future(deserializedEvent)
+          else
+            Future.successful(deserializedEvent)
+      }
+
+      fut.map { event: AnyRef =>
+        PersistentRepr(
+          event,
+          sequenceNr    = sN,
+          persistenceId = pI,
+          manifest      = reprManifest,
+          writerUuid    = wU,
+          sender        = null
+        )
+      }
+
+    } else {
+
+      def deserializedEvent: PersistentRepr = {
+        // Serialization.deserialize adds transport info
+        serialization.deserialize(item.get(Payload).getB.array(), clazz).get
+      }
+
+      if (async) Future(deserializedEvent)
+      else
+        Future.successful(deserializedEvent)
+
+    }
+  }
 
   def getUnprocessedItems(result: BatchGetItemResult, retriesRemaining: Int = 10): Future[BatchGetItemResult] = {
     val unprocessed = result.getUnprocessedKeys.get(JournalTable) match {

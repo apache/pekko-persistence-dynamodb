@@ -105,17 +105,6 @@ my-dynamodb-journal {
     override def preStart() = ()
   }
 
-  class ViewA(val viewId: String, val persistenceId: String, probe: ActorRef) extends PersistentView {
-    def receive = {
-      case payload =>
-        probe ! payload
-    }
-
-    override def autoUpdate: Boolean = false
-
-    override def autoUpdateReplayMax: Long = 0
-  }
-
   class Listener extends Actor {
     def receive = {
       case d: DeadLetter => println(d)
@@ -198,7 +187,9 @@ class DynamoDBIntegrationLoadSpec
       val persistenceId = UUID.randomUUID().toString
       testRangeDelete(persistenceId)
     }
-    "replay messages incrementally" in {
+    /* TODO Replace this with equivalent test
+
+     "replay messages incrementally" in {
       val persistenceId = UUID.randomUUID().toString
       val probe = TestProbe()
       val processor1 = system.actorOf(Props(classOf[ProcessorA], persistenceId, self))
@@ -221,7 +212,7 @@ class DynamoDBIntegrationLoadSpec
       probe.expectMsg(s"a-5")
       probe.expectMsg(s"a-6")
       probe.expectNoMsg(200.millis)
-    }
+    } */
     "write and replay with persistAll greater than partition size skipping whole partition" in {
       val persistenceId = UUID.randomUUID().toString
       val probe = TestProbe()

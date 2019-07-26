@@ -5,13 +5,14 @@ package akka.persistence.dynamodb.journal
 
 import java.nio.ByteBuffer
 import java.util.{ HashMap => JHMap, Map => JMap }
+
 import akka.Done
 import akka.actor.{ ActorLogging, ActorRefFactory, ActorSystem }
 import akka.event.{ Logging, LoggingAdapter }
 import akka.pattern.pipe
 import akka.persistence.journal.AsyncWriteJournal
 import akka.persistence.{ AtomicWrite, Persistence, PersistentRepr }
-import akka.serialization.SerializationExtension
+import akka.serialization.{ AsyncSerializer, SerializationExtension }
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import com.amazonaws.AmazonServiceException
@@ -19,11 +20,13 @@ import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.amazonaws.services.dynamodbv2.model._
 import com.typesafe.config.Config
+
 import scala.collection.immutable
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Try, Success, Failure }
+import scala.util.{ Failure, Success, Try }
 import scala.util.control.NoStackTrace
 import akka.actor.ActorRef
+
 import scala.concurrent.Promise
 import akka.persistence.dynamodb._
 
@@ -190,13 +193,6 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     item.put(Key, S(s"$JournalName-SL-$persistenceId-$shard"))
     item.put(Sort, Naught)
     item
-  }
-
-  def persistentToByteBuffer(p: PersistentRepr): ByteBuffer =
-    ByteBuffer.wrap(serialization.serialize(p).get)
-
-  def persistentFromByteBuffer(b: ByteBuffer): PersistentRepr = {
-    serialization.deserialize(ByteString(b).toArray, classOf[PersistentRepr]).get
   }
 
   def logFailure[T](desc: String)(f: Future[T]): Future[T] = f.transform(conforms, ex => {
