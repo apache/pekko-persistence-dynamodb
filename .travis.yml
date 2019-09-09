@@ -1,28 +1,40 @@
+# reference: https://github.com/akka/akka/blob/master/.travis.yml
 language: scala
-jdk:
-  - oraclejdk8
+
+sudo: false
+
 scala:
   - "2.11.12"
-  - "2.12.7"
+  - "2.12.9"
+
 before_install:
+  - curl -sL https://raw.githubusercontent.com/shyiko/jabba/0.11.2/install.sh | bash && . ~/.jabba/jabba.sh
+  - jabba install $TRAVIS_JDK
   - mkdir /tmp/dynamodb
   - wget -O - http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.tar.gz | tar xzC /tmp/dynamodb
   - java -Djava.library.path=/tmp/dynamodb/DynamoDBLocal_lib -Xss1m -Xms320m -Xmx320m -jar /tmp/dynamodb/DynamoDBLocal.jar -inMemory &
+
+install: jabba use "$TRAVIS_JDK" && java -Xmx32m -version
+
+before_cache:
+  - find $HOME/.ivy2 -name "ivydata-*.properties" -print -delete
+  - find $HOME/.sbt  -name "*.lock"               -print -delete
+
 cache:
   directories:
     - $HOME/.ivy2/cache
     - $HOME/.sbt/boot
+    - $HOME/.jabba/sdk
+
 script:
   # make 'git branch' work again
   - git branch -f "$TRAVIS_BRANCH" && git checkout "$TRAVIS_BRANCH"
-  - sbt ++$TRAVIS_SCALA_VERSION -J-XX:ReservedCodeCacheSize=256M -Dakka.test.timefactor=2.0 test
+  - sbt ++$TRAVIS_SCALA_VERSION -jvm-opts .jvmopts-travis -Dakka.test.timefactor=2.0 "; update ; test"
   # check policies, if on master also upload
   - if [[ "$TRAVIS_SECURE_ENV_VARS" == "true" ]]; then if [[ "$TRAVIS_BRANCH" == "master" && "$TRAVIS_EVENT_TYPE" == "push" ]]; then sbt 'set credentials += Credentials("whitesource", "whitesourcesoftware.com", "", System.getenv("WHITESOURCE_KEY"))' whitesourceCheckPolicies whitesourceUpdate; else sbt 'set credentials += Credentials("whitesource", "whitesourcesoftware.com", "", System.getenv("WHITESOURCE_KEY"))' whitesourceCheckPolicies; fi; fi
-  - find $HOME/.sbt -name "*.lock" | xargs rm
-  - find $HOME/.ivy2 -name "ivydata-*.properties" | xargs rm
-  - find $HOME/.ivy2 -name "ivydata-*.properties"
 
 env:
   global:
+    - TRAVIS_JDK=adopt@~1.8.202-08
     # encrypt with: travis encrypt WHITESOURCE_KEY=...
     - secure: "jwupBTd/wXsQK9X9yHP6gLcxhYSwE/ZLhip7+ZMvxLrekpSi3g/tSpu1FQ+jYHdcIFGyaYK7VDFLHm5q8mdqK8epsFYw3+Oh34Ffhde9vHrdhr8hKCrmZe0Ey4UZ2CKew669nzIT5AbjFHm5q0vOo8IpdW+JLqsO2x8EFZkcBxwPWVKIOTUcqmzr4nqFmQabJdDWU1KpEWNn2TXpoM3Q2A8yzqAHcutZSkL5Y7ZSlLIeiAfRybNjQjVCGQBI0tiZdZABerz8ZHns1i72suxJg3nDuPdVkgdfnet4NSuwcy0o1rxjKXVL2xrY1AC1yEeOBKJr7ltLpcN7/iQIq2/mZSQYBadOnd2D+ZsUxDzIGBmT93IYmKuHUUT7fZBpDpR3zop6VuRopLzjsscr2vZnpB0YiK7Kc32+JlWkKSYXVdcCu/TyiqD6LdKlcAnTFsf1j8hIMewak14johZnGvgRa4Ep+J5CaTExTK3DUWg0aCOhfs3BOEJY7VHW/Q/03YlaEGguGu6gzTncgVBdtdFRUje668Z+UBSJRzGnmtBHRVMk2fb1buh1nRnjUaZiu/7ySxwuO9F8oxA1jiO54TGbodLsdgGI/EASjBoxmQ+lKUs3x39DeTXsj/1CJJzwNxBHZ7dDowPRraTBrfVq3aDUA7QGfKBtVmC9NZ2nXB1ExOs="
