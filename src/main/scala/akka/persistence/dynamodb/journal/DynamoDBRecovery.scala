@@ -149,9 +149,8 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_)).map {
       result =>
         ReplayBatch(
-          result.getResponses.get(JournalTable).asScala,
-          batchKeys.iterator.map(p => p._1.get(Key) -> p._2).toMap
-        )
+          result.getResponses.get(JournalTable).asScala.toSeq,
+          batchKeys.iterator.map(p => p._1.get(Key) -> p._2).toMap)
     }
   }
 

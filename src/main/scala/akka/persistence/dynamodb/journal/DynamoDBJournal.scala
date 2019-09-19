@@ -195,7 +195,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     item
   }
 
-  def logFailure[T](desc: String)(f: Future[T]): Future[T] = f.transform(conforms, ex => {
+  def logFailure[T](desc: String)(f: Future[T]): Future[T] = f.transform(identity(_), ex => {
     log.error(ex, "operation failed: " + desc)
     ex
   })
