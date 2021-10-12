@@ -25,6 +25,10 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
   val MaxBatchWrite = c getInt "aws-api-limits.max-batch-write"
   val MaxItemSize = c getInt "aws-api-limits.max-item-size"
 
+  object Fixes {
+    val HighDistrust = c getBoolean "fixes.high-distrust"
+  }
+
   val client = new DynamoDBClientConfig(c)
   override def toString: String = "DynamoDBJournalConfig(" +
     "JournalTable:" + JournalTable +
@@ -39,5 +43,6 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
     ",MaxBatchGet:" + MaxBatchGet +
     ",MaxBatchWrite:" + MaxBatchWrite +
     ",MaxItemSize:" + MaxItemSize +
+    ",Fixes.HighDistrust:" + Fixes.HighDistrust +
     ",client.config:" + client
 }
