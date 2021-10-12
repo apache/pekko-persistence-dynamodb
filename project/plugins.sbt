@@ -1,10 +1,10 @@
-resolvers += "Typesafe repository" at "http://repo.typesafe.com/typesafe/releases/"
+//resolvers += "Typesafe repository" at "https://repo.typesafe.com/typesafe/maven-releases/"
 
-addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.6.0")
+addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.8.0")
 
-addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.3")
+addSbtPlugin("com.github.sbt" % "sbt-release" % "1.0.15")
 
-addSbtPlugin("com.typesafe.sbt" % "sbt-pgp" % "0.8.3")
+addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.1.2")
 
 addSbtPlugin("com.lightbend" % "sbt-whitesource"  % "0.1.7")
 

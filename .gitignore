@@ -11,3 +11,7 @@ project/project/target
 .settings/
 .cache
 .aws
+
+
+.bloop
+.metals

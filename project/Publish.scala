@@ -7,7 +7,6 @@ import sbt._
 import sbt.Keys._
 import java.io.File
 import sbtrelease.ReleasePlugin.autoImport.releasePublishArtifactsAction
-import com.typesafe.sbt.pgp.PgpKeys
 
 object Publish extends AutoPlugin {
 
@@ -28,9 +27,7 @@ object Publish extends AutoPlugin {
     homepage := Some(url("https://github.com/akka/akka-persistence-dynamodb")),
     publishMavenStyle := true,
     pomIncludeRepository := { x => false },
-    defaultPublishTo := crossTarget.value / "repository",
-    releasePublishArtifactsAction := PgpKeys.publishSigned.value
-  )
+    defaultPublishTo := crossTarget.value / "repository")
 
   def akkaPomExtra = {
     <developers>

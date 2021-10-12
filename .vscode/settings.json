@@ -1,0 +1,8 @@
+{
+  "files.watcherExclude": {
+    "**/target": true
+  },
+  "metals.bloopSbtAlreadyInstalled": true,
+  // "editor.formatOnSave": true,
+  "java.server.launchMode": "LightWeight",
+}
