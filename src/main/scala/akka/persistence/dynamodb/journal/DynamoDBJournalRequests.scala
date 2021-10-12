@@ -85,7 +85,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
               item.put(AtomIndex, N(index))
               item.put(AtomEnd, size)
               putReq(item)
-          } ++ (if (low / 100 != high / 100) Some(putReq(toHSItem(id, high))) else None)
+          } ++ (if ((low - 1) / 100 != high / 100) Some(putReq(toHSItem(id, high))) else None)
 
           val futures = writes.grouped(MaxBatchWrite).map {
             batch =>
