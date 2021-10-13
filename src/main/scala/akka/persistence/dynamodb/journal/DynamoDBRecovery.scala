@@ -170,9 +170,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
              * for which it was written, all other entries do not update the highest value. Therefore we
              * must scan the partition of this Sort=0 entry and find the highest occupied number.
              */
-            val request = eventQuery(persistenceId, start)
-            dynamo.query(request)
-              .flatMap(getRemainingQueryItems(request, _))
+            makeEventQuery(persistenceId, start)
               .flatMap { result =>
                 if (result.getItems.isEmpty) {
                   /*
@@ -185,6 +183,40 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
                     log.debug("readSequenceNr(highest=true persistenceId={}) = {}", persistenceId, ret)
                     ret
                   }
+                } else if (Fixes.HighDistrust) { // allows recovering from failed high mark setting
+                  // this function will keep on casing the event source tail
+                  // if HighDistrust is enabled and as long as the partitionMax == 99
+                  def tailChase(partitionStart: Long, nextResults: QueryResult): Future[Long] = {
+                    if (nextResults.getItems.isEmpty) {
+                      // first iteraton will not pass here, as the query result is not empty
+                      // if the new query result is empty the highest observed is partition -1
+                      Future.successful(partitionStart - 1)
+                    } else {
+                      /*
+                      * `partitionStart` is the Sort=0 entry’s sequence number, so add the maximum sort key.
+                      */
+                      val partitionMax = nextResults.getItems.asScala.map(_.get(Sort).getN.toLong).max
+                      val ret = partitionStart + partitionMax
+
+                      if (partitionMax == 99) {
+                        val nextStart = ret + 1
+                        makeEventQuery(persistenceId, nextStart)
+                          .map { logResult =>
+                            if (!logResult.getItems().isEmpty()) // will only log if a follow-up query produced results
+                              log.warning("readSequenceNr(highest=true persistenceId={}) tail found after {}", persistenceId, ret)
+                            logResult
+                          }
+                          .flatMap(tailChase(nextStart, _))
+                      } else
+                        Future.successful(ret)
+                    }
+                  }
+
+                  tailChase(start, result)
+                    .map { ret =>
+                      log.debug("readSequenceNr(highest=true persistenceId={}) = {}", persistenceId, ret)
+                      ret
+                    }
                 } else {
                   /*
                    * `start` is the Sort=0 entry’s sequence number, so add the maximum sort key.
@@ -276,15 +308,17 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     }
   }
 
-  def getRemainingQueryItems(request: QueryRequest, result: QueryResult): Future[QueryResult] = {
+  private[dynamodb] def getAllRemainingQueryItems(request: QueryRequest, result: QueryResult): Future[QueryResult] = {
     val last = result.getLastEvaluatedKey
     if (last == null || last.isEmpty || last.get(Sort).getN.toLong == 99) Future.successful(result)
     else {
-      dynamo.query(request.withExclusiveStartKey(last)).map { next =>
+      dynamo.query(request.withExclusiveStartKey(last)).flatMap { next =>
         val merged = new ArrayList[Item](result.getItems.size + next.getItems.size)
         merged.addAll(result.getItems)
         merged.addAll(next.getItems)
-        next.withItems(merged)
+
+        // need to keep on reading until there's nothing more to read
+        getAllRemainingQueryItems(request, next.withItems(merged))
       }
     }
   }
@@ -296,6 +330,12 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       .withExpressionAttributeValues(Collections.singletonMap(":kkey", S(messagePartitionKey(persistenceId, sequenceNr))))
       .withProjectionExpression("num")
       .withConsistentRead(true)
+
+  private[dynamodb] def makeEventQuery(persistenceId: String, sequenceNr: Long) = {
+    val request = eventQuery(persistenceId, sequenceNr)
+    dynamo.query(request)
+      .flatMap(getAllRemainingQueryItems(request, _))
+  }
 
   def batchGetReq(items: JMap[String, KeysAndAttributes]) =
     new BatchGetItemRequest()
