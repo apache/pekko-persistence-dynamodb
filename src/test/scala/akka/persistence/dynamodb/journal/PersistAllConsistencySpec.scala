@@ -79,6 +79,21 @@ class PersistAllConsistencySpec extends TestKit(ActorSystem("PersistAllConsisten
       expectMsg(RecoverySuccess(end2))
     }
 
+    "recover correctly when the last partition event ends on 99" in {
+      val start = nextSeqNr
+      val end = ((start / 100) + 1) * 100 - 1
+      println(s"start: ${start}; end: ${end}")
+      val padding = AtomicWrite((start to end).map(i => persistentRepr(f"h-$i"))) :: Nil
+
+      journal ! WriteMessages(padding, testActor, 1)
+      expectMsg(WriteMessagesSuccessful)
+      (start to end) foreach (i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))
+
+      journal ! ReplayMessages(start, Long.MaxValue, Long.MaxValue, persistenceId, testActor)
+      (start to end) foreach (i => expectMsg(ReplayedMessage(generatedMessages(i))))
+      expectMsg(RecoverySuccess(end))
+    }
+
   }
 
 }
