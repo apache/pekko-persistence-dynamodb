@@ -17,15 +17,17 @@ import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClient }
 import com.amazonaws.services.dynamodbv2.document.{ DynamoDB, Item }
 import com.typesafe.config.ConfigFactory
+import akka.persistence.dynamodb.IntegSpec
 
 class BackwardsCompatibilityV1Spec extends TestKit(ActorSystem("PartialAsyncSerializationSpec"))
-    with ImplicitSender
-    with WordSpecLike
-    with BeforeAndAfterAll
-    with Matchers
-    with ScalaFutures
-    with TypeCheckedTripleEquals
-    with DynamoDBUtils {
+  with ImplicitSender
+  with WordSpecLike
+  with BeforeAndAfterAll
+  with Matchers
+  with ScalaFutures
+  with TypeCheckedTripleEquals
+  with DynamoDBUtils
+  with IntegSpec {
 
   def loadV1VersionData(): Unit = {
     val config = ConfigFactory.load()
@@ -82,11 +84,13 @@ class BackwardsCompatibilityV1Spec extends TestKit(ActorSystem("PartialAsyncSeri
   }
 
   override def beforeAll(): Unit = {
+    super.beforeAll()
     ensureJournalTableExists()
     loadV1VersionData()
   }
 
   override def afterAll(): Unit = {
+    super.afterAll()
     client.shutdown()
     system.terminate().futureValue
   }
