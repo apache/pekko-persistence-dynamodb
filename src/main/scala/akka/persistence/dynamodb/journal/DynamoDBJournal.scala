@@ -185,7 +185,10 @@ class DynamoDBJournal(config: Config)
   }
 
   def messagePartitionKey(persistenceId: String, sequenceNr: Long): String =
-    s"$JournalName-P-$persistenceId-${sequenceNr / 100}"
+    messagePartitionKeyFromGroupNr(persistenceId, sequenceNr / 100)
+
+  def messagePartitionKeyFromGroupNr(persistenceId: String, partitionGroupNr: Long): String =
+    s"$JournalName-P-$persistenceId-$partitionGroupNr"
 
   def highSeqKey(persistenceId: String, shard: Long) = {
     val item: Item = new JHMap

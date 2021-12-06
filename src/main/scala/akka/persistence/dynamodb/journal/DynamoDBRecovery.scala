@@ -3,19 +3,15 @@
  */
 package akka.persistence.dynamodb.journal
 
-import java.nio.ByteBuffer
-import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
+import java.util.{ Collections, Map => JMap }
 import java.util.function.Consumer
-
 import akka.persistence.PersistentRepr
 import akka.persistence.journal.AsyncRecovery
 import com.amazonaws.services.dynamodbv2.model._
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.collection.immutable
 import scala.concurrent.Future
-import scala.util.{ Failure, Success }
-import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import java.util.ArrayList
 
@@ -24,14 +20,98 @@ import akka.stream.stage._
 import akka.stream._
 import akka.persistence.dynamodb._
 import akka.serialization.{ AsyncSerializer, Serialization }
-import akka.util.ByteString
 
 object DynamoDBRecovery {
+  val ItemAttributesForReplay: Seq[String] = Seq(
+    Key,
+    Sort,
+    PersistentId,
+    SequenceNr,
+    Payload,
+    Event,
+    Manifest,
+    SerializerId,
+    SerializerManifest,
+    WriterUuid,
+    AtomEnd,
+    AtomIndex)
+
   case class ReplayBatch(items: Seq[Item], map: Map[AttributeValue, Long]) {
     def sorted: immutable.Iterable[Item] =
       items.foldLeft(immutable.TreeMap.empty[Long, Item])((acc, i) => acc.updated(itemToSeq(i), i)).map(_._2)
     def ids: Seq[Long]                   = items.map(itemToSeq).sorted
     private def itemToSeq(i: Item): Long = map(i.get(Key)) * 100 + i.get(Sort).getN.toInt
+  }
+}
+
+/**
+ * A simple data structure representing a Partition Key sequence number and the event numbers contained within it.
+ *
+ * @param partitionSeqNum - the partition sequence number for the given persistence id.
+ * @param partitionEventNums - will be 0-99, representing the event ordering within the given partition sequence.
+ */
+case class PartitionKeys(partitionSeqNum: Long, partitionEventNums: immutable.Seq[Long])
+
+/**
+ * Groups Ints from a stream into a Seq[Int] whereas each sequence shall contain the values that would be within the
+ * given partition size (represented by n)
+ *
+ * @param n - the size of partitions, this is hardcoded at 100 in other places in this library
+ */
+case class DynamoPartitionGrouped(n: Int) extends GraphStage[FlowShape[Long, PartitionKeys]] {
+  require(n > 0, "n must be greater than 0")
+
+  val in  = Inlet[Long]("DynamoEventNum.in")
+  val out = Outlet[PartitionKeys]("DynamoPartitionKeys.out")
+
+  override val initialAttributes = Attributes.name("DynamoPartitionGrouped")
+
+  override val shape: FlowShape[Long, PartitionKeys] = FlowShape(in, out)
+  override def createLogic(inheritedAttributes: Attributes): GraphStageLogic = {
+    new GraphStageLogic(shape) with InHandler with OutHandler {
+      private val partitionBuf = {
+        val b = Vector.newBuilder[Long]
+        b.sizeHint(n)
+        b
+      }
+      var hasElements = false
+
+      def pushOut(currentSeqNo: Long, partitionGroup: Vector[Long]): Unit = {
+        partitionBuf.clear()
+        hasElements = false
+        val partitionSeqNo = currentSeqNo / n
+        push(out, PartitionKeys(partitionSeqNo, partitionGroup))
+      }
+
+      override def onPush(): Unit = {
+        val currentSeqNo = grab(in)
+        partitionBuf += currentSeqNo
+        hasElements = true
+
+        //If the next entry received would result in the next partition, then we clear the buf and push the results out
+        if ((currentSeqNo + 1) % n == 0) {
+          val partitionGroup = partitionBuf.result()
+          pushOut(currentSeqNo, partitionGroup)
+        } else {
+          pull(in)
+        }
+      }
+
+      override def onPull(): Unit = pull(in)
+
+      override def onUpstreamFinish(): Unit = {
+        //this means the partitionBuf has elements but not a full amount (n). However, since upstream is finished
+        //publishing elements, we need to push what we have downstream.
+        if (hasElements) {
+          val partitionGroup = partitionBuf.result()
+          val currentSeqNo   = partitionGroup.last
+          pushOut(currentSeqNo, partitionGroup)
+        }
+        completeStage()
+      }
+
+      setHandlers(in, out, this)
+    }
   }
 }
 
@@ -122,8 +202,8 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
         val start = Math.max(fromSequenceNr, lowest)
         val async = ReplayParallelism > 1
         Source(start to toSequenceNr)
-          .grouped(MaxBatchGet)
-          .mapAsync(ReplayParallelism)(batch => getReplayBatch(persistenceId, batch).map(_.sorted))
+          .via(DynamoPartitionGrouped(100))
+          .mapAsync(ReplayParallelism)(batch => getPartitionItems(persistenceId, batch).map(_.sorted))
           .mapConcat(identity)
           .take(max)
           .via(RemoveIncompleteAtoms)
@@ -134,37 +214,47 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       }
     }
 
-  def getReplayBatch(persistenceId: String, seqNrs: Seq[Long]): Future[ReplayBatch] = {
-    val batchKeys = seqNrs.map(s => messageKey(persistenceId, s) -> (s / 100))
-    val keyAttr = new KeysAndAttributes()
-      .withKeys(batchKeys.map(_._1).asJava)
-      .withConsistentRead(true)
-      .withAttributesToGet(
-        Key,
-        Sort,
-        PersistentId,
-        SequenceNr,
-        Payload,
-        Event,
-        Manifest,
-        SerializerId,
-        SerializerManifest,
-        WriterUuid,
-        AtomEnd,
-        AtomIndex)
-    val get = batchGetReq(Collections.singletonMap(JournalTable, keyAttr))
-    dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_)).map { result =>
-      ReplayBatch(
-        result.getResponses.get(JournalTable).asScala.toSeq,
-        batchKeys.iterator.map(p => p._1.get(Key) -> p._2).toMap)
+  def getPartitionItems(persistenceId: String, partitionKeys: PartitionKeys): Future[ReplayBatch] = {
+    val sortedNrs    = partitionKeys.partitionEventNums.sorted.map(_ % 100)
+    val startSortKey = sortedNrs.head
+    val endSortKey   = sortedNrs.last
+
+    val queryRequestBuilder: (Option[java.util.Map[String, AttributeValue]]) => QueryRequest = exclusiveStartKeyOpt => {
+      val request = new QueryRequest()
+        .withTableName(JournalTable)
+        .withKeyConditionExpression(s"$Key = :kkey AND $Sort BETWEEN :startSKey AND :endSKey")
+        .withExpressionAttributeValues(
+          Map(
+            ":kkey"      -> S(messagePartitionKeyFromGroupNr(persistenceId, partitionKeys.partitionSeqNum)),
+            ":startSKey" -> N(startSortKey),
+            ":endSKey"   -> N(endSortKey)).asJava)
+        .withProjectionExpression(ItemAttributesForReplay.mkString(","))
+        .withConsistentRead(true)
+        .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
+      exclusiveStartKeyOpt.foreach(startKey => request.withExclusiveStartKey(startKey))
+      request
     }
+
+    def dynamoSummingPager(queryReq: QueryRequest, acc: Seq[Item]): Future[Seq[Item]] = {
+      dynamo.query(queryReq).flatMap { result =>
+        val currentPageItems = result.getItems.asScala.toSeq
+        if (result.getLastEvaluatedKey == null || result.getLastEvaluatedKey.isEmpty)
+          Future.successful(acc ++ currentPageItems)
+        else
+          dynamoSummingPager(queryRequestBuilder(Some(result.getLastEvaluatedKey)), acc ++ currentPageItems)
+      }
+    }
+
+    val batchKeys    = partitionKeys.partitionEventNums.map(s => messageKey(persistenceId, s) -> (s / 100))
+    val batchKeysMap = batchKeys.iterator.map(p => p._1.get(Key) -> p._2).toMap
+    dynamoSummingPager(queryRequestBuilder(None), Seq.empty).map(result => ReplayBatch(result, batchKeysMap))
   }
 
   def listAllSeqNr(persistenceId: String): Future[Seq[Long]] =
     Source
       .fromIterator { () => Iterator.iterate(0L)(_ + 1) }
-      .grouped(MaxBatchGet)
-      .mapAsync(ReplayParallelism)(batch => getReplayBatch(persistenceId, batch).map(_.ids))
+      .via(DynamoPartitionGrouped(100))
+      .mapAsync(ReplayParallelism)(batch => getPartitionItems(persistenceId, batch).map(_.ids.sorted))
       .takeWhile(_.nonEmpty)
       .runFold(Vector.empty[Long])(_ ++ _)
 
