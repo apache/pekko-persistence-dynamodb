@@ -53,7 +53,7 @@ object DynamoDBRecovery {
 case class PartitionKeys(partitionSeqNum: Long, partitionEventNums: immutable.Seq[Long])
 
 /**
- * Groups Ints from a stream into a Seq[Int] whereas each sequence shall contain the values that would be within the
+ * Groups Longs from a stream into a [PartitionKeys] whereas each sequence shall contain the values that would be within the
  * given partition size (represented by n)
  *
  * @param n - the size of partitions, this is hardcoded at 100 in other places in this library
