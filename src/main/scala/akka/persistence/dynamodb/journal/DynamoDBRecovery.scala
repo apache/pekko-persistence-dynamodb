@@ -40,7 +40,7 @@ object DynamoDBRecovery {
     def sorted: immutable.Iterable[Item] =
       items.foldLeft(immutable.TreeMap.empty[Long, Item])((acc, i) => acc.updated(itemToSeq(i), i)).map(_._2)
     def ids: Seq[Long]                   = items.map(itemToSeq).sorted
-    private def itemToSeq(i: Item): Long = map(i.get(Key)) * 100 + i.get(Sort).getN.toInt
+    private def itemToSeq(i: Item): Long = map(i.get(Key)) * PartitionSize + i.get(Sort).getN.toInt
   }
 }
 
@@ -55,11 +55,8 @@ case class PartitionKeys(partitionSeqNum: Long, partitionEventNums: immutable.Se
 /**
  * Groups Longs from a stream into a [PartitionKeys] whereas each sequence shall contain the values that would be within the
  * given partition size (represented by n)
- *
- * @param n - the size of partitions, this is hardcoded at 100 in other places in this library
  */
-case class DynamoPartitionGrouped(n: Int) extends GraphStage[FlowShape[Long, PartitionKeys]] {
-  require(n > 0, "n must be greater than 0")
+object DynamoPartitionGrouped extends GraphStage[FlowShape[Long, PartitionKeys]] {
 
   val in  = Inlet[Long]("DynamoEventNum.in")
   val out = Outlet[PartitionKeys]("DynamoPartitionKeys.out")
@@ -71,7 +68,7 @@ case class DynamoPartitionGrouped(n: Int) extends GraphStage[FlowShape[Long, Par
     new GraphStageLogic(shape) with InHandler with OutHandler {
       private val partitionBuf = {
         val b = Vector.newBuilder[Long]
-        b.sizeHint(n)
+        b.sizeHint(PartitionSize)
         b
       }
       var hasElements = false
@@ -79,7 +76,7 @@ case class DynamoPartitionGrouped(n: Int) extends GraphStage[FlowShape[Long, Par
       def pushOut(currentSeqNo: Long, partitionGroup: Vector[Long]): Unit = {
         partitionBuf.clear()
         hasElements = false
-        val partitionSeqNo = currentSeqNo / n
+        val partitionSeqNo = currentSeqNo / PartitionSize
         push(out, PartitionKeys(partitionSeqNo, partitionGroup))
       }
 
@@ -89,7 +86,7 @@ case class DynamoPartitionGrouped(n: Int) extends GraphStage[FlowShape[Long, Par
         hasElements = true
 
         //If the next entry received would result in the next partition, then we clear the buf and push the results out
-        if ((currentSeqNo + 1) % n == 0) {
+        if ((currentSeqNo + 1) % PartitionSize == 0) {
           val partitionGroup = partitionBuf.result()
           pushOut(currentSeqNo, partitionGroup)
         } else {
@@ -181,7 +178,7 @@ object RemoveIncompleteAtoms extends GraphStage[FlowShape[Item, List[Item]]] {
         val n   = item.get(Sort).getN.toLong
         val pos = s.lastIndexOf('-')
         require(pos != -1, "unknown key format " + s)
-        s.substring(pos + 1).toLong * 100 + n
+        s.substring(pos + 1).toLong * PartitionSize + n
       }
 
     }
@@ -202,7 +199,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
         val start = Math.max(fromSequenceNr, lowest)
         val async = ReplayParallelism > 1
         Source(start to toSequenceNr)
-          .via(DynamoPartitionGrouped(100))
+          .via(DynamoPartitionGrouped)
           .mapAsync(ReplayParallelism)(batch => getPartitionItems(persistenceId, batch).map(_.sorted))
           .mapConcat(identity)
           .take(max)
@@ -215,7 +212,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
     }
 
   def getPartitionItems(persistenceId: String, partitionKeys: PartitionKeys): Future[ReplayBatch] = {
-    val sortedNrs    = partitionKeys.partitionEventNums.sorted.map(_ % 100)
+    val sortedNrs    = partitionKeys.partitionEventNums.sorted.map(_ % PartitionSize)
     val startSortKey = sortedNrs.head
     val endSortKey   = sortedNrs.last
 
@@ -245,7 +242,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
       }
     }
 
-    val batchKeys    = partitionKeys.partitionEventNums.map(s => messageKey(persistenceId, s) -> (s / 100))
+    val batchKeys    = partitionKeys.partitionEventNums.map(s => messageKey(persistenceId, s) -> (s / PartitionSize))
     val batchKeysMap = batchKeys.iterator.map(p => p._1.get(Key) -> p._2).toMap
     dynamoSummingPager(queryRequestBuilder(None), Seq.empty).map(result => ReplayBatch(result, batchKeysMap))
   }
@@ -253,7 +250,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
   def listAllSeqNr(persistenceId: String): Future[Seq[Long]] =
     Source
       .fromIterator { () => Iterator.iterate(0L)(_ + 1) }
-      .via(DynamoPartitionGrouped(100))
+      .via(DynamoPartitionGrouped)
       .mapAsync(ReplayParallelism)(batch => getPartitionItems(persistenceId, batch).map(_.ids.sorted))
       .takeWhile(_.nonEmpty)
       .runFold(Vector.empty[Long])(_ ++ _)

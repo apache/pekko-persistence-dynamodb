@@ -96,7 +96,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
                 item.put(AtomIndex, N(index))
                 item.put(AtomEnd, size)
                 putReq(item)
-            } ++ (if (low / 100 != high / 100) Some(putReq(toHSItem(id, high))) else None)
+            } ++ (if (low / PartitionSize != high / PartitionSize) Some(putReq(toHSItem(id, high))) else None)
 
           val futures = writes.grouped(MaxBatchWrite).map { batch =>
             dynamo.batchWriteItem(batchWriteReq(batch)).flatMap(r => sendUnprocessedItems(r))
@@ -216,13 +216,13 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
   /**
    * Store the highest sequence number for this persistenceId.
    *
-   * Note that this number must be rounded down to the next 100er increment,
+   * Note that this number must be rounded down to the next PartitionSize increment,
    * see the implementation of readSequenceNr for details.
    */
   private def toHSItem(persistenceId: String, sequenceNr: Long): Item = {
-    val seq        = sequenceNr / 100
+    val seq        = sequenceNr / PartitionSize
     val item: Item = highSeqKey(persistenceId, seq % SequenceShards)
-    item.put(SequenceNr, N(seq * 100))
+    item.put(SequenceNr, N(seq * PartitionSize))
     item
   }
 
@@ -235,11 +235,11 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
   /**
    * Store the lowest sequence number for this persistenceId. This is only done
    * by DeleteMessagesTo, which the user has to use sensibly (i.e. non-concurrently)
-   * and which then stores the real sequence number, not rounded to 100er increments
+   * and which then stores the real sequence number, not rounded to PartitionSize increments
    * because replay must start exactly here.
    */
   private def toLSItem(persistenceId: String, sequenceNr: Long): Item = {
-    val seq        = sequenceNr / 100
+    val seq        = sequenceNr / PartitionSize
     val item: Item = lowSeqKey(persistenceId, seq % SequenceShards)
     item.put(SequenceNr, N(sequenceNr))
     item

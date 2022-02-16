@@ -13,7 +13,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
   "A DynamoPartitionGroup should create the correct PartitionKey outputs" when {
     "events 1 thru 250 are presented" in {
       val sourceUnderTest =
-        Source(1L to 250).via(DynamoPartitionGrouped(100))
+        Source(1L to 250).via(DynamoPartitionGrouped)
 
       sourceUnderTest
         .runWith(TestSink.probe[PartitionKeys])
@@ -28,7 +28,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
 
     "events 85 through 300 are presented" in {
       val sourceUnderTest =
-        Source(85L to 300).via(DynamoPartitionGrouped(100))
+        Source(85L to 300).via(DynamoPartitionGrouped)
 
       sourceUnderTest
         .runWith(TestSink.probe[PartitionKeys])
@@ -45,7 +45,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
 
     "events 185 through 512 are presented" in {
       val sourceUnderTest =
-        Source(185L to 512).via(DynamoPartitionGrouped(100))
+        Source(185L to 512).via(DynamoPartitionGrouped)
 
       sourceUnderTest
         .runWith(TestSink.probe[PartitionKeys])
@@ -62,7 +62,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
   "A DynamoPartitionGroup should complete when source is exhausted" when {
     "should complete with correct partition from events 1 through 15" in {
       val sourceUnderTest =
-        Source(1L to 15).via(DynamoPartitionGrouped(100))
+        Source(1L to 15).via(DynamoPartitionGrouped)
 
       sourceUnderTest
         .runWith(TestSink.probe[PartitionKeys])
@@ -73,7 +73,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
 
     "should complete with correct partition keys when events 1 through 99 are presented and source ends" in {
       val sourceUnderTest =
-        Source(1L to 99).via(DynamoPartitionGrouped(100))
+        Source(1L to 99).via(DynamoPartitionGrouped)
 
       sourceUnderTest
         .runWith(TestSink.probe[PartitionKeys])

@@ -3,19 +3,7 @@
  */
 package akka.persistence.dynamodb
 
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.dynamodbv2._
 import com.amazonaws.services.dynamodbv2.model._
-import akka.actor.{ ActorSystem, Scheduler }
-import akka.event.{ Logging, LoggingAdapter }
-import java.util.{ Map => JMap }
-import scala.concurrent._
-import scala.util.{ Failure, Success, Try }
-import java.util.concurrent.{ LinkedBlockingQueue, ThreadPoolExecutor, TimeUnit }
-import scala.collection.generic.CanBuildFrom
-import java.util.concurrent.Executors
-import java.util.Collections
-import java.nio.ByteBuffer
 
 package object journal {
 
@@ -41,7 +29,8 @@ package object journal {
 
   val KeyPayloadOverhead = 26 // including fixed parts of partition key and 36 bytes fudge factor
 
-  import collection.JavaConverters._
+  //This is the size of each partition used on DynamoDB. This value should never change as it will break backwards compatability.
+  val PartitionSize: Int = 100
 
   val schema = new CreateTableRequest()
     .withKeySchema(
