@@ -36,8 +36,8 @@ class DeletionSpec
      * noisy logging, and I like my build output clean and green.
      */
     Thread.sleep(500)
-    system.terminate().futureValue
     client.shutdown()
+    system.terminate().futureValue
     super.afterAll()
   }
 

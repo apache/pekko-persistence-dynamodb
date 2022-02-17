@@ -96,7 +96,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
                 item.put(AtomIndex, N(index))
                 item.put(AtomEnd, size)
                 putReq(item)
-            } ++ (if (low / PartitionSize != high / PartitionSize) Some(putReq(toHSItem(id, high))) else None)
+            } ++ (if ((low - 1) / PartitionSize != high / PartitionSize) Some(putReq(toHSItem(id, high))) else None)
 
           val futures = writes.grouped(MaxBatchWrite).map { batch =>
             dynamo.batchWriteItem(batchWriteReq(batch)).flatMap(r => sendUnprocessedItems(r))

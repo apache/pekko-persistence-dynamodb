@@ -12,7 +12,7 @@ object Publish extends AutoPlugin {
 
   val defaultPublishTo = settingKey[File]("Default publish directory")
 
-  override def trigger = allRequirements
+  override def trigger  = allRequirements
   override def requires = sbtrelease.ReleasePlugin
 
   override lazy val projectSettings = Seq(
@@ -27,8 +27,7 @@ object Publish extends AutoPlugin {
     homepage := Some(url("https://github.com/akka/akka-persistence-dynamodb")),
     publishMavenStyle := true,
     pomIncludeRepository := { x => false },
-    defaultPublishTo := crossTarget.value / "repository",
-  )
+    defaultPublishTo := crossTarget.value / "repository")
 
   def akkaPomExtra = {
     <developers>
@@ -41,15 +40,16 @@ object Publish extends AutoPlugin {
     </developers>
   }
 
-  private def akkaPublishTo = Def.setting {
-    sonatypeRepo(version.value) orElse localRepo(defaultPublishTo.value)
-  }
+  private def akkaPublishTo =
+    Def.setting {
+      sonatypeRepo(version.value).orElse(localRepo(defaultPublishTo.value))
+    }
 
   private def sonatypeRepo(version: String): Option[Resolver] =
-    Option(sys.props("publish.maven.central")) filter (_.toLowerCase == "true") map { _ =>
+    Option(sys.props("publish.maven.central")).filter(_.toLowerCase == "true").map { _ =>
       val nexus = "https://oss.sonatype.org/"
-      if (version endsWith "-SNAPSHOT") "snapshots" at nexus + "content/repositories/snapshots"
-      else "releases" at nexus + "service/local/staging/deploy/maven2"
+      if (version.endsWith("-SNAPSHOT")) "snapshots".at(nexus + "content/repositories/snapshots")
+      else "releases".at(nexus + "service/local/staging/deploy/maven2")
     }
 
   private def localRepo(repository: File) =
