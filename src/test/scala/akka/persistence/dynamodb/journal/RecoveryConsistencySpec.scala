@@ -88,7 +88,7 @@ class RecoveryConsistencySpec
 
     "read correct highest sequence number even if a Sort=0 entry is lost" in {
       val start = messages + 19
-      val end   = (start / 100 + 1) * 100
+      val end   = (start / PartitionSize + 1) * PartitionSize
       val more  = (start to end).map(i => AtomicWrite(persistentRepr(f"e-$i")))
       journal ! WriteMessages(more, testActor, 1)
       expectMsg(WriteMessagesSuccessful)
@@ -98,7 +98,8 @@ class RecoveryConsistencySpec
 
       journal ! ListAll(persistenceId, testActor)
       val ids = ((1L to (end - 1)).toSet -- Set[Long](2, 4, 12, 15).map(_ + messages)).toSeq.sorted
-      expectMsg(ListAllResult(persistenceId, Set.empty, (1L to (end / 100)).map(_ * 100).toSet, ids))
+      expectMsg(
+        ListAllResult(persistenceId, Set.empty, (1L to (end / PartitionSize)).map(_ * PartitionSize).toSet, ids))
 
       journal ! ReplayMessages(0, Long.MaxValue, 0, persistenceId, testActor)
       expectMsg(RecoverySuccess(end))
@@ -157,8 +158,8 @@ class RecoveryConsistencySpec
 
   private def delete(num: Long) = {
     val key: Item = new JHMap
-    key.put(Key, S(s"$JournalName-P-$persistenceId-${num / 100}"))
-    key.put(Sort, N(num % 100))
+    key.put(Key, S(s"$JournalName-P-$persistenceId-${num / PartitionSize}"))
+    key.put(Sort, N(num % PartitionSize))
     client.deleteItem(new DeleteItemRequest().withTableName(JournalTable).withKey(key)).futureValue
   }
 }

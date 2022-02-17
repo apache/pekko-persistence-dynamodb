@@ -15,23 +15,30 @@ import com.amazonaws.services.dynamodbv2.model._
 import java.util.{ HashMap => JHMap }
 import akka.persistence.dynamodb._
 
-class PersistAllConsistencySpec extends TestKit(ActorSystem("PersistAllConsistencySpec"))
+class PersistAllConsistencySpec
+    extends TestKit(ActorSystem("PersistAllConsistencySpec"))
     with ImplicitSender
     with WordSpecLike
     with BeforeAndAfterAll
     with Matchers
     with ScalaFutures
     with ConversionCheckedTripleEquals
-    with DynamoDBUtils {
+    with DynamoDBUtils
+    with IntegSpec {
 
-  override def beforeAll(): Unit = ensureJournalTableExists()
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    ensureJournalTableExists()
+  }
+
   override def afterAll(): Unit = {
     client.shutdown()
     system.terminate().futureValue
+    super.afterAll()
   }
 
   override val persistenceId = "PersistAllConsistencySpec"
-  lazy val journal = Persistence(system).journalFor("")
+  lazy val journal           = Persistence(system).journalFor("")
 
   import settings._
 
@@ -42,55 +49,56 @@ class PersistAllConsistencySpec extends TestKit(ActorSystem("PersistAllConsisten
       expectMsg(Purged(persistenceId))
 
       val start = nextSeqNr
-      val end = 10
+      val end   = 10
       println(s"start: ${start}; end: ${end}")
       val padding = AtomicWrite((start to end).map(i => persistentRepr(f"h-$i"))) :: Nil
 
       journal ! WriteMessages(padding, testActor, 1)
       expectMsg(WriteMessagesSuccessful)
-      (start to end) foreach (i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))
+      (start to end).foreach(i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))
 
       journal ! ReplayMessages(start, Long.MaxValue, Long.MaxValue, persistenceId, testActor)
-      (start to end) foreach (i => expectMsg(ReplayedMessage(generatedMessages(i))))
+      (start to end).foreach(i => expectMsg(ReplayedMessage(generatedMessages(i))))
       expectMsg(RecoverySuccess(end))
     }
 
-    for (t <- Seq(("last", 3), ("middle", 2), ("first", 1))) s"correctly cross page boundaries with AtomicWrite position ${t._1}" in {
-      val start1 = nextSeqNr
-      val end1 = ((start1 / 100) + 1) * 100 - t._2
-      println(s"start: ${start1}; end: ${end1}")
-      val padding = AtomicWrite((start1 to end1).map(i => persistentRepr(f"h-$i"))) :: Nil
+    for (t <- Seq(("last", 3), ("middle", 2), ("first", 1)))
+      s"correctly cross page boundaries with AtomicWrite position ${t._1}" in {
+        val start1 = nextSeqNr
+        val end1   = ((start1 / PartitionSize) + 1) * PartitionSize - t._2
+        println(s"start: ${start1}; end: ${end1}")
+        val padding = AtomicWrite((start1 to end1).map(i => persistentRepr(f"h-$i"))) :: Nil
 
-      journal ! WriteMessages(padding, testActor, 1)
-      expectMsg(WriteMessagesSuccessful)
-      (start1 to end1) foreach (i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))
+        journal ! WriteMessages(padding, testActor, 1)
+        expectMsg(WriteMessagesSuccessful)
+        (start1 to end1).foreach(i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))
 
-      val start2 = nextSeqNr
-      val end2 = start2 + 2
-      println(s"start: ${start2}; end: ${end2}")
-      val subject = AtomicWrite((start2 to end2).map(i => persistentRepr(f"h-$i"))) :: Nil
+        val start2 = nextSeqNr
+        val end2   = start2 + 2
+        println(s"start: ${start2}; end: ${end2}")
+        val subject = AtomicWrite((start2 to end2).map(i => persistentRepr(f"h-$i"))) :: Nil
 
-      journal ! WriteMessages(subject, testActor, 1)
-      expectMsg(WriteMessagesSuccessful)
-      (start2 to end2) foreach (i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))
+        journal ! WriteMessages(subject, testActor, 1)
+        expectMsg(WriteMessagesSuccessful)
+        (start2 to end2).foreach(i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))
 
-      journal ! ReplayMessages(start1, Long.MaxValue, Long.MaxValue, persistenceId, testActor)
-      (start1 to end2) foreach (i => expectMsg(ReplayedMessage(generatedMessages(i))))
-      expectMsg(RecoverySuccess(end2))
-    }
+        journal ! ReplayMessages(start1, Long.MaxValue, Long.MaxValue, persistenceId, testActor)
+        (start1 to end2).foreach(i => expectMsg(ReplayedMessage(generatedMessages(i))))
+        expectMsg(RecoverySuccess(end2))
+      }
 
-    "recover correctly when the last partition event ends on 99" in {
+    s"recover correctly when the last partition event ends on ${PartitionSize - 1}" in {
       val start = nextSeqNr
-      val end = ((start / 100) + 1) * 100 - 1
+      val end   = ((start / PartitionSize) + 1) * PartitionSize - 1
       println(s"start: ${start}; end: ${end}")
       val padding = AtomicWrite((start to end).map(i => persistentRepr(f"h-$i"))) :: Nil
 
       journal ! WriteMessages(padding, testActor, 1)
       expectMsg(WriteMessagesSuccessful)
-      (start to end) foreach (i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))
+      (start to end).foreach(i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))
 
       journal ! ReplayMessages(start, Long.MaxValue, Long.MaxValue, persistenceId, testActor)
-      (start to end) foreach (i => expectMsg(ReplayedMessage(generatedMessages(i))))
+      (start to end).foreach(i => expectMsg(ReplayedMessage(generatedMessages(i))))
       expectMsg(RecoverySuccess(end))
     }
 

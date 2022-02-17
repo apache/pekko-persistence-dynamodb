@@ -10,6 +10,8 @@ import org.scalatest.WordSpecLike
 class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGroupedSpec")) with WordSpecLike {
   implicit val materializer = ActorMaterializer()
 
+  assert(PartitionSize == 100, "This test is only valid with PartitionSize == 100")
+
   "A DynamoPartitionGroup should create the correct PartitionKey outputs" when {
     "events 1 thru 250 are presented" in {
       val sourceUnderTest =

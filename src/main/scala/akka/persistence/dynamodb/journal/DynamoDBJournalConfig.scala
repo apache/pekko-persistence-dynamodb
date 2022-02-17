@@ -26,7 +26,7 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
   val MaxItemSize   = c.getInt("aws-api-limits.max-item-size")
 
   object Fixes {
-    val HighDistrust = c getBoolean "fixes.high-distrust"
+    val HighDistrust = c.getBoolean("fixes.high-distrust")
   }
 
   val client = new DynamoDBClientConfig(c)
