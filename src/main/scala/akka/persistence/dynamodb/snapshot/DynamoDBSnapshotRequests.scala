@@ -3,9 +3,9 @@
  */
 package akka.persistence.dynamodb.snapshot
 
-import java.lang.Integer
-import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
+import java.util.{ HashMap => JHMap }
 
+import akka.actor.ExtendedActorSystem
 import akka.persistence.dynamodb.{ DynamoDBRequests, Item }
 import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import akka.persistence.serialization.Snapshot
@@ -14,6 +14,7 @@ import com.amazonaws.services.dynamodbv2.model._
 import collection.JavaConverters._
 import scala.concurrent.Future
 import akka.persistence.dynamodb._
+import akka.serialization.{ AsyncSerializer, Serialization, Serializers }
 
 trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   this: DynamoDBSnapshotStore =>
@@ -29,18 +30,13 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .addKeyEntry(Key, S(messagePartitionKey(metadata.persistenceId)))
       .addKeyEntry(SequenceNr, N(metadata.sequenceNr))
 
-    dynamo.deleteItem(request)
-      .map(toUnit)
+    dynamo.deleteItem(request).map(toUnit)
   }
 
   def delete(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Unit] = {
     loadQueryResult(persistenceId, criteria).flatMap { queryResult =>
-      val result = queryResult.getItems.asScala.map(item => item.get(SequenceNr).getN.toLong)
-      doBatch(
-        batch => s"execute batch delete $batch",
-        result.map(snapshotDeleteReq(persistenceId, _))
-      )
-        .map(toUnit)
+      val result = queryResult.getItems.asScala.toSeq.map(item => item.get(SequenceNr).getN.toLong)
+      doBatch(batch => s"execute batch delete $batch", result.map(snapshotDeleteReq(persistenceId, _))).map(toUnit)
     }
   }
 
@@ -54,29 +50,31 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   }
 
   def save(persistenceId: String, sequenceNr: Long, timestamp: Long, snapshot: Any): Future[Unit] = {
-    dynamo.putItem(putItem(toSnapshotItem(persistenceId, sequenceNr, timestamp, snapshot)))
-      .map(toUnit)
+    toSnapshotItem(persistenceId, sequenceNr, timestamp, snapshot).flatMap { snapshotItem =>
+      dynamo.putItem(putItem(snapshotItem)).map(toUnit)
+    }
   }
 
   def load(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
 
-    loadQueryResult(persistenceId, criteria, Some(1))
-      .map { result =>
-        if (result.getItems.size() > 0) {
-          result.getItems.asScala.headOption
-            .map(youngest =>
-              fromSnapshotItem(persistenceId, youngest))
-        } else {
-          None
-        }
+    loadQueryResult(persistenceId, criteria, Some(1)).flatMap { result =>
+      result.getItems.asScala.headOption match {
+        case Some(youngest) => fromSnapshotItem(persistenceId, youngest).map(Some(_))
+        case None           => Future.successful(None)
       }
+    }
   }
 
-  private def loadQueryResult(persistenceId: String, criteria: SnapshotSelectionCriteria, limit: Option[Int] = None): Future[QueryResult] = {
+  private def loadQueryResult(
+      persistenceId: String,
+      criteria: SnapshotSelectionCriteria,
+      limit: Option[Int] = None): Future[QueryResult] = {
     criteria match {
-      case SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp, minSequenceNr, minTimestamp) if minSequenceNr == 0 && maxSequenceNr == Long.MaxValue =>
+      case SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp, minSequenceNr, minTimestamp)
+          if minSequenceNr == 0 && maxSequenceNr == Long.MaxValue =>
         loadByTimestamp(persistenceId, minTimestamp = minTimestamp, maxTimestamp = maxTimestamp, limit)
-      case SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp, minSequenceNr, minTimestamp) if minTimestamp == 0 && maxTimestamp == Long.MaxValue =>
+      case SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp, minSequenceNr, minTimestamp)
+          if minTimestamp == 0 && maxTimestamp == Long.MaxValue =>
         loadBySeqNr(persistenceId, minSequenceNr = minSequenceNr, maxSequenceNr = maxSequenceNr, limit)
       case _ =>
         loadByBoth(persistenceId, criteria, limit)
@@ -84,7 +82,11 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     }
   }
 
-  private def loadByTimestamp(persistenceId: String, minTimestamp: Long, maxTimestamp: Long, limit: Option[Int]): Future[QueryResult] = {
+  private def loadByTimestamp(
+      persistenceId: String,
+      minTimestamp: Long,
+      maxTimestamp: Long,
+      limit: Option[Int]): Future[QueryResult] = {
     val request = new QueryRequest()
       .withTableName(Table)
       .withIndexName(TimestampIndex)
@@ -99,7 +101,11 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     dynamo.query(request)
   }
 
-  private def loadBySeqNr(persistenceId: String, minSequenceNr: Long, maxSequenceNr: Long, limit: Option[Int]): Future[QueryResult] = {
+  private def loadBySeqNr(
+      persistenceId: String,
+      minSequenceNr: Long,
+      maxSequenceNr: Long,
+      limit: Option[Int]): Future[QueryResult] = {
     val request = new QueryRequest()
       .withTableName(Table)
       .withKeyConditionExpression(s" $Key = :partitionKeyVal AND $SequenceNr BETWEEN :seqMinVal AND :seqMaxVal")
@@ -113,7 +119,10 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     dynamo.query(request)
   }
 
-  private def loadByBoth(persistenceId: String, criteria: SnapshotSelectionCriteria, limit: Option[Int]): Future[QueryResult] = {
+  private def loadByBoth(
+      persistenceId: String,
+      criteria: SnapshotSelectionCriteria,
+      limit: Option[Int]): Future[QueryResult] = {
     val request = new QueryRequest()
       .withTableName(Table)
       .withKeyConditionExpression(s" $Key = :partitionKeyVal AND $SequenceNr BETWEEN :seqMinVal AND :seqMaxVal")
@@ -130,23 +139,70 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     dynamo.query(request)
   }
 
-  private def toSnapshotItem(persistenceId: String, sequenceNr: Long, timestamp: Long, snapshot: Any): Item = {
+  private def toSnapshotItem(persistenceId: String, sequenceNr: Long, timestamp: Long, snapshot: Any): Future[Item] = {
     val item: Item = new JHMap
 
     item.put(Key, S(messagePartitionKey(persistenceId)))
     item.put(SequenceNr, N(sequenceNr))
     item.put(Timestamp, N(timestamp))
-    val snp = B(serialization.serialize(Snapshot(snapshot)).get)
-    item.put(Payload, snp)
-    item
+    val snapshotData = snapshot.asInstanceOf[AnyRef]
+    val serializer   = serialization.findSerializerFor(snapshotData)
+    val manifest     = Serializers.manifestFor(serializer, snapshotData)
+
+    val fut = serializer match {
+      case asyncSer: AsyncSerializer =>
+        Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
+          asyncSer.toBinaryAsync(snapshotData)
+        }
+      case _ =>
+        Future {
+          // Serialization.serialize adds transport info
+          serialization.serialize(snapshotData).get
+        }
+    }
+
+    fut.map { data =>
+      item.put(PayloadData, B(data))
+      if (manifest.nonEmpty) {
+        item.put(SerializerManifest, S(manifest))
+      }
+      item.put(SerializerId, N(serializer.identifier))
+      item
+    }
   }
 
-  private def fromSnapshotItem(persistenceId: String, item: Item): SelectedSnapshot = {
-    val seqNr = item.get(SequenceNr).getN.toLong
+  private def fromSnapshotItem(persistenceId: String, item: Item): Future[SelectedSnapshot] = {
+    val seqNr     = item.get(SequenceNr).getN.toLong
     val timestamp = item.get(Timestamp).getN.toLong
-    val payloadValue = item.get(Payload).getB
-    val snapshot = serialization.deserialize(payloadValue.array(), classOf[Snapshot]).get
-    SelectedSnapshot(metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp), snapshot = snapshot.data)
+
+    if (item.containsKey(PayloadData)) {
+
+      val payloadData = item.get(PayloadData).getB
+      val serId       = item.get(SerializerId).getN.toInt
+      val manifest    = if (item.containsKey(SerializerManifest)) item.get(SerializerManifest).getS else ""
+
+      val serialized = serialization.serializerByIdentity(serId) match {
+        case aS: AsyncSerializer =>
+          Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
+            aS.fromBinaryAsync(payloadData.array(), manifest)
+          }
+        case _ =>
+          Future.successful(serialization.deserialize(payloadData.array(), serId, manifest).get)
+      }
+
+      serialized.map(
+        data =>
+          SelectedSnapshot(
+            metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp),
+            snapshot = data))
+
+    } else {
+      val payloadValue = item.get(Payload).getB
+      Future.successful(
+        SelectedSnapshot(
+          metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp),
+          snapshot = serialization.deserialize(payloadValue.array(), classOf[Snapshot]).get.data))
+    }
   }
 
   private def messagePartitionKey(persistenceId: String): String =

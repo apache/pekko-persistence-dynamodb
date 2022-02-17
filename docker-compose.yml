@@ -1,0 +1,26 @@
+version: '3'
+services:
+  dynamodb:
+    image: amazon/dynamodb-local
+    ports:
+      - '8000:8000' #DDB
+    environment:
+      SERVICES: 'dynamodb'
+      HOSTNAME_EXTERNAL: '${ALLOWED_HOST:-localhost}'
+      DOCKER_HOST: 'unix:///var/run/docker.sock'
+    env_file:
+      - ./.env.test
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+  dynamosetup:
+    image: infrastructureascode/aws-cli
+    depends_on:
+      - dynamodb
+    env_file:
+      - ./.env.test
+    environment:
+      LOCALSTACK_HOST: 'dynamodb'
+      DDB_PORT: 8000
+    entrypoint: /scripts/entrypoint.sh
+    volumes:
+      - './scripts:/scripts'

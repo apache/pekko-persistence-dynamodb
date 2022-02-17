@@ -5,13 +5,14 @@ package akka.persistence.dynamodb.journal
 
 import java.nio.ByteBuffer
 import java.util.{ HashMap => JHMap, Map => JMap }
+
 import akka.Done
 import akka.actor.{ ActorLogging, ActorRefFactory, ActorSystem }
 import akka.event.{ Logging, LoggingAdapter }
 import akka.pattern.pipe
 import akka.persistence.journal.AsyncWriteJournal
 import akka.persistence.{ AtomicWrite, Persistence, PersistentRepr }
-import akka.serialization.SerializationExtension
+import akka.serialization.{ AsyncSerializer, SerializationExtension }
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import com.amazonaws.AmazonServiceException
@@ -19,15 +20,17 @@ import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
 import com.amazonaws.services.dynamodbv2.model._
 import com.typesafe.config.Config
+
 import scala.collection.immutable
 import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Try, Success, Failure }
+import scala.util.{ Failure, Success, Try }
 import scala.util.control.NoStackTrace
 import akka.actor.ActorRef
+
 import scala.concurrent.Promise
 import akka.persistence.dynamodb._
 
-class DynamoDBJournalFailure(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
+class DynamoDBJournalFailure(message: String, cause: Throwable = null)   extends RuntimeException(message, cause)
 class DynamoDBJournalRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
 
 /**
@@ -68,12 +71,16 @@ private[akka] case class SetDBHelperReporter(ref: ActorRef)
  */
 case class Purged(persistenceId: String)
 
-class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRecovery with DynamoDBJournalRequests with ActorLogging {
+class DynamoDBJournal(config: Config)
+    extends AsyncWriteJournal
+    with DynamoDBRecovery
+    with DynamoDBJournalRequests
+    with ActorLogging {
   import context.dispatcher
 
   implicit val materializer = ActorMaterializer()
 
-  val extension = Persistence(context.system)
+  val extension     = Persistence(context.system)
   val serialization = SerializationExtension(context.system)
 
   val settings = new DynamoDBJournalConfig(config)
@@ -94,7 +101,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
   private val opQueue: JMap[String, Future[Done]] = new JHMap
 
   override def asyncWriteMessages(messages: immutable.Seq[AtomicWrite]): Future[immutable.Seq[Try[Unit]]] = {
-    val p = Promise[Done]
+    val p   = Promise[Done]
     val pid = messages.head.persistenceId
     opQueue.put(pid, p.future)
 
@@ -110,8 +117,10 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
 
   override def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
     opQueue.get(persistenceId) match {
-      case null => logFailure(s"read-highest-sequence-number($persistenceId)")(readSequenceNr(persistenceId, highest = true))
-      case f    => f.flatMap(_ => logFailure(s"read-highest($persistenceId)")(readSequenceNr(persistenceId, highest = true)))
+      case null =>
+        logFailure(s"read-highest-sequence-number($persistenceId)")(readSequenceNr(persistenceId, highest = true))
+      case f =>
+        f.flatMap(_ => logFailure(s"read-highest($persistenceId)")(readSequenceNr(persistenceId, highest = true)))
     }
 
   /**
@@ -130,10 +139,10 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
   override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] =
     logFailure(s"delete($persistenceId, upto=$toSequenceNr)") {
       log.debug("delete-messages persistenceId={} to={}", persistenceId, toSequenceNr)
-      val lowF = readSequenceNr(persistenceId, highest = false)
+      val lowF  = readSequenceNr(persistenceId, highest = false)
       val highF = readSequenceNr(persistenceId, highest = true)
       for {
-        lowest <- lowF
+        lowest  <- lowF
         highest <- highF
         val upTo = Math.min(toSequenceNr, highest)
         _ <- if (upTo + 1 > lowest) setLS(persistenceId, to = upTo + 1) else Future.successful(Done)
@@ -145,7 +154,7 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
 
   private def listAll(persistenceId: String): Future[ListAllResult] =
     for {
-      low <- readAllSequenceNr(persistenceId, highest = false)
+      low  <- readAllSequenceNr(persistenceId, highest = false)
       high <- readAllSequenceNr(persistenceId, highest = true)
       seqs <- listAllSeqNr(persistenceId)
     } yield ListAllResult(persistenceId, low, high, seqs)
@@ -153,15 +162,15 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
   private def purge(persistenceId: String): Future[Done] =
     for {
       highest <- readSequenceNr(persistenceId, highest = true)
-      _ <- deleteMessages(persistenceId, 0, highest)
-      _ <- removeLS(persistenceId)
-      _ <- removeHS(persistenceId)
+      _       <- deleteMessages(persistenceId, 0, highest)
+      _       <- removeLS(persistenceId)
+      _       <- removeHS(persistenceId)
     } yield Done
 
   override def receivePluginInternal = {
     case OpFinished(persistenceId, f)    => opQueue.remove(persistenceId, f)
-    case ListAll(persistenceId, replyTo) => listAll(persistenceId) pipeTo replyTo
-    case Purge(persistenceId, replyTo)   => purge(persistenceId).map(_ => Purged(persistenceId)) pipeTo replyTo
+    case ListAll(persistenceId, replyTo) => listAll(persistenceId).pipeTo(replyTo)
+    case Purge(persistenceId, replyTo)   => purge(persistenceId).map(_ => Purged(persistenceId)).pipeTo(replyTo)
     case SetDBHelperReporter(ref)        => dynamo.setReporter(ref)
   }
 
@@ -171,12 +180,15 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
   def messageKey(persistenceId: String, sequenceNr: Long): Item = {
     val item: Item = new JHMap
     item.put(Key, S(messagePartitionKey(persistenceId, sequenceNr)))
-    item.put(Sort, N(sequenceNr % 100))
+    item.put(Sort, N(sequenceNr % PartitionSize))
     item
   }
 
   def messagePartitionKey(persistenceId: String, sequenceNr: Long): String =
-    s"$JournalName-P-$persistenceId-${sequenceNr / 100}"
+    messagePartitionKeyFromGroupNr(persistenceId, sequenceNr / PartitionSize)
+
+  def messagePartitionKeyFromGroupNr(persistenceId: String, partitionGroupNr: Long): String =
+    s"$JournalName-P-$persistenceId-$partitionGroupNr"
 
   def highSeqKey(persistenceId: String, shard: Long) = {
     val item: Item = new JHMap
@@ -192,15 +204,11 @@ class DynamoDBJournal(config: Config) extends AsyncWriteJournal with DynamoDBRec
     item
   }
 
-  def persistentToByteBuffer(p: PersistentRepr): ByteBuffer =
-    ByteBuffer.wrap(serialization.serialize(p).get)
-
-  def persistentFromByteBuffer(b: ByteBuffer): PersistentRepr = {
-    serialization.deserialize(ByteString(b).toArray, classOf[PersistentRepr]).get
-  }
-
-  def logFailure[T](desc: String)(f: Future[T]): Future[T] = f.transform(conforms, ex => {
-    log.error(ex, "operation failed: " + desc)
-    ex
-  })
+  def logFailure[T](desc: String)(f: Future[T]): Future[T] =
+    f.transform(
+      identity(_),
+      ex => {
+        log.error(ex, "operation failed: " + desc)
+        ex
+      })
 }

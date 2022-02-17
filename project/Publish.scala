@@ -27,7 +27,8 @@ object Publish extends AutoPlugin {
     homepage := Some(url("https://github.com/akka/akka-persistence-dynamodb")),
     publishMavenStyle := true,
     pomIncludeRepository := { x => false },
-    defaultPublishTo := crossTarget.value / "repository")
+    defaultPublishTo := crossTarget.value / "repository",
+  )
 
   def akkaPomExtra = {
     <developers>

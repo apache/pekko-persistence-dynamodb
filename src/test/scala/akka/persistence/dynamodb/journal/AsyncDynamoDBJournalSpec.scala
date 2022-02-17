@@ -1,18 +1,36 @@
-/**
- * Copyright (C) 2016 Typesafe Inc. <http://www.typesafe.com>
+/*
+ * Copyright (C) 2019 Lightbend Inc. <https://www.lightbend.com>
  */
 package akka.persistence.dynamodb.journal
 
-import akka.persistence.journal.JournalSpec
-import com.typesafe.config.ConfigFactory
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import akka.persistence.CapabilityFlag
-import akka.pattern.extended.ask
 import akka.actor.ActorRef
+import akka.pattern.extended.ask
+import akka.persistence.journal.JournalSpec
+import akka.persistence.CapabilityFlag
+
+import com.typesafe.config.ConfigFactory
+import scala.concurrent.duration._
+import scala.concurrent.Await
 import akka.persistence.dynamodb.IntegSpec
 
-class DynamoDBJournalSpec extends JournalSpec(ConfigFactory.load()) with DynamoDBUtils with IntegSpec {
+object AsyncDynamoDBJournalSpec {
+
+  val config = ConfigFactory
+    .parseString("""
+      |akka.actor {
+      |  serializers {
+      |    test = "akka.persistence.dynamodb.journal.TestSerializer"
+      |  }
+      |  serialization-bindings {
+      |    "java.io.Serializable" = test
+      |  }
+      |}
+    """.stripMargin)
+    .withFallback(ConfigFactory.load())
+
+}
+
+class AsyncDynamoDBJournalSpec extends JournalSpec(AsyncDynamoDBJournalSpec.config) with DynamoDBUtils with IntegSpec {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
