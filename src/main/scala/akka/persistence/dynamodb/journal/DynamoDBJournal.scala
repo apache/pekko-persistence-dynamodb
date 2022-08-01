@@ -13,7 +13,7 @@ import akka.pattern.pipe
 import akka.persistence.journal.AsyncWriteJournal
 import akka.persistence.{ AtomicWrite, Persistence, PersistentRepr }
 import akka.serialization.{ AsyncSerializer, SerializationExtension }
-import akka.stream.ActorMaterializer
+import akka.stream.{ Materializer, SystemMaterializer }
 import akka.util.ByteString
 import com.amazonaws.AmazonServiceException
 import com.amazonaws.auth.BasicAWSCredentials
@@ -78,7 +78,7 @@ class DynamoDBJournal(config: Config)
     with ActorLogging {
   import context.dispatcher
 
-  implicit val materializer = ActorMaterializer()
+  implicit val materializer: Materializer = SystemMaterializer(context.system).materializer
 
   val extension     = Persistence(context.system)
   val serialization = SerializationExtension(context.system)

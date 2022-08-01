@@ -1,14 +1,14 @@
 package akka.persistence.dynamodb.journal
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, Materializer, SystemMaterializer}
 import akka.stream.scaladsl.Source
 import akka.stream.testkit.scaladsl.TestSink
 import akka.testkit.TestKit
 import org.scalatest.WordSpecLike
 
 class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGroupedSpec")) with WordSpecLike {
-  implicit val materializer = ActorMaterializer()
+  implicit val materializer: Materializer = SystemMaterializer(system).materializer
 
   assert(PartitionSize == 100, "This test is only valid with PartitionSize == 100")
 
