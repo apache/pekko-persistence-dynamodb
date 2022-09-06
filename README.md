@@ -8,7 +8,7 @@ A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.4.0/scala/persist
 - Please note, however, that it does not include an Akka Persistence Query plugin.
 
 Supported versions:
-- Scala: `2.11.x`, `2.12.x`, `2.13.x`
+- Scala: `2.12.x`, `2.13.x`
 - Akka: `2.4.14+` and `2.5.x+` and `2.6.x+` (see notes below how to use with 2.5)
 - Java: `1.8+`
 
@@ -83,6 +83,16 @@ The table to create for snapshot storage has the schema:
 
 The Dynamodb item of a snapshot [can be 400 kB](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html#limits-items). Using a binary serialisation format like ProtoBuf or Kryo will use that space most effectively.
 
+### Read journal (Akka persistence query)
+(**Since:** `1.3.0`; contributed by [@joost-de-vries](https://github.com/joost-de-vries))  
+See `CreatePersistenceIdsIndex.createPersistenceIdsIndexRequest` how to create the Global Secondary Index that is required to query currentPersistenceIds
+~~~
+dynamodb-read-journal {
+  # The name of the Global Secondary Index that is used to query currentPersistenceIds
+  # see CreatePersistenceIdsIndex.createPersistenceIdsIndexRequest
+  # persistence-ids-index-name: "persistence-ids-idx"
+}
+~~~
 Storage Semantics
 -----------------
 
@@ -241,7 +251,7 @@ Credits
 
 - Initial development was done by [Scott Clasen](https://github.com/sclasen/akka-persistence-dynamodb).
 - Update to Akka 2.4 and further development up to version 1.0 was kindly sponsored by [Zynga Inc.](https://www.zynga.com/).
-- The snapshot store was contributed by [Joost de Vries](https://github.com/joost-de-vries)
+- The snapshot store and readjournal were contributed by [Joost de Vries](https://github.com/joost-de-vries)
 
 Support
 -------

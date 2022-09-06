@@ -22,7 +22,7 @@ import akka.serialization.{ AsyncSerializer, Serialization, Serializers }
 
 trait DynamoDBJournalRequests extends DynamoDBRequests {
   this: DynamoDBJournal =>
-  import settings._
+  import journalSettings._
 
   /**
    * Write all messages in a sequence of AtomicWrites. Care must be taken to

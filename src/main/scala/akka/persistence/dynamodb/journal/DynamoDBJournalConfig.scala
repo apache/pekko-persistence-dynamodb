@@ -48,3 +48,7 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
     ",client.config:" + client +
     ")"
 }
+
+trait JournalSettingsProvider {
+  val journalSettings: DynamoDBJournalConfig
+}

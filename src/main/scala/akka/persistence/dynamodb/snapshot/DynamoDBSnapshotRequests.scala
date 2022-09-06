@@ -19,7 +19,7 @@ import akka.serialization.{ AsyncSerializer, Serialization, Serializers }
 trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   this: DynamoDBSnapshotStore =>
 
-  import settings._
+  import journalSettings._
   import context.dispatcher
 
   val toUnit: Any => Unit = _ => ()

@@ -13,10 +13,10 @@ import akka.persistence.dynamodb._
 import scala.concurrent.Future
 
 class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBSnapshotRequests with ActorLogging {
-  val settings      = new DynamoDBSnapshotConfig(config)
-  val dynamo        = dynamoClient(context.system, settings)
-  val serialization = SerializationExtension(context.system)
-  import settings._
+  val journalSettings = new DynamoDBSnapshotConfig(config)
+  val dynamo          = dynamoClient(context.system, journalSettings)
+  val serialization   = SerializationExtension(context.system)
+  import journalSettings._
 
   override def preStart(): Unit = {
     // eager initialization, but not from constructor

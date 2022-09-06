@@ -3,56 +3,54 @@
  */
 package akka.persistence.dynamodb.journal
 
-import akka.persistence.dynamodb.IntegSpec
-
 import akka.actor.ActorSystem
-import akka.persistence.Persistence
 import akka.persistence.PersistentRepr
 import akka.persistence.dynamodb._
 import akka.util.Timeout
 import com.amazonaws.services.dynamodbv2.model._
+
 import java.util.UUID
 import scala.collection.JavaConverters._
-import scala.concurrent.Await
-import scala.concurrent.Future
+import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
-import org.scalatest.Suite
 
-trait DynamoDBUtils {
+trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
 
   val system: ActorSystem
   import system.dispatcher
 
-  lazy val settings = {
+  override lazy val journalSettings = {
     val c      = system.settings.config
     val config = c.getConfig(c.getString("akka.persistence.journal.plugin"))
     new DynamoDBJournalConfig(config)
   }
 
-  lazy val client: DynamoDBHelper = dynamoClient(system, settings)
+  override lazy val dynamo: DynamoDBHelper = dynamoClient(system, journalSettings)
 
   implicit val timeout = Timeout(5.seconds)
 
   def ensureJournalTableExists(read: Long = 10L, write: Long = 10L): Unit = {
     val create =
-      schema.withTableName(settings.JournalTable).withProvisionedThroughput(new ProvisionedThroughput(read, write))
+      schema
+        .withTableName(journalSettings.JournalTable)
+        .withProvisionedThroughput(new ProvisionedThroughput(read, write))
 
     var names = Vector.empty[String]
     lazy val complete: ListTablesResult => Future[Vector[String]] = aws =>
       if (aws.getLastEvaluatedTableName == null) Future.successful(names ++ aws.getTableNames.asScala)
       else {
         names ++= aws.getTableNames.asScala
-        client
+        dynamo
           .listTables(new ListTablesRequest().withExclusiveStartTableName(aws.getLastEvaluatedTableName))
           .flatMap(complete)
       }
-    val list = client.listTables(new ListTablesRequest).flatMap(complete)
+    val list = dynamo.listTables(new ListTablesRequest).flatMap(complete)
 
     val setup = for {
-      exists <- list.map(_ contains settings.JournalTable)
+      exists <- list.map(_ contains journalSettings.JournalTable)
       _ <- {
         if (exists) Future.successful(())
-        else client.createTable(create)
+        else dynamo.createTable(create)
       }
     } yield ()
     Await.result(setup, 5.seconds)

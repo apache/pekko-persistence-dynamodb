@@ -14,4 +14,5 @@ project/project/target
 
 
 .bloop
+/.bsp/sbt.json
 .metals

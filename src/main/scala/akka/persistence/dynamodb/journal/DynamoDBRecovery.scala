@@ -3,23 +3,22 @@
  */
 package akka.persistence.dynamodb.journal
 
-import java.util.{ Collections, Map => JMap }
-import java.util.function.Consumer
+import akka.NotUsed
+import akka.actor.{ ActorSystem, ExtendedActorSystem }
 import akka.persistence.PersistentRepr
-import akka.persistence.journal.AsyncRecovery
-import com.amazonaws.services.dynamodbv2.model._
-
-import scala.jdk.CollectionConverters._
-import scala.collection.immutable
-import scala.concurrent.Future
-import akka.stream.scaladsl._
-import java.util.ArrayList
-
-import akka.actor.ExtendedActorSystem
-import akka.stream.stage._
-import akka.stream._
 import akka.persistence.dynamodb._
 import akka.serialization.{ AsyncSerializer, Serialization }
+import akka.stream._
+import akka.stream.scaladsl._
+import akka.stream.stage._
+import com.amazonaws.services.dynamodbv2.model._
+
+import java.util.function.Consumer
+import java.util.{ ArrayList, Collections, Map => JMap }
+import scala.collection.immutable
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{ Await, Future }
+import scala.jdk.CollectionConverters._
 
 object DynamoDBRecovery {
   val ItemAttributesForReplay: Seq[String] = Seq(
@@ -183,32 +182,58 @@ object RemoveIncompleteAtoms extends GraphStage[FlowShape[Item, List[Item]]] {
 
     }
 }
+trait AsyncReplayMessages {
+  def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(
+      replayCallback: (PersistentRepr) => Unit): Future[Unit]
 
-trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
+}
+
+trait DynamoDBRecovery extends AsyncReplayMessages {
+  self: DynamoProvider
+    with JournalSettingsProvider
+    with ActorSystemProvider
+    with MaterializerProvider
+    with LoggingProvider
+    with JournalKeys
+    with SerializationProvider =>
   import DynamoDBRecovery._
-  import settings._
+  import journalSettings._
 
-  implicit lazy val replayDispatcher = context.system.dispatchers.lookup(ReplayDispatcher)
+  implicit lazy val replayDispatcher = system.dispatchers.lookup(ReplayDispatcher)
 
   override def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(
-      replayCallback: (PersistentRepr) => Unit): Future[Unit] =
+      replayCallback: (PersistentRepr) => Unit): Future[Unit] = {
     logFailure(s"replay for $persistenceId ($fromSequenceNr to $toSequenceNr)") {
       log.debug("starting replay for {} from {} to {} (max {})", persistenceId, fromSequenceNr, toSequenceNr, max)
-      // toSequenceNr is already capped to highest and guaranteed to be no less than fromSequenceNr
-      readSequenceNr(persistenceId, highest = false).flatMap { lowest =>
-        val start = Math.max(fromSequenceNr, lowest)
-        val async = ReplayParallelism > 1
-        Source(start to toSequenceNr)
-          .via(DynamoPartitionGrouped)
-          .mapAsync(ReplayParallelism)(batch => getPartitionItems(persistenceId, batch).map(_.sorted))
-          .mapConcat(identity)
-          .take(max)
-          .via(RemoveIncompleteAtoms)
-          .mapConcat(identity)
-          .mapAsync(ReplayParallelism)(readPersistentRepr(_, async))
-          .runFold(0) { (count, next) => replayCallback(next); count + 1 }
-          .map(count => log.debug("replay finished for {} with {} events", persistenceId, count))
-      }
+
+      eventsStream(
+        persistenceId = persistenceId,
+        fromSequenceNr = fromSequenceNr,
+        toSequenceNr = toSequenceNr,
+        max = max)
+        .runFold(0) { (count, next) => replayCallback(next); count + 1 }
+        .map(count => log.debug("replay finished for {} with {} events", persistenceId, count))
+    }
+  }
+
+  def eventsStream(
+      persistenceId: String,
+      fromSequenceNr: Long,
+      toSequenceNr: Long,
+      max: Long): Source[PersistentRepr, NotUsed] =
+    // toSequenceNr is already capped to highest and guaranteed to be no less than fromSequenceNr
+    Source.fromFuture(readSequenceNr(persistenceId, highest = false)).flatMapConcat { lowest =>
+      val start = Math.max(fromSequenceNr, lowest)
+      val async = ReplayParallelism > 1
+
+      Source(start to toSequenceNr)
+        .via(DynamoPartitionGrouped)
+        .mapAsync(ReplayParallelism)(batch => getPartitionItems(persistenceId, batch).map(_.sorted))
+        .mapConcat(identity)
+        .take(max)
+        .via(RemoveIncompleteAtoms)
+        .mapConcat(identity)
+        .mapAsync(ReplayParallelism)(readPersistentRepr(_, async))
     }
 
   def getPartitionItems(persistenceId: String, partitionKeys: PartitionKeys): Future[ReplayBatch] = {
@@ -409,7 +434,7 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
 
       val fut = serialization.serializerByIdentity.get(serId) match {
         case Some(asyncSerializer: AsyncSerializer) =>
-          Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
+          Serialization.withTransportInformation(system.asInstanceOf[ExtendedActorSystem]) { () =>
             asyncSerializer.fromBinaryAsync(eventPayload.array(), serializerManifest)
           }
         case _ =>
@@ -504,4 +529,12 @@ trait DynamoDBRecovery extends AsyncRecovery { this: DynamoDBJournal =>
 
   def batchGetReq(items: JMap[String, KeysAndAttributes]) =
     new BatchGetItemRequest().withRequestItems(items).withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
+
+  def logFailure[T](desc: String)(f: Future[T]): Future[T] =
+    f.transform(
+      identity(_),
+      ex => {
+        log.error(ex, "operation failed: " + desc)
+        ex
+      })
 }

@@ -6,12 +6,13 @@ package akka.persistence.dynamodb.journal
 import akka.actor._
 import akka.persistence._
 import akka.stream._
-import akka.stream.scaladsl._
 import akka.stream.scaladsl.GraphDSL.Implicits._
-import java.util.concurrent.ThreadLocalRandom
-import org.HdrHistogram.Histogram
+import akka.stream.scaladsl._
 import com.typesafe.config.ConfigFactory
+import org.HdrHistogram.Histogram
+
 import java.util.UUID
+import java.util.concurrent.ThreadLocalRandom
 import scala.concurrent.duration._
 
 object WriteThroughputBench extends App with DynamoDBUtils {
@@ -168,7 +169,7 @@ writer-dispatcher {
   scala.io.StdIn.readLine()
 
   system.terminate()
-  client.shutdown()
+  dynamo.shutdown()
 
   def printStats(r: Report): Unit = {
     def p(h: Histogram, pc: Double) = h.getValueAtPercentile(pc) / 1000000d

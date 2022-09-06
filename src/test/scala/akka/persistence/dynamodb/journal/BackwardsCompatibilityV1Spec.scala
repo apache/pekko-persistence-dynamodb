@@ -3,21 +3,21 @@
  */
 package akka.persistence.dynamodb.journal
 
-import java.util.Base64
-
-import org.scalactic.TypeCheckedTripleEquals
-import org.scalatest._
-import org.scalatest.concurrent.ScalaFutures
 import akka.actor.ActorSystem
-import akka.persistence._
 import akka.persistence.JournalProtocol._
+import akka.persistence._
+import akka.persistence.dynamodb.IntegSpec
 import akka.testkit._
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.regions.Regions
-import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClient }
 import com.amazonaws.services.dynamodbv2.document.{ DynamoDB, Item }
+import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClient }
 import com.typesafe.config.ConfigFactory
-import akka.persistence.dynamodb.IntegSpec
+import org.scalactic.TypeCheckedTripleEquals
+import org.scalatest._
+import org.scalatest.concurrent.ScalaFutures
+
+import java.util.Base64
 
 class BackwardsCompatibilityV1Spec
     extends TestKit(ActorSystem("PartialAsyncSerializationSpec"))
@@ -92,14 +92,12 @@ class BackwardsCompatibilityV1Spec
 
   override def afterAll(): Unit = {
     super.afterAll()
-    client.shutdown()
+    dynamo.shutdown()
     system.terminate().futureValue
   }
 
   override val persistenceId = "OldFormatEvents"
   lazy val journal           = Persistence(system).journalFor("")
-
-  import settings._
 
   "DynamoDB Journal (Backwards Compatibility Test)" must {
 

@@ -20,11 +20,11 @@ import akka.pattern.after
 private[dynamodb] trait DynamoDBRequests {
   this: ActorLogging with Actor =>
 
-  val settings: DynamoDBConfig
+  val journalSettings: DynamoDBConfig
   def dynamo: DynamoDBHelper
 
   import context.dispatcher
-  import settings._
+  import journalSettings._
 
   def putItem(item: Item): PutItemRequest = new PutItemRequest().withTableName(Table).withItem(item)
 

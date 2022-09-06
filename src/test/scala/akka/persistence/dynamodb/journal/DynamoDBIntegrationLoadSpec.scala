@@ -3,13 +3,14 @@
  */
 package akka.persistence.dynamodb.journal
 
-import java.util.UUID
 import akka.actor._
 import akka.persistence._
+import akka.persistence.dynamodb.IntegSpec
 import akka.testkit._
 import com.typesafe.config.ConfigFactory
 import org.scalatest._
-import akka.persistence.dynamodb.IntegSpec
+
+import java.util.UUID
 
 /**
  * This class is pulled from https://github.com/krasserm/akka-persistence-cassandra/
@@ -113,7 +114,7 @@ akka.persistence.snapshot-store.plugin = ""
   }
 }
 
-import DynamoDBIntegrationLoadSpec._
+import akka.persistence.dynamodb.journal.DynamoDBIntegrationLoadSpec._
 
 class DynamoDBIntegrationLoadSpec
     extends TestKit(ActorSystem("test", config))
@@ -130,7 +131,7 @@ class DynamoDBIntegrationLoadSpec
   }
 
   override def afterAll(): Unit = {
-    client.shutdown()
+    dynamo.shutdown()
     system.terminate()
     super.afterAll()
   }

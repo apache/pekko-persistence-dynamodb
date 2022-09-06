@@ -5,15 +5,14 @@ package akka.persistence.dynamodb.journal
 
 import java.nio.ByteBuffer
 import java.util.{ HashMap => JHMap, Map => JMap }
-
 import akka.Done
-import akka.actor.{ ActorLogging, ActorRefFactory, ActorSystem }
+import akka.actor.{ ActorLogging, ActorRef, ActorRefFactory, ActorSystem, ExtendedActorSystem }
 import akka.event.{ Logging, LoggingAdapter }
 import akka.pattern.pipe
 import akka.persistence.journal.AsyncWriteJournal
 import akka.persistence.{ AtomicWrite, Persistence, PersistentRepr }
-import akka.serialization.{ AsyncSerializer, SerializationExtension }
-import akka.stream.{ Materializer, SystemMaterializer }
+import akka.serialization.{ AsyncSerializer, Serialization, SerializationExtension }
+import akka.stream.{ ActorMaterializer, Materializer, SystemMaterializer }
 import akka.util.ByteString
 import com.amazonaws.AmazonServiceException
 import com.amazonaws.auth.BasicAWSCredentials
@@ -25,7 +24,7 @@ import scala.collection.immutable
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.{ Failure, Success, Try }
 import scala.util.control.NoStackTrace
-import akka.actor.ActorRef
+import akka.actor.TypedActor.context
 
 import scala.concurrent.Promise
 import akka.persistence.dynamodb._
@@ -75,20 +74,28 @@ class DynamoDBJournal(config: Config)
     extends AsyncWriteJournal
     with DynamoDBRecovery
     with DynamoDBJournalRequests
-    with ActorLogging {
+    with ActorLogging
+    with DynamoProvider
+    with JournalSettingsProvider
+    with ActorSystemProvider
+    with MaterializerProvider
+    with LoggingProvider
+    with JournalKeys
+    with SerializationProvider {
   import context.dispatcher
 
-  implicit val materializer: Materializer = SystemMaterializer(context.system).materializer
+  protected implicit val system: ExtendedActorSystem = context.system.asInstanceOf[ExtendedActorSystem]
+  implicit val materializer: Materializer            = SystemMaterializer(context.system).materializer
 
-  val extension     = Persistence(context.system)
-  val serialization = SerializationExtension(context.system)
+  val extension                    = Persistence(context.system)
+  val serialization: Serialization = SerializationExtension(context.system)
 
-  val settings = new DynamoDBJournalConfig(config)
+  val journalSettings = new DynamoDBJournalConfig(config)
 
-  import settings._
-  if (LogConfig) log.info("using settings {}", settings)
+  import journalSettings._
+  if (LogConfig) log.info("using settings {}", journalSettings)
 
-  val dynamo = dynamoClient(context.system, settings)
+  val dynamo = dynamoClient(context.system, journalSettings)
 
   dynamo.describeTable(new DescribeTableRequest().withTableName(JournalTable)).onComplete {
     case Success(result) => log.info("using DynamoDB table {}", result)
@@ -173,7 +180,10 @@ class DynamoDBJournal(config: Config)
     case Purge(persistenceId, replyTo)   => purge(persistenceId).map(_ => Purged(persistenceId)).pipeTo(replyTo)
     case SetDBHelperReporter(ref)        => dynamo.setReporter(ref)
   }
+}
 
+trait JournalKeys { self: JournalSettingsProvider =>
+  import journalSettings._
   def keyLength(persistenceId: String, sequenceNr: Long): Int =
     persistenceId.length + JournalName.length + KeyPayloadOverhead
 
@@ -204,11 +214,8 @@ class DynamoDBJournal(config: Config)
     item
   }
 
-  def logFailure[T](desc: String)(f: Future[T]): Future[T] =
-    f.transform(
-      identity(_),
-      ex => {
-        log.error(ex, "operation failed: " + desc)
-        ex
-      })
+}
+
+trait SerializationProvider {
+  def serialization: Serialization
 }

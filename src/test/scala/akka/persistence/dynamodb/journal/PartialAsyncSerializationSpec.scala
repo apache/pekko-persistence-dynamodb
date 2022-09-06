@@ -3,11 +3,10 @@
  */
 package akka.persistence.dynamodb.journal
 
-import akka.persistence.dynamodb.IntegSpec
-
 import akka.actor.ActorSystem
 import akka.persistence.JournalProtocol._
 import akka.persistence._
+import akka.persistence.dynamodb.IntegSpec
 import akka.testkit._
 import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
@@ -49,15 +48,13 @@ class PartialAsyncSerializationSpec
     ensureJournalTableExists()
   }
   override def afterAll(): Unit = {
-    client.shutdown()
+    dynamo.shutdown()
     system.terminate().futureValue
     super.afterAll()
   }
 
   override val persistenceId = "PartialAsyncSerializationSpec"
   lazy val journal           = Persistence(system).journalFor("")
-
-  import settings._
 
   "DynamoDB Journal (Serialization Test)" must {
 

@@ -5,13 +5,13 @@ package akka.persistence.dynamodb.journal
 
 import akka.actor.ActorRef
 import akka.pattern.extended.ask
-import akka.persistence.journal.JournalSpec
 import akka.persistence.CapabilityFlag
-
-import com.typesafe.config.ConfigFactory
-import scala.concurrent.duration._
-import scala.concurrent.Await
 import akka.persistence.dynamodb.IntegSpec
+import akka.persistence.journal.JournalSpec
+import com.typesafe.config.ConfigFactory
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 object AsyncDynamoDBJournalSpec {
 
@@ -38,7 +38,7 @@ class AsyncDynamoDBJournalSpec extends JournalSpec(AsyncDynamoDBJournalSpec.conf
   }
 
   override def afterAll(): Unit = {
-    client.shutdown()
+    dynamo.shutdown()
     super.afterAll()
   }
 

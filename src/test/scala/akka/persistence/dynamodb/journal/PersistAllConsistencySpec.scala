@@ -3,17 +3,14 @@
  */
 package akka.persistence.dynamodb.journal
 
+import akka.actor.ActorSystem
+import akka.persistence.JournalProtocol._
+import akka.persistence._
+import akka.persistence.dynamodb._
+import akka.testkit._
 import org.scalactic.ConversionCheckedTripleEquals
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
-import akka.actor.ActorSystem
-import akka.persistence._
-import akka.persistence.JournalProtocol._
-import akka.testkit._
-import akka.persistence.journal.AsyncWriteTarget.ReplaySuccess
-import com.amazonaws.services.dynamodbv2.model._
-import java.util.{ HashMap => JHMap }
-import akka.persistence.dynamodb._
 
 class PersistAllConsistencySpec
     extends TestKit(ActorSystem("PersistAllConsistencySpec"))
@@ -32,15 +29,13 @@ class PersistAllConsistencySpec
   }
 
   override def afterAll(): Unit = {
-    client.shutdown()
+    dynamo.shutdown()
     system.terminate().futureValue
     super.afterAll()
   }
 
   override val persistenceId = "PersistAllConsistencySpec"
   lazy val journal           = Persistence(system).journalFor("")
-
-  import settings._
 
   "DynamoDB Journal (persistAll)" must {
 

@@ -3,23 +3,20 @@
  */
 package akka.persistence.dynamodb.journal
 
+import akka.actor._
+import akka.event.Logging
+import akka.persistence.JournalProtocol._
+import akka.persistence._
+import akka.persistence.dynamodb._
+import akka.testkit._
+import com.amazonaws.services.dynamodbv2.model._
+import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 
-import akka.actor._
-import akka.testkit._
-import akka.event.Logging
-import akka.persistence._
-import akka.persistence.JournalProtocol._
-
-import scala.concurrent.duration._
 import scala.collection.JavaConverters._
-
-import com.amazonaws.services.dynamodbv2.model._
-import com.typesafe.config.ConfigFactory
-
-import akka.persistence.dynamodb._
+import scala.concurrent.duration._
 
 class FailureReportingSpec
     extends TestKit(ActorSystem("FailureReportingSpec"))
@@ -58,7 +55,7 @@ class FailureReportingSpec
   }
 
   override def afterAll(): Unit = {
-    client.shutdown()
+    dynamo.shutdown()
     system.terminate().futureValue
     super.afterAll()
   }
@@ -192,7 +189,7 @@ akka.loggers = ["akka.testkit.TestEventListener"]
     }
 
     "have sensible error messages" when {
-      import client._
+      import dynamo._
       def desc[T](aws: T)(implicit d: Describe[_ >: T]): String = d.desc(aws)
 
       val keyItem  = Map(Key -> S("TheKey"), Sort -> N("42")).asJava
