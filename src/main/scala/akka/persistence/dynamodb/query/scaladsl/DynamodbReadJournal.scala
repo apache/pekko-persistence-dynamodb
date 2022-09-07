@@ -14,7 +14,9 @@ package akka.persistence.dynamodb.query.scaladsl
  * absolute path corresponding to the identifier, which is `"dynamodb-read-journal"`
  * for the default [[DynamodbReadJournal#Identifier]]. See `reference.conf`.
  */
-trait DynamodbReadJournal extends DynamodbCurrentEventsByPersistenceIdQuery with DynamodbCurrentPersistenceIdsQuery
+trait DynamodbReadJournal extends DynamodbCurrentEventsByPersistenceIdQuery with DynamodbCurrentPersistenceIdsQuery {
+  def close(): Unit
+}
 
 object DynamodbReadJournal {
 

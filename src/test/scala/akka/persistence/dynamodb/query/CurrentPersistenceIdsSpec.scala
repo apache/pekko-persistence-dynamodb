@@ -95,6 +95,7 @@ class CurrentPersistenceIdsSpec
 
   override def afterAll(): Unit = {
     dynamo.shutdown()
+    queries.close()
     system.terminate().futureValue
     super.afterAll()
   }

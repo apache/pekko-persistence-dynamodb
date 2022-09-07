@@ -35,4 +35,5 @@ class DynamodbReadJournal(config: Config, configPath: String)(implicit val syste
   implicit val materializer: Materializer = SystemMaterializer(system).materializer
   val journalSettings                     = new DynamoDBJournalConfig(config)
 
+  def close(): Unit = dynamo.shutdown()
 }

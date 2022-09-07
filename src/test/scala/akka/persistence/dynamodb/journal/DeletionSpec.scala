@@ -41,6 +41,7 @@ class DeletionSpec
     Thread.sleep(500)
     dynamo.shutdown()
     system.terminate().futureValue
+    queries.close()
     super.afterAll()
   }
 

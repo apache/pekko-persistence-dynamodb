@@ -40,6 +40,7 @@ class RecoveryConsistencySpec
   override def afterAll(): Unit = {
     dynamo.shutdown()
     system.terminate().futureValue
+    queries.close()
     super.afterAll()
   }
 
