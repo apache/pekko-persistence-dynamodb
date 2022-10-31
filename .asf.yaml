@@ -1,15 +1,16 @@
 # https://cwiki.apache.org/confluence/display/INFRA/.asf.yaml+features+for+git+repositories
 
 github:
-  description: "DynamoDBJournal for Apache Pekko Persistence"
+  description: "A replicated Apache Pekko Persistence journal backed by Apache Cassandra"
   homepage: https://pekko.apache.org/
   labels:
     - pekko
     - pekko-persistence
     - java
     - scala
-    - dynamodb
-    - journal
+    - cqrs
+    - cassandra
+    - eventsourcing
   
   features:
     # Enable wiki for documentation
