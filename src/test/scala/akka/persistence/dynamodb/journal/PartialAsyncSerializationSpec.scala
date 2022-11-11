@@ -54,7 +54,7 @@ class PartialAsyncSerializationSpec
   }
 
   override val persistenceId = "PartialAsyncSerializationSpec"
-  lazy val journal           = Persistence(system).journalFor("")
+  lazy val journal = Persistence(system).journalFor("")
 
   "DynamoDB Journal (Serialization Test)" must {
 

@@ -8,22 +8,22 @@ import com.typesafe.config.Config
 import akka.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
 
 class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
-  val JournalTable      = c.getString("journal-table")
-  val Table             = JournalTable
-  val JournalName       = c.getString("journal-name")
-  val AwsKey            = c.getString("aws-access-key-id")
-  val AwsSecret         = c.getString("aws-secret-access-key")
-  val Endpoint          = c.getString("endpoint")
-  val ReplayDispatcher  = c.getString("replay-dispatcher")
-  val ClientDispatcher  = c.getString("client-dispatcher")
-  val SequenceShards    = c.getInt("sequence-shards")
+  val JournalTable = c.getString("journal-table")
+  val Table = JournalTable
+  val JournalName = c.getString("journal-name")
+  val AwsKey = c.getString("aws-access-key-id")
+  val AwsSecret = c.getString("aws-secret-access-key")
+  val Endpoint = c.getString("endpoint")
+  val ReplayDispatcher = c.getString("replay-dispatcher")
+  val ClientDispatcher = c.getString("client-dispatcher")
+  val SequenceShards = c.getInt("sequence-shards")
   val ReplayParallelism = c.getInt("replay-parallelism")
-  val Tracing           = c.getBoolean("tracing")
-  val LogConfig         = c.getBoolean("log-config")
+  val Tracing = c.getBoolean("tracing")
+  val LogConfig = c.getBoolean("log-config")
 
-  val MaxBatchGet   = c.getInt("aws-api-limits.max-batch-get")
+  val MaxBatchGet = c.getInt("aws-api-limits.max-batch-get")
   val MaxBatchWrite = c.getInt("aws-api-limits.max-batch-write")
-  val MaxItemSize   = c.getInt("aws-api-limits.max-item-size")
+  val MaxItemSize = c.getInt("aws-api-limits.max-item-size")
 
   object Fixes {
     val HighDistrust = c.getBoolean("fixes.high-distrust")

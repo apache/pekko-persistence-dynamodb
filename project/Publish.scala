@@ -12,7 +12,7 @@ object Publish extends AutoPlugin {
 
   val defaultPublishTo = settingKey[File]("Default publish directory")
 
-  override def trigger  = allRequirements
+  override def trigger = allRequirements
   override def requires = sbtrelease.ReleasePlugin
 
   override lazy val projectSettings = Seq(

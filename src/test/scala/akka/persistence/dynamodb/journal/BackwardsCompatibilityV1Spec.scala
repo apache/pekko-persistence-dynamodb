@@ -31,10 +31,10 @@ class BackwardsCompatibilityV1Spec
     with IntegSpec {
 
   def loadV1VersionData(): Unit = {
-    val config    = ConfigFactory.load()
-    val endpoint  = config.getString("my-dynamodb-journal.endpoint")
+    val config = ConfigFactory.load()
+    val endpoint = config.getString("my-dynamodb-journal.endpoint")
     val tableName = config.getString("my-dynamodb-journal.journal-table")
-    val accesKey  = config.getString("my-dynamodb-journal.aws-access-key-id")
+    val accesKey = config.getString("my-dynamodb-journal.aws-access-key-id")
     val secretKey = config.getString("my-dynamodb-journal.aws-secret-access-key")
 
     val client: AmazonDynamoDB =
@@ -97,12 +97,12 @@ class BackwardsCompatibilityV1Spec
   }
 
   override val persistenceId = "OldFormatEvents"
-  lazy val journal           = Persistence(system).journalFor("")
+  lazy val journal = Persistence(system).journalFor("")
 
   "DynamoDB Journal (Backwards Compatibility Test)" must {
 
     val messages = 20
-    val probe    = TestProbe()
+    val probe = TestProbe()
 
     s"successfully replay events in old format - created by old version of the plugin" in {
 

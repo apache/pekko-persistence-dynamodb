@@ -86,17 +86,17 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
         .sequence(atomicWrite.payload.map(repr => toMsgItem(repr)))
         .flatMap { items =>
           // we created our writes successfully, send them off to DynamoDB
-          val low  = atomicWrite.lowestSequenceNr
+          val low = atomicWrite.lowestSequenceNr
           val high = atomicWrite.highestSequenceNr
-          val id   = atomicWrite.persistenceId
+          val id = atomicWrite.persistenceId
           val size = N(high - low)
 
           val writes = items.iterator.zipWithIndex.map {
-              case (item, index) =>
-                item.put(AtomIndex, N(index))
-                item.put(AtomEnd, size)
-                putReq(item)
-            } ++ (if ((low - 1) / PartitionSize != high / PartitionSize) Some(putReq(toHSItem(id, high))) else None)
+            case (item, index) =>
+              item.put(AtomIndex, N(index))
+              item.put(AtomEnd, size)
+              putReq(item)
+          } ++ (if ((low - 1) / PartitionSize != high / PartitionSize) Some(putReq(toHSItem(id, high))) else None)
 
           val futures = writes.grouped(MaxBatchWrite).map { batch =>
             dynamo.batchWriteItem(batchWriteReq(batch)).flatMap(r => sendUnprocessedItems(r))
@@ -151,7 +151,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
         } yield Seq(putReq(item), putReq(toHSItem(repr.persistenceId, repr.sequenceNr)))
       }
       .map { writesSeq =>
-        val writes   = writesSeq.flatten
+        val writes = writesSeq.flatten
         val reqItems = Collections.singletonMap(JournalTable, writes.asJava)
         batchWriteReq(reqItems)
       }
@@ -164,7 +164,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
   private def toMsgItem(repr: PersistentRepr): Future[Item] = {
     try {
       val reprPayload: AnyRef = repr.payload.asInstanceOf[AnyRef]
-      val serializer          = serialization.serializerFor(reprPayload.getClass)
+      val serializer = serialization.serializerFor(reprPayload.getClass)
       val fut = serializer match {
         case aS: AsyncSerializer =>
           Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
@@ -177,18 +177,18 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
       }
 
       fut.map { serialized =>
-        val eventData    = B(serialized)
+        val eventData = B(serialized)
         val serializerId = N(serializer.identifier)
 
         val fieldLength = repr.persistenceId.getBytes.length + repr.sequenceNr.toString.getBytes.length +
           repr.writerUuid.getBytes.length + repr.manifest.getBytes.length
 
-        val manifest       = Serializers.manifestFor(serializer, reprPayload)
+        val manifest = Serializers.manifestFor(serializer, reprPayload)
         val manifestLength = if (manifest.isEmpty) 0 else manifest.getBytes.length
 
         val itemSize = keyLength(
-            repr.persistenceId,
-            repr.sequenceNr) + eventData.getB.remaining + serializerId.getN.getBytes.length + manifestLength + fieldLength
+          repr.persistenceId,
+          repr.sequenceNr) + eventData.getB.remaining + serializerId.getN.getBytes.length + manifestLength + fieldLength
 
         if (itemSize > MaxItemSize) {
           throw new DynamoDBJournalRejection(s"MaxItemSize exceeded: $itemSize > $MaxItemSize")
@@ -220,7 +220,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
    * see the implementation of readSequenceNr for details.
    */
   private def toHSItem(persistenceId: String, sequenceNr: Long): Item = {
-    val seq        = sequenceNr / PartitionSize
+    val seq = sequenceNr / PartitionSize
     val item: Item = highSeqKey(persistenceId, seq % SequenceShards)
     item.put(SequenceNr, N(seq * PartitionSize))
     item
@@ -239,7 +239,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
    * because replay must start exactly here.
    */
   private def toLSItem(persistenceId: String, sequenceNr: Long): Item = {
-    val seq        = sequenceNr / PartitionSize
+    val seq = sequenceNr / PartitionSize
     val item: Item = lowSeqKey(persistenceId, seq % SequenceShards)
     item.put(SequenceNr, N(sequenceNr))
     item

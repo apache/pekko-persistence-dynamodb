@@ -38,9 +38,9 @@ class DynamoDBClientConfig(c: Config) extends ClientConfig {
       foundSettings ::= s"$path:$value"
     }
 
-  private var foundSettings          = List.empty[String]
+  private var foundSettings = List.empty[String]
   override lazy val toString: String = foundSettings.reverse.mkString("{", ",", "}")
-  val config                         = new ClientConfiguration
+  val config = new ClientConfiguration
 
   get("client-execution-timeout", _.getInt(_), config.setClientExecutionTimeout)
   get("connection-max-idle-millis", _.getLong(_), config.setConnectionMaxIdleMillis)

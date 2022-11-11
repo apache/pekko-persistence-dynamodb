@@ -35,7 +35,7 @@ class PersistAllConsistencySpec
   }
 
   override val persistenceId = "PersistAllConsistencySpec"
-  lazy val journal           = Persistence(system).journalFor("")
+  lazy val journal = Persistence(system).journalFor("")
 
   "DynamoDB Journal (persistAll)" must {
 
@@ -44,7 +44,7 @@ class PersistAllConsistencySpec
       expectMsg(Purged(persistenceId))
 
       val start = nextSeqNr
-      val end   = 10
+      val end = 10
       println(s"start: ${start}; end: ${end}")
       val padding = AtomicWrite((start to end).map(i => persistentRepr(f"h-$i"))) :: Nil
 
@@ -60,7 +60,7 @@ class PersistAllConsistencySpec
     for (t <- Seq(("last", 3), ("middle", 2), ("first", 1)))
       s"correctly cross page boundaries with AtomicWrite position ${t._1}" in {
         val start1 = nextSeqNr
-        val end1   = ((start1 / PartitionSize) + 1) * PartitionSize - t._2
+        val end1 = ((start1 / PartitionSize) + 1) * PartitionSize - t._2
         println(s"start: ${start1}; end: ${end1}")
         val padding = AtomicWrite((start1 to end1).map(i => persistentRepr(f"h-$i"))) :: Nil
 
@@ -69,7 +69,7 @@ class PersistAllConsistencySpec
         (start1 to end1).foreach(i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))
 
         val start2 = nextSeqNr
-        val end2   = start2 + 2
+        val end2 = start2 + 2
         println(s"start: ${start2}; end: ${end2}")
         val subject = AtomicWrite((start2 to end2).map(i => persistentRepr(f"h-$i"))) :: Nil
 
@@ -84,7 +84,7 @@ class PersistAllConsistencySpec
 
     s"recover correctly when the last partition event ends on ${PartitionSize - 1}" in {
       val start = nextSeqNr
-      val end   = ((start / PartitionSize) + 1) * PartitionSize - 1
+      val end = ((start / PartitionSize) + 1) * PartitionSize - 1
       println(s"start: ${start}; end: ${end}")
       val padding = AtomicWrite((start to end).map(i => persistentRepr(f"h-$i"))) :: Nil
 

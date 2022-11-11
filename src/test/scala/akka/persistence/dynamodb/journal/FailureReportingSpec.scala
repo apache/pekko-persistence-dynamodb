@@ -68,8 +68,9 @@ class FailureReportingSpec
         .withFallback(ConfigFactory.load())
       implicit val system = ActorSystem("FailureReportingSpec-test1", config)
       try EventFilter[ResourceNotFoundException](pattern = ".*ThisTableDoesNotExist.*", occurrences = 1).intercept {
-        Persistence(system).journalFor("")
-      } finally system.terminate()
+          Persistence(system).journalFor("")
+        }
+      finally system.terminate()
     }
 
     "keep running even when journal table is absent" in {
@@ -101,12 +102,13 @@ class FailureReportingSpec
         .withFallback(ConfigFactory.load())
       implicit val system = ActorSystem("FailureReportingSpec-test3", config)
       try EventFilter.info(pattern = ".*protocol:https.*", occurrences = 1).intercept {
-        Persistence(system).journalFor("")
-      } finally system.terminate()
+          Persistence(system).journalFor("")
+        }
+      finally system.terminate()
     }
 
     "not notify user about config errors when starting the default journal" in {
-      val config          = ConfigFactory.parseString("""
+      val config = ConfigFactory.parseString("""
 dynamodb-journal {
   endpoint = "http://localhost:8888"
   aws-access-key-id = "AWS_ACCESS_KEY_ID"
@@ -161,7 +163,7 @@ akka.loggers = ["akka.testkit.TestEventListener"]
 
     "properly reject too large payloads" in {
       val journal = Persistence(system).journalFor("")
-      val msgs    = Vector("t-1", bigMsg, "t-3", "t-4", bigMsg, "t-6").map(persistentRepr)
+      val msgs = Vector("t-1", bigMsg, "t-3", "t-4", bigMsg, "t-6").map(persistentRepr)
       val write =
         AtomicWrite(msgs(0)) ::
         AtomicWrite(msgs(1)) ::
@@ -192,7 +194,7 @@ akka.loggers = ["akka.testkit.TestEventListener"]
       import dynamo._
       def desc[T](aws: T)(implicit d: Describe[_ >: T]): String = d.desc(aws)
 
-      val keyItem  = Map(Key -> S("TheKey"), Sort -> N("42")).asJava
+      val keyItem = Map(Key -> S("TheKey"), Sort -> N("42")).asJava
       val key2Item = Map(Key -> S("The2Key"), Sort -> N("43")).asJava
 
       "reporting table problems" in {
@@ -226,9 +228,9 @@ akka.loggers = ["akka.testkit.TestEventListener"]
       }
 
       "reporting batch write problems" in {
-        val write  = new WriteRequest().withPutRequest(new PutRequest().withItem(keyItem))
+        val write = new WriteRequest().withPutRequest(new PutRequest().withItem(keyItem))
         val remove = new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(key2Item))
-        val aws    = new BatchWriteItemRequest().withRequestItems(Map("TheTable" -> Seq(write, remove).asJava).asJava)
+        val aws = new BatchWriteItemRequest().withRequestItems(Map("TheTable" -> Seq(write, remove).asJava).asJava)
         desc(aws) should include("BatchWriteItem")
         desc(aws) should include("TheTable")
         desc(aws) should include("put[par=TheKey,num=42]")
@@ -236,7 +238,7 @@ akka.loggers = ["akka.testkit.TestEventListener"]
       }
 
       "reporting batch read problems" in {
-        val ka  = new KeysAndAttributes().withKeys(keyItem, key2Item)
+        val ka = new KeysAndAttributes().withKeys(keyItem, key2Item)
         val aws = new BatchGetItemRequest().withRequestItems(Map("TheTable" -> ka).asJava)
         desc(aws) should include("BatchGetItem")
         desc(aws) should include("TheTable")

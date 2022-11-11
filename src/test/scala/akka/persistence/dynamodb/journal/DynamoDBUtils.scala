@@ -20,7 +20,7 @@ trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
   import system.dispatcher
 
   override lazy val journalSettings = {
-    val c      = system.settings.config
+    val c = system.settings.config
     val config = c.getConfig(c.getString("akka.persistence.journal.plugin"))
     new DynamoDBJournalConfig(config)
   }
@@ -56,7 +56,7 @@ trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
     Await.result(setup, 5.seconds)
   }
 
-  private val writerUuid    = UUID.randomUUID.toString
+  private val writerUuid = UUID.randomUUID.toString
   def persistenceId: String = ???
 
   var nextSeqNr = 1

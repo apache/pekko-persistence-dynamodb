@@ -146,8 +146,8 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     item.put(SequenceNr, N(sequenceNr))
     item.put(Timestamp, N(timestamp))
     val snapshotData = snapshot.asInstanceOf[AnyRef]
-    val serializer   = serialization.findSerializerFor(snapshotData)
-    val manifest     = Serializers.manifestFor(serializer, snapshotData)
+    val serializer = serialization.findSerializerFor(snapshotData)
+    val manifest = Serializers.manifestFor(serializer, snapshotData)
 
     val fut = serializer match {
       case asyncSer: AsyncSerializer =>
@@ -172,14 +172,14 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   }
 
   private def fromSnapshotItem(persistenceId: String, item: Item): Future[SelectedSnapshot] = {
-    val seqNr     = item.get(SequenceNr).getN.toLong
+    val seqNr = item.get(SequenceNr).getN.toLong
     val timestamp = item.get(Timestamp).getN.toLong
 
     if (item.containsKey(PayloadData)) {
 
       val payloadData = item.get(PayloadData).getB
-      val serId       = item.get(SerializerId).getN.toInt
-      val manifest    = if (item.containsKey(SerializerManifest)) item.get(SerializerManifest).getS else ""
+      val serId = item.get(SerializerId).getN.toInt
+      val manifest = if (item.containsKey(SerializerManifest)) item.get(SerializerManifest).getS else ""
 
       val serialized = serialization.serializerByIdentity(serId) match {
         case aS: AsyncSerializer =>
@@ -190,11 +190,10 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
           Future.successful(serialization.deserialize(payloadData.array(), serId, manifest).get)
       }
 
-      serialized.map(
-        data =>
-          SelectedSnapshot(
-            metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp),
-            snapshot = data))
+      serialized.map(data =>
+        SelectedSnapshot(
+          metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp),
+          snapshot = data))
 
     } else {
       val payloadValue = item.get(Payload).getB
