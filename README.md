@@ -13,7 +13,7 @@ Supported versions:
 - Java: `1.8+`
 
 [![Join the chat at https://gitter.im/akka/akka-persistence-dynamodb](https://badges.gitter.im/akka/akka-persistence-dynamodb.svg)](https://gitter.im/akka/akka-persistence-dynamodb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Build Status](https://travis-ci.org/akka/akka-persistence-dynamodb.svg?branch=master)](https://travis-ci.org/akka/akka-persistence-dynamodb)
+[![Build Status](https://github.com/apache/incubator-pekko-persistence-dynamodb/actions/workflows/check-build-test.yml/badge.svg?branch=main)](https://github.com/apache/incubator-pekko-persistence-dynamodb/actions)
 
 Installation
 ------------
