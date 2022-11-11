@@ -45,12 +45,12 @@ class DeletionSpec
     super.afterAll()
   }
 
-  override val persistenceId              = "DeletionSpec"
+  override val persistenceId = "DeletionSpec"
   implicit val materializer: Materializer = SystemMaterializer(system).materializer
-  lazy val journal                        = Persistence(system).journalFor("")
-  lazy val queries                        = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
-  val msgs                                = (1 to 149).map(i => s"a-$i")
-  val more                                = (150 to 200).map(i => s"b-$i")
+  lazy val journal = Persistence(system).journalFor("")
+  lazy val queries = PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
+  val msgs = (1 to 149).map(i => s"a-$i")
+  val more = (150 to 200).map(i => s"b-$i")
 
   "DynamoDB Journal (Deletion)" must {
 
@@ -66,13 +66,13 @@ class DeletionSpec
       expectMsg(WriteMessagesSuccessful)
       (1 to 149).foreach(i => expectMsgType[WriteMessageSuccess].persistent.sequenceNr.toInt should ===(i))
       journal ! ListAll(persistenceId, testActor)
-      expectMsg(ListAllResult(persistenceId, Set.empty, Set(100L), (1L to 149)))
+      expectMsg(ListAllResult(persistenceId, Set.empty, Set(100L), 1L to 149))
 
       journal ! WriteMessages(AtomicWrite(more.map(m => persistentRepr(m))) :: Nil, testActor, 1)
       expectMsg(WriteMessagesSuccessful)
       (150 to 200).foreach(i => expectMsgType[WriteMessageSuccess].persistent.sequenceNr.toInt should ===(i))
       journal ! ListAll(persistenceId, testActor)
-      expectMsg(ListAllResult(persistenceId, Set.empty, Set(100L, 200L), (1L to 200)))
+      expectMsg(ListAllResult(persistenceId, Set.empty, Set(100L, 200L), 1L to 200))
     }
 
     "3 delete some events" in {
@@ -93,7 +93,7 @@ class DeletionSpec
       journal ! DeleteMessagesTo(persistenceId, 3L, testActor)
       expectMsg(DeleteMessagesSuccess(3L))
       journal ! ListAll(persistenceId, testActor)
-      expectMsg(ListAllResult(persistenceId, Set(6L), Set(100L, 200L), (6L to 200)))
+      expectMsg(ListAllResult(persistenceId, Set(6L), Set(100L, 200L), 6L to 200))
     }
 
     "5 delete all events" in {

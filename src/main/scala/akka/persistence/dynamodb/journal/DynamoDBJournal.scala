@@ -29,7 +29,7 @@ import akka.actor.TypedActor.context
 import scala.concurrent.Promise
 import akka.persistence.dynamodb._
 
-class DynamoDBJournalFailure(message: String, cause: Throwable = null)   extends RuntimeException(message, cause)
+class DynamoDBJournalFailure(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
 class DynamoDBJournalRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
 
 /**
@@ -85,9 +85,9 @@ class DynamoDBJournal(config: Config)
   import context.dispatcher
 
   protected implicit val system: ExtendedActorSystem = context.system.asInstanceOf[ExtendedActorSystem]
-  implicit val materializer: Materializer            = SystemMaterializer(context.system).materializer
+  implicit val materializer: Materializer = SystemMaterializer(context.system).materializer
 
-  val extension                    = Persistence(context.system)
+  val extension = Persistence(context.system)
   val serialization: Serialization = SerializationExtension(context.system)
 
   val journalSettings = new DynamoDBJournalConfig(config)
@@ -108,7 +108,7 @@ class DynamoDBJournal(config: Config)
   private val opQueue: JMap[String, Future[Done]] = new JHMap
 
   override def asyncWriteMessages(messages: immutable.Seq[AtomicWrite]): Future[immutable.Seq[Try[Unit]]] = {
-    val p   = Promise[Done]
+    val p = Promise[Done]
     val pid = messages.head.persistenceId
     opQueue.put(pid, p.future)
 
@@ -146,10 +146,10 @@ class DynamoDBJournal(config: Config)
   override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] =
     logFailure(s"delete($persistenceId, upto=$toSequenceNr)") {
       log.debug("delete-messages persistenceId={} to={}", persistenceId, toSequenceNr)
-      val lowF  = readSequenceNr(persistenceId, highest = false)
+      val lowF = readSequenceNr(persistenceId, highest = false)
       val highF = readSequenceNr(persistenceId, highest = true)
       for {
-        lowest  <- lowF
+        lowest <- lowF
         highest <- highF
         val upTo = Math.min(toSequenceNr, highest)
         _ <- if (upTo + 1 > lowest) setLS(persistenceId, to = upTo + 1) else Future.successful(Done)
@@ -161,7 +161,7 @@ class DynamoDBJournal(config: Config)
 
   private def listAll(persistenceId: String): Future[ListAllResult] =
     for {
-      low  <- readAllSequenceNr(persistenceId, highest = false)
+      low <- readAllSequenceNr(persistenceId, highest = false)
       high <- readAllSequenceNr(persistenceId, highest = true)
       seqs <- listAllSeqNr(persistenceId)
     } yield ListAllResult(persistenceId, low, high, seqs)
@@ -169,9 +169,9 @@ class DynamoDBJournal(config: Config)
   private def purge(persistenceId: String): Future[Done] =
     for {
       highest <- readSequenceNr(persistenceId, highest = true)
-      _       <- deleteMessages(persistenceId, 0, highest)
-      _       <- removeLS(persistenceId)
-      _       <- removeHS(persistenceId)
+      _ <- deleteMessages(persistenceId, 0, highest)
+      _ <- removeLS(persistenceId)
+      _ <- removeHS(persistenceId)
     } yield Done
 
   override def receivePluginInternal = {

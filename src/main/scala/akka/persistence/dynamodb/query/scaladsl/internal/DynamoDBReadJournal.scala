@@ -29,11 +29,11 @@ class DynamoDBReadJournal(config: Config, configPath: String)(implicit val syste
     with SerializationProvider
     with ActorSystemLoggingProvider {
 
-  protected val readJournalSettings       = new DynamoDBReadJournalConfig(config)
-  protected val dynamo: DynamoDBHelper    = dynamoClient(system, readJournalSettings)
-  val serialization: Serialization        = SerializationExtension(system)
+  protected val readJournalSettings = new DynamoDBReadJournalConfig(config)
+  protected val dynamo: DynamoDBHelper = dynamoClient(system, readJournalSettings)
+  val serialization: Serialization = SerializationExtension(system)
   implicit val materializer: Materializer = SystemMaterializer(system).materializer
-  val journalSettings                     = new DynamoDBJournalConfig(config)
+  val journalSettings = new DynamoDBJournalConfig(config)
 
   def close(): Unit = dynamo.shutdown()
 }

@@ -18,14 +18,14 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Failure, Success, Try }
 
 package object dynamodb {
-  type Item        = JMap[String, AttributeValue]
+  type Item = JMap[String, AttributeValue]
   type ItemUpdates = JMap[String, AttributeValueUpdate]
 
   def S(value: String): AttributeValue = new AttributeValue().withS(value)
 
-  def N(value: Long): AttributeValue   = new AttributeValue().withN(value.toString)
+  def N(value: Long): AttributeValue = new AttributeValue().withN(value.toString)
   def N(value: String): AttributeValue = new AttributeValue().withN(value)
-  val Naught                           = N(0)
+  val Naught = N(0)
 
   def B(value: Array[Byte]): AttributeValue = new AttributeValue().withB(ByteBuffer.wrap(value))
 
@@ -49,15 +49,15 @@ package object dynamodb {
       executor: ExecutionContext): Future[M[Try[A]]] =
     in.foldLeft(Future.successful(cbf(in))) { (fr, a) =>
       val fb = lift(a)
-      for (r <- fr; b <- fb) yield (r += b)
+      for (r <- fr; b <- fb) yield r += b
     }.map(_.result())
 
   def dynamoClient(system: ActorSystem, settings: DynamoDBConfig): DynamoDBHelper = {
     val client =
       if (settings.AwsKey.nonEmpty && settings.AwsSecret.nonEmpty) {
-        val conns    = settings.client.config.getMaxConnections
+        val conns = settings.client.config.getMaxConnections
         val executor = Executors.newFixedThreadPool(conns)
-        val creds    = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
+        val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
         new AmazonDynamoDBAsyncClient(creds, settings.client.config, executor)
       } else {
         new AmazonDynamoDBAsyncClient(settings.client.config)

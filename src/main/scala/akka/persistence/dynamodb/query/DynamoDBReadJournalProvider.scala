@@ -10,10 +10,10 @@ import com.typesafe.config.Config
 
 class DynamoDBReadJournalProvider(system: ExtendedActorSystem, config: Config, configPath: String)
     extends ReadJournalProvider {
-  private lazy val _scalaReadJournal                   = new ScalaDynamoDBReadJournal(config, configPath)(system)
+  private lazy val _scalaReadJournal = new ScalaDynamoDBReadJournal(config, configPath)(system)
   override def scaladslReadJournal(): ScalaReadJournal = _scalaReadJournal
 
-  private lazy val _javadslReadJournal               = new JavaDynamoDBReadJournal(_scalaReadJournal)
+  private lazy val _javadslReadJournal = new JavaDynamoDBReadJournal(_scalaReadJournal)
   override def javadslReadJournal(): JavaReadJournal = _javadslReadJournal
 }
 

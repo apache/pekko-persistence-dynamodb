@@ -34,7 +34,7 @@ trait DynamoDBHelper {
 
   def shutdown(): Unit = dynamoDB.shutdown()
 
-  private var reporter: ActorRef       = _
+  private var reporter: ActorRef = _
   def setReporter(ref: ActorRef): Unit = reporter = ref
 
   private def send[In <: AmazonWebServiceRequest, Out](aws: In, func: AsyncHandler[In, Out] => juc.Future[Out])(implicit
@@ -132,7 +132,7 @@ trait DynamoDBHelper {
     def desc(aws: BatchGetItemRequest): String = {
       val entry = aws.getRequestItems.entrySet.iterator.next()
       val table = entry.getKey
-      val keys  = entry.getValue.getKeys.asScala.map(formatKey)
+      val keys = entry.getValue.getKeys.asScala.map(formatKey)
       s"BatchGetItemRequest($table, ${keys.mkString("(", ",", ")")})"
     }
   }

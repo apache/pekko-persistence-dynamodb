@@ -173,7 +173,7 @@ class DynamoDBIntegrationLoadSpec
 
     "write and replay messages" in {
       val persistenceId = UUID.randomUUID().toString
-      val processor1    = system.actorOf(Props(classOf[ProcessorA], persistenceId, self), "p1")
+      val processor1 = system.actorOf(Props(classOf[ProcessorA], persistenceId, self), "p1")
       (1L to 16L).foreach { i =>
         processor1 ! s"a-${i}"
         expectMsgAllOf(s"a-${i}", i, false)
@@ -218,8 +218,8 @@ class DynamoDBIntegrationLoadSpec
       probe.expectNoMsg(200.millis)
     } */
     "write and replay with persistAll greater than partition size skipping whole partition" in {
-      val persistenceId   = UUID.randomUUID().toString
-      val probe           = TestProbe()
+      val persistenceId = UUID.randomUUID().toString
+      val probe = TestProbe()
       val processorAtomic = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, self))
 
       processorAtomic ! List("a-1", "a-2", "a-3", "a-4", "a-5", "a-6")
@@ -227,15 +227,15 @@ class DynamoDBIntegrationLoadSpec
         expectMsgAllOf(s"a-${i}", i, false)
       }
 
-      val testProbe  = TestProbe()
+      val testProbe = TestProbe()
       val processor2 = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, testProbe.ref))
       (1L to 6L).foreach { i =>
         testProbe.expectMsgAllOf(s"a-${i}", i, true)
       }
     }
     "write and replay with persistAll greater than partition size skipping part of a partition" in {
-      val persistenceId   = UUID.randomUUID().toString
-      val probe           = TestProbe()
+      val persistenceId = UUID.randomUUID().toString
+      val probe = TestProbe()
       val processorAtomic = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, self))
 
       processorAtomic ! List("a-1", "a-2", "a-3")
@@ -248,15 +248,15 @@ class DynamoDBIntegrationLoadSpec
         expectMsgAllOf(s"a-${i}", i, false)
       }
 
-      val testProbe  = TestProbe()
+      val testProbe = TestProbe()
       val processor2 = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, testProbe.ref))
       (1L to 6L).foreach { i =>
         testProbe.expectMsgAllOf(s"a-${i}", i, true)
       }
     }
     "write and replay with persistAll less than partition size" in {
-      val persistenceId   = UUID.randomUUID().toString
-      val probe           = TestProbe()
+      val persistenceId = UUID.randomUUID().toString
+      val probe = TestProbe()
       val processorAtomic = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, self))
 
       processorAtomic ! List("a-1", "a-2", "a-3", "a-4")
@@ -271,8 +271,8 @@ class DynamoDBIntegrationLoadSpec
     }
     "not replay messages deleted from the +1 partition" in {
       val persistenceId = UUID.randomUUID().toString
-      val probe         = TestProbe()
-      val deleteProbe   = TestProbe()
+      val probe = TestProbe()
+      val deleteProbe = TestProbe()
       subscribeToRangeDeletion(deleteProbe)
       val processorAtomic = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, self))
 
@@ -283,7 +283,7 @@ class DynamoDBIntegrationLoadSpec
       processorAtomic ! DeleteTo(5L)
       awaitRangeDeletion(deleteProbe)
 
-      val testProbe  = TestProbe()
+      val testProbe = TestProbe()
       val processor2 = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, testProbe.ref))
       testProbe.expectMsgAllOf(s"a-6", 6, true)
     }

@@ -32,11 +32,11 @@ class CurrentPersistenceIdsSpec
     with ReadJournalSettingsProvider
     with DynamoProvider {
   override protected lazy val readJournalSettings: DynamoDBReadJournalConfig = DynamoDBReadJournalConfig()
-  override implicit val patienceConfig: PatienceConfig                       = PatienceConfig(15.seconds)
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(15.seconds)
 
-  private val writerUuid                          = UUID.randomUUID.toString
+  private val writerUuid = UUID.randomUUID.toString
   private implicit val materializer: Materializer = SystemMaterializer(system).materializer
-  private lazy val journal                        = Persistence(system).journalFor("")
+  private lazy val journal = Persistence(system).journalFor("")
   private lazy val queries =
     PersistenceQuery(system).readJournalFor[DynamoDBReadJournal](DynamoDBReadJournal.Identifier)
 
@@ -69,16 +69,14 @@ class CurrentPersistenceIdsSpec
 
   private def persistEvents(persistenceIds: Seq[String]): Unit = {
     val eventsPerActor = 0 to 5
-    val writes = persistenceIds.map(
-      persistenceId =>
-        AtomicWrite(
-          eventsPerActor.map(
-            i =>
-              PersistentRepr(
-                payload = s"$persistenceId $i",
-                sequenceNr = i,
-                persistenceId = persistenceId,
-                writerUuid = writerUuid))))
+    val writes = persistenceIds.map(persistenceId =>
+      AtomicWrite(
+        eventsPerActor.map(i =>
+          PersistentRepr(
+            payload = s"$persistenceId $i",
+            sequenceNr = i,
+            persistenceId = persistenceId,
+            writerUuid = writerUuid))))
 
     writes.foreach { message =>
       journal ! WriteMessages(message :: Nil, testActor, 1)

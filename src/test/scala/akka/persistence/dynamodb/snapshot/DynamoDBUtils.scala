@@ -23,7 +23,7 @@ trait DynamoDBUtils {
   implicit val executionContext = system.dispatcher
 
   lazy val settings: DynamoDBSnapshotConfig = {
-    val c      = system.settings.config
+    val c = system.settings.config
     val config = c.getConfig(c.getString("akka.persistence.snapshot-store.plugin"))
     new DynamoDBSnapshotConfig(config)
   }

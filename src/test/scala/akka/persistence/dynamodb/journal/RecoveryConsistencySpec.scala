@@ -44,7 +44,7 @@ class RecoveryConsistencySpec
     super.afterAll()
   }
 
-  override val persistenceId              = "RecoveryConsistencySpec"
+  override val persistenceId = "RecoveryConsistencySpec"
   implicit val materializer: Materializer = SystemMaterializer(system).materializer
 
   private lazy val journal = Persistence(system).journalFor("")
@@ -54,11 +54,11 @@ class RecoveryConsistencySpec
 
   "DynamoDB Journal (Recovery)" must {
 
-    val repetitions  = 50
+    val repetitions = 50
     val nrOfMessages = 20
-    val messages     = (1 to nrOfMessages).map(i => f"a-$i%04d")
-    val writes       = messages.map(m => AtomicWrite(persistentRepr(m)))
-    val probe        = TestProbe()
+    val messages = (1 to nrOfMessages).map(i => f"a-$i%04d")
+    val writes = messages.map(m => AtomicWrite(persistentRepr(m)))
+    val probe = TestProbe()
 
     for (i <- 1 to repetitions)
       s"not return intermediate values for the highest sequence number ($i of $repetitions)" in {
@@ -78,9 +78,9 @@ class RecoveryConsistencySpec
     "only replay completely persisted AtomicWrites" in {
 
       val more =
-        AtomicWrite((1 to 3).map(i => persistentRepr(f"b-$i"))) ::   // hole in the middle
-        AtomicWrite((4 to 6).map(i => persistentRepr(f"b-$i"))) ::   // hole in the beginning
-        AtomicWrite((7 to 9).map(i => persistentRepr(f"b-$i"))) ::   // no hole
+        AtomicWrite((1 to 3).map(i => persistentRepr(f"b-$i"))) :: // hole in the middle
+        AtomicWrite((4 to 6).map(i => persistentRepr(f"b-$i"))) :: // hole in the beginning
+        AtomicWrite((7 to 9).map(i => persistentRepr(f"b-$i"))) :: // no hole
         AtomicWrite((10 to 12).map(i => persistentRepr(f"b-$i"))) :: // hole in the end
         AtomicWrite((13 to 15).map(i => persistentRepr(f"b-$i"))) :: // hole in the end
         AtomicWrite(persistentRepr("c")) ::
@@ -105,8 +105,8 @@ class RecoveryConsistencySpec
 
     "read correct highest sequence number even if a Sort=0 entry is lost" in {
       val start = nrOfMessages + 19
-      val end   = (start / PartitionSize + 1) * PartitionSize
-      val more  = (start to end).map(i => AtomicWrite(persistentRepr(f"e-$i")))
+      val end = (start / PartitionSize + 1) * PartitionSize
+      val more = (start to end).map(i => AtomicWrite(persistentRepr(f"e-$i")))
       journal ! WriteMessages(more, testActor, 1)
       expectMsg(WriteMessagesSuccessful)
       (start to end).foreach(i => expectMsg(WriteMessageSuccess(generatedMessages(i), 1)))

@@ -38,7 +38,7 @@ class DynamoDBReadJournal(scaladslReadJournal: scaladsl.DynamoDBReadJournal)
     //    with akka.persistence.query.javadsl.EventsByTagQuery
     with CurrentEventsByPersistenceIdQuery
     with CurrentPersistenceIdsQuery
-    //with akka.persistence.query.javadsl.CurrentPersistenceIdsQuery
+    // with akka.persistence.query.javadsl.CurrentPersistenceIdsQuery
     {
 
   /**

@@ -91,7 +91,7 @@ trait DynamoDBCurrentPersistenceIdsQuery extends PublicDynamoDBCurrentPersistenc
 
     def nextCall(maybePreviousResult: Option[Result]): Future[Option[Result]] = {
       val maybeNextResult = for {
-        previousResult   <- maybePreviousResult
+        previousResult <- maybePreviousResult
         nextEvaluatedKey <- previousResult.nextEvaluatedKey
       } yield getPersistenceIds(Some(nextEvaluatedKey)).map(Some(_))
 
@@ -159,8 +159,8 @@ trait DynamoDBCurrentPersistenceIdsQuery extends PublicDynamoDBCurrentPersistenc
     try {
       val prefixLength = journalName.length + 3
       val startPostfix = rawPersistenceId.lastIndexOf("-")
-      val postfix      = rawPersistenceId.substring(startPostfix)
-      val partitionNr  = postfix.substring(postfix.lastIndexOf("-")).toInt
+      val postfix = rawPersistenceId.substring(startPostfix)
+      val partitionNr = postfix.substring(postfix.lastIndexOf("-")).toInt
       if (partitionNr == 0)
         Some(rawPersistenceId.substring(prefixLength, startPostfix))
       else

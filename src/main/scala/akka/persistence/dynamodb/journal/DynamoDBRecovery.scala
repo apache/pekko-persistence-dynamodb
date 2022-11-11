@@ -38,7 +38,7 @@ object DynamoDBRecovery {
   case class ReplayBatch(items: Seq[Item], map: Map[AttributeValue, Long]) {
     def sorted: immutable.Iterable[Item] =
       items.foldLeft(immutable.TreeMap.empty[Long, Item])((acc, i) => acc.updated(itemToSeq(i), i)).map(_._2)
-    def ids: Seq[Long]                   = items.map(itemToSeq).sorted
+    def ids: Seq[Long] = items.map(itemToSeq).sorted
     private def itemToSeq(i: Item): Long = map(i.get(Key)) * PartitionSize + i.get(Sort).getN.toInt
   }
 }
@@ -57,7 +57,7 @@ case class PartitionKeys(partitionSeqNum: Long, partitionEventNums: immutable.Se
  */
 object DynamoPartitionGrouped extends GraphStage[FlowShape[Long, PartitionKeys]] {
 
-  val in  = Inlet[Long]("DynamoEventNum.in")
+  val in = Inlet[Long]("DynamoEventNum.in")
   val out = Outlet[PartitionKeys]("DynamoPartitionKeys.out")
 
   override val initialAttributes = Attributes.name("DynamoPartitionGrouped")
@@ -84,7 +84,7 @@ object DynamoPartitionGrouped extends GraphStage[FlowShape[Long, PartitionKeys]]
         partitionBuf += currentSeqNo
         hasElements = true
 
-        //If the next entry received would result in the next partition, then we clear the buf and push the results out
+        // If the next entry received would result in the next partition, then we clear the buf and push the results out
         if ((currentSeqNo + 1) % PartitionSize == 0) {
           val partitionGroup = partitionBuf.result()
           pushOut(currentSeqNo, partitionGroup)
@@ -96,11 +96,11 @@ object DynamoPartitionGrouped extends GraphStage[FlowShape[Long, PartitionKeys]]
       override def onPull(): Unit = pull(in)
 
       override def onUpstreamFinish(): Unit = {
-        //this means the partitionBuf has elements but not a full amount (n). However, since upstream is finished
-        //publishing elements, we need to push what we have downstream.
+        // this means the partitionBuf has elements but not a full amount (n). However, since upstream is finished
+        // publishing elements, we need to push what we have downstream.
         if (hasElements) {
           val partitionGroup = partitionBuf.result()
-          val currentSeqNo   = partitionGroup.last
+          val currentSeqNo = partitionGroup.last
           pushOut(currentSeqNo, partitionGroup)
         }
         completeStage()
@@ -114,16 +114,16 @@ object DynamoPartitionGrouped extends GraphStage[FlowShape[Long, PartitionKeys]]
 object RemoveIncompleteAtoms extends GraphStage[FlowShape[Item, List[Item]]] {
   private final val NoBatch = -1L
 
-  val in  = Inlet[Item]("RIA.in")
+  val in = Inlet[Item]("RIA.in")
   val out = Outlet[List[Item]]("RIA.out")
 
-  override val shape             = FlowShape(in, out)
+  override val shape = FlowShape(in, out)
   override val initialAttributes = Attributes.name("RemoveIncompleteAtoms")
 
   override def createLogic(attr: Attributes) =
     new GraphStageLogic(shape) with InHandler with OutHandler {
       var batchEnd = NoBatch
-      var batch    = List.empty[Item]
+      var batch = List.empty[Item]
 
       setHandler(out, this)
       setHandler(in, this)
@@ -133,9 +133,9 @@ object RemoveIncompleteAtoms extends GraphStage[FlowShape[Item, List[Item]]] {
       override def onPush(): Unit = {
         val item = grab(in)
         if (item.containsKey(AtomEnd)) {
-          val end        = item.get(AtomEnd).getN.toLong
-          val index      = item.get(AtomIndex).getN.toLong
-          val seqNr      = sn(item)
+          val end = item.get(AtomEnd).getN.toLong
+          val index = item.get(AtomIndex).getN.toLong
+          val seqNr = sn(item)
           val myBatchEnd = seqNr - index + end
           if (seqNr == batchEnd) {
             val result =
@@ -173,8 +173,8 @@ object RemoveIncompleteAtoms extends GraphStage[FlowShape[Item, List[Item]]] {
       }
 
       private def sn(item: Item): Long = {
-        val s   = item.get(Key).getS
-        val n   = item.get(Sort).getN.toLong
+        val s = item.get(Key).getS
+        val n = item.get(Sort).getN.toLong
         val pos = s.lastIndexOf('-')
         require(pos != -1, "unknown key format " + s)
         s.substring(pos + 1).toLong * PartitionSize + n
@@ -237,9 +237,9 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
     }
 
   def getPartitionItems(persistenceId: String, partitionKeys: PartitionKeys): Future[ReplayBatch] = {
-    val sortedNrs    = partitionKeys.partitionEventNums.sorted.map(_ % PartitionSize)
+    val sortedNrs = partitionKeys.partitionEventNums.sorted.map(_ % PartitionSize)
     val startSortKey = sortedNrs.head
-    val endSortKey   = sortedNrs.last
+    val endSortKey = sortedNrs.last
 
     val queryRequestBuilder: (Option[java.util.Map[String, AttributeValue]]) => QueryRequest = exclusiveStartKeyOpt => {
       val request = new QueryRequest()
@@ -247,9 +247,9 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
         .withKeyConditionExpression(s"$Key = :kkey AND $Sort BETWEEN :startSKey AND :endSKey")
         .withExpressionAttributeValues(
           Map(
-            ":kkey"      -> S(messagePartitionKeyFromGroupNr(persistenceId, partitionKeys.partitionSeqNum)),
+            ":kkey" -> S(messagePartitionKeyFromGroupNr(persistenceId, partitionKeys.partitionSeqNum)),
             ":startSKey" -> N(startSortKey),
-            ":endSKey"   -> N(endSortKey)).asJava)
+            ":endSKey" -> N(endSortKey)).asJava)
         .withProjectionExpression(ItemAttributesForReplay.mkString(","))
         .withConsistentRead(true)
         .withReturnConsumedCapacity(ReturnConsumedCapacity.TOTAL)
@@ -267,7 +267,7 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
       }
     }
 
-    val batchKeys    = partitionKeys.partitionEventNums.map(s => messageKey(persistenceId, s) -> (s / PartitionSize))
+    val batchKeys = partitionKeys.partitionEventNums.map(s => messageKey(persistenceId, s) -> (s / PartitionSize))
     val batchKeysMap = batchKeys.iterator.map(p => p._1.get(Key) -> p._2).toMap
     dynamoSummingPager(queryRequestBuilder(None), Seq.empty).map(result => ReplayBatch(result, batchKeysMap))
   }
@@ -322,7 +322,7 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
                      * `partitionStart` is the Sort=0 entry’s sequence number, so add the maximum sort key.
                      */
                     val partitionMax = nextResults.getItems.asScala.map(_.get(Sort).getN.toLong).max
-                    val ret          = partitionStart + partitionMax
+                    val ret = partitionStart + partitionMax
 
                     if (partitionMax == PartitionSize - 1) {
                       val nextStart = ret + 1
@@ -374,7 +374,7 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
       .map(l => if (highest) highSeqKey(persistenceId, l) else lowSeqKey(persistenceId, l))
       .grouped(MaxBatchGet)
       .map { keys =>
-        val ka  = new KeysAndAttributes().withKeys(keys.asJava).withConsistentRead(true)
+        val ka = new KeysAndAttributes().withKeys(keys.asJava).withConsistentRead(true)
         val get = batchGetReq(Collections.singletonMap(JournalTable, ka))
         dynamo.batchGetItem(get).flatMap(getUnprocessedItems(_))
       }
@@ -424,13 +424,13 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
     if (item.containsKey(Event)) {
       val serializerManifest = getValueOrEmptyString(item, SerializerManifest)
 
-      val pI           = item.get(PersistentId).getS
-      val sN           = item.get(SequenceNr).getN.toLong
-      val wU           = item.get(WriterUuid).getS
+      val pI = item.get(PersistentId).getS
+      val sN = item.get(SequenceNr).getN.toLong
+      val wU = item.get(WriterUuid).getS
       val reprManifest = getValueOrEmptyString(item, Manifest)
 
       val eventPayload = item.get(Event).getB
-      val serId        = item.get(SerializerId).getN.toInt
+      val serId = item.get(SerializerId).getN.toInt
 
       val fut = serialization.serializerByIdentity.get(serId) match {
         case Some(asyncSerializer: AsyncSerializer) =>
@@ -486,7 +486,7 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
       dynamo
         .batchGetItem(rest)
         .map { rr =>
-          val items     = rr.getResponses.get(JournalTable)
+          val items = rr.getResponses.get(JournalTable)
           val responses = result.getResponses.get(JournalTable)
           items.forEach(new Consumer[Item] {
             override def accept(item: Item): Unit = responses.add(item)

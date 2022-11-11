@@ -17,7 +17,7 @@ import scala.concurrent.duration._
 
 object WriteThroughputBench extends App with DynamoDBUtils {
 
-  def rnd              = ThreadLocalRandom.current()
+  def rnd = ThreadLocalRandom.current()
   final val oneBillion = 1000L * 1000 * 1000
 
   class H private (private val entries: Map[Int, Int]) {
@@ -45,8 +45,8 @@ object WriteThroughputBench extends App with DynamoDBUtils {
     }
   }
   object Report {
-    def apply(): Report                   = Report(new Histogram(3), new Histogram(3), new H)
-    def endToEnd(h: Histogram): Report    = Report(h, new Histogram(3), new H)
+    def apply(): Report = Report(new Histogram(3), new Histogram(3), new H)
+    def endToEnd(h: Histogram): Report = Report(h, new Histogram(3), new H)
     def calls(h: Histogram, r: H): Report = Report(new Histogram(3), h, r)
   }
 
@@ -54,8 +54,8 @@ object WriteThroughputBench extends App with DynamoDBUtils {
     val event = new Array[Byte](100)
     rnd.nextBytes(event)
 
-    var nextReport    = System.nanoTime + oneBillion
-    val histo         = new Histogram(3)
+    var nextReport = System.nanoTime + oneBillion
+    val histo = new Histogram(3)
     val persistenceId = UUID.randomUUID().toString
 
     self ! Go
@@ -116,7 +116,7 @@ writer-dispatcher {
 """).resolve)
       .withFallback(ConfigFactory.load())
 
-  implicit val system       = ActorSystem("WriteThroughputBench", config)
+  implicit val system = ActorSystem("WriteThroughputBench", config)
   implicit val materializer = ActorMaterializer(ActorMaterializerSettings(system).withInputBuffer(1, 1))
 
   /*
@@ -152,15 +152,15 @@ writer-dispatcher {
       .fromGraph(GraphDSL.create(endToEnd, calls)(Keep.both) { implicit b => (e, c) =>
         val zip = b.add(ZipWith((_: Unit, er: Report, cr: Report) => er + cr))
         Source.tick(1.second, 1.second, ()) ~> zip.in0
-        e ~> zip.in1
-        c ~> zip.in2
-        zip.out ~> Sink.foreach(printStats)
+        e                                   ~> zip.in1
+        c                                   ~> zip.in2
+        zip.out                             ~> Sink.foreach(printStats)
         ClosedShape
       })
       .run()
 
   println(s"starting $writers writers")
-  val props      = Props(new Writer(eRef)).withDispatcher("writer-dispatcher")
+  val props = Props(new Writer(eRef)).withDispatcher("writer-dispatcher")
   val writerRefs = (1 to writers).map(_ => system.actorOf(props))
 
   Persistence(system).journalFor("") ! SetDBHelperReporter(cRef)
@@ -176,6 +176,6 @@ writer-dispatcher {
     def perc(h: Histogram) =
       f"50=${p(h, 0.5)}%5.1f 90=${p(h, 0.9)}%5.1f 99=${p(h, 0.99)}%5.1f 99.9=${p(h, 0.999)}%5.1f 99.99=${p(h, 0.9999)}%5.1f"
     println(f"count ${r.endToEnd.getTotalCount}%6d/s  percentiles: endToEnd(${perc(r.endToEnd)}) calls(${perc(
-      r.calls)}) retries: ${r.retries}")
+        r.calls)}) retries: ${r.retries}")
   }
 }
