@@ -4,7 +4,7 @@
 
 * [Typesafe Contributor License Agreement](http://www.typesafe.com/contribute/cla)
 * [Issue Tracker](https://github.com/akka/akka-persistence-dynamodb/issues)
-* [Travis CI](https://travis-ci.org/akka/akka-persistence-dynamodb)
+* [Github Actions](https://github.com/apache/incubator-pekko-persistence-dynamodb/actions)
 
 # Typesafe Project & Developer Guidelines
 
@@ -134,11 +134,6 @@ Example:
     * Details 1
     * Details 2
     * Details 3
-
-## How To Enforce These Guidelines?
-
-### Make Use of Pull Request Validator
-This Akka plugin uses [Travis pull request builder](https://travis-ci.org/akka/akka-persistence-dynamodb) that automatically merges the code, builds it, runs the tests and comments on the Pull Request in GitHub.
 
 ## Source style
 
