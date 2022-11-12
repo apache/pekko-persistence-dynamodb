@@ -137,4 +137,4 @@ Example:
 
 ## Source style
 
-Akka uses [Scalariform](https://github.com/mdr/scalariform) to enforce some of the code style rules.
+Akka uses [scalafmt](https://scalameta.org/scalafmt/) to enforce some of the code style rules.
