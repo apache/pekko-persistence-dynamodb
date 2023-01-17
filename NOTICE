@@ -7,5 +7,4 @@ The Apache Software Foundation (https://www.apache.org/).
 This product contains significant parts that were originally based on software from Lightbend (Akka <https://akka.io/>).
 Copyright (C) 2009-2014 Typesafe Inc. [http://www.typesafe.com]
 
-Apache Pekko is derived from Akka 2.6.x, the last version that was distributed under the
-Apache License, Version 2.0 License.
+Apache Pekko Persistence DynamoDB is derived from Akka Persistence DynamoDB 1.1.x.
