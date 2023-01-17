@@ -29,3 +29,5 @@ Test / parallelExecution := false
 Test / fork := true
 logBuffered := false
 Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
+
+MetaInfLicenseNoticeCopy.settings
