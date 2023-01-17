@@ -1,30 +1,25 @@
-# Contributing to the Akka DynamoDB Persistence Plugin
+# Contributing to the Apache Pekko DynamoDB Persistence Plugin
 
 ## Infrastructure
 
-* [Typesafe Contributor License Agreement](http://www.typesafe.com/contribute/cla)
-* [Issue Tracker](https://github.com/akka/akka-persistence-dynamodb/issues)
+* [Apache Contributor License Agreement](https://www.apache.org/licenses/contributor-agreements.html)
+* [Issue Tracker](https://github.com/apache/incubator-pekko-persistence-dynamodb/issues)
 * [Github Actions](https://github.com/apache/incubator-pekko-persistence-dynamodb/actions)
 
-# Typesafe Project & Developer Guidelines
+# Project & Developer Guidelines
 
 These guidelines are meant to be a living document that should be changed and adapted as needed. We encourage changes that makes it easier to achieve our goals in an efficient way.
-
-These guidelines mainly apply to Typesafe’s “mature” projects - not necessarily to projects of the type ‘collection of scripts’ etc.
 
 ## General Workflow
 
 This is the process for committing code into master. There are of course exceptions to these rules, for example minor changes to comments and documentation, fixing a broken build etc.
 
-1. Make sure you have signed the Typesafe CLA, if not, [sign it online](http://www.typesafe.com/contribute/cla).
+1. For non-trivial changes, you will be asked to submit a [CLA](https://www.apache.org/licenses/contributor-agreements.html) - if you do not have one on file.
 2. Before starting to work on a feature or a fix, make sure that:
     1. There is a ticket for your work in the project's issue tracker. If not, create it first.
     2. The ticket has been scheduled for the current milestone.
     3. The ticket have been discussed and prioritized by the team.
-3. You should always perform your work in a Git feature branch. The branch should be given a descriptive name that explains its intent. Some teams also like adding the ticket number and/or the [GitHub](http://github.com) user ID to the branch name, these details is up to each of the individual teams.
-
-    Akka prefers the committer name as part of the branch name, the ticket number is optional.
-
+3. You should always perform your work in a Git feature branch.
 4. When the feature or fix is completed you should open a [Pull Request](https://help.github.com/articles/using-pull-requests) on GitHub.
 5. The Pull Request should be reviewed by other maintainers (as many as feasible/practical). Note that the maintainers can consist of outside contributors, both within and outside Typesafe. Outside contributors (for example from EPFL or independent committers) are encouraged to participate in the review process, it is not a closed process.
 6. After the review you should fix the issues as needed (pushing a new commit for new review etc.), iterating until the reviewers give their thumbs up.

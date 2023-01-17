@@ -1,18 +1,17 @@
-DynamoDBJournal for Akka Persistence
-====================================
+DynamoDBJournal for Apache Pekko Persistence
+============================================
 
-A replicated [Akka Persistence](http://doc.akka.io/docs/akka/2.4.0/scala/persistence.html) journal backed by
+A replicated Pekko Persistence journal backed by
 [Amazon DynamoDB](http://aws.amazon.com/dynamodb/).
 
 - This plugin implements both a journal as well as a snapshot store,
-- This includes a Akka Persistence Query plugin. However, this requires an additional GSI for efficient usage.
+- This includes a Pekko Persistence Query plugin. However, this requires an additional GSI for efficient usage.
 
 Supported versions:
 - Scala: `2.12.x`, `2.13.x`
-- Akka: `2.5.x+` and `2.6.x+`
+- Pekko: `1.0.x+`
 - Java: `1.8+`
 
-[![Join the chat at https://gitter.im/akka/akka-persistence-dynamodb](https://badges.gitter.im/akka/akka-persistence-dynamodb.svg)](https://gitter.im/akka/akka-persistence-dynamodb?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Build Status](https://github.com/apache/incubator-pekko-persistence-dynamodb/actions/workflows/check-build-test.yml/badge.svg?branch=main)](https://github.com/apache/incubator-pekko-persistence-dynamodb/actions)
 
 Installation
@@ -22,16 +21,16 @@ This plugin is published to the Maven Central repository with the following name
 
 ~~~
 <dependency>
-    <groupId>com.typesafe.akka</groupId>
-    <artifactId>akka-persistence-dynamodb_2.13</artifactId>
-    <version>1.3.0</version>
+    <groupId>org.apache.pekko</groupId>
+    <artifactId>pekko-persistence-dynamodb_2.13</artifactId>
+    <version>1.0.0</version>
 </dependency>
 ~~~
 
 or for sbt users:
 
 ```sbt
-libraryDependencies += "com.typesafe.akka" %% "akka-persistence-dynamodb" % "1.3.0"
+libraryDependencies += "org.apache.pekko" %% "pekko-persistence-dynamodb" % "1.0.0"
 ```
 
 Configuration
@@ -204,14 +203,6 @@ This is somewhat more difficult to code, but offers higher throughput possibilit
 
 When writing an item we typically do not touch the high sequence number storage, only when writing an item with sort key `0` is this done. This implies that reading the highest sequence number will need to first query the sequence shards for the highest multiple of 100 and then send a `Query` for the corresponding P entry’s hash key to find the highest stored sort key number.
 
-Using with Akka 2.5.x
----------------------
-
-Please make sure to depend on all Akka artifacts (those with the artifact name begining with
-`akka-*`) are depended on in the same version - as mixing versions is *not* legal. For example, if
-you depend on Akka Persistence in `2.5.3`, make sure that Akka Streams and Actors are also depended
-on in the same version. Please always use the latest patch version available (!).
-
 Credits
 -------
 
@@ -222,8 +213,3 @@ Credits
 - Ryan Means
 - Jean-Luc Deprez
 - Michal Janousek
-
-Support
--------
-
-This project is *community maintained*. The Lightbend subscription does not cover support for this project.
