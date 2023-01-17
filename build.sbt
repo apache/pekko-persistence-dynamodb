@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % "test",
   "org.scalatest" %% "scalatest" % "3.0.8" % "test",
-  "commons-io" % "commons-io" % "2.4" % "test",
+  "commons-io" % "commons-io" % "2.11.0" % "test",
   "org.hdrhistogram" % "HdrHistogram" % "2.1.8" % "test",
   "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % "test")
 
