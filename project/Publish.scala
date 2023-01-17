@@ -17,25 +17,25 @@ object Publish extends AutoPlugin {
 
   override lazy val projectSettings = Seq(
     crossPaths := false,
-    pomExtra := akkaPomExtra,
+    pomExtra := pekkoPomExtra,
     publishTo := akkaPublishTo.value,
     credentials ++= akkaCredentials,
-    organization := "com.typesafe.akka",
-    organizationName := "Typesafe Inc.",
-    organizationHomepage := Some(url("http://www.typesafe.com")),
+    organization := "org.apache.pekko",
+    organizationName := "Apache Software Foundation",
+    organizationHomepage := Some(url("https://www.apache.org")),
     licenses := Seq(("Apache License, Version 2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
-    homepage := Some(url("https://github.com/akka/akka-persistence-dynamodb")),
+    homepage := Some(url("https://github.com/apache/incubator-pekko-persistence-dynamodb")),
     publishMavenStyle := true,
     pomIncludeRepository := { x => false },
     defaultPublishTo := crossTarget.value / "repository")
 
-  def akkaPomExtra = {
+  def pekkoPomExtra = {
     <developers>
       <developer>
         <id>contributors</id>
         <name>Contributors</name>
-        <email>akka-dev@googlegroups.com</email>
-        <url>https://github.com/akka/akka-persistence-dynamodb/graphs/contributors</url>
+        <email>dev@pekko.apache.org</email>
+        <url>https://github.com/apache/incubator-pekko-persistence-dynamodb/graphs/contributors</url>
       </developer>
     </developers>
   }
