@@ -18,6 +18,7 @@ object AsyncDynamoDBJournalSpec {
   val config = ConfigFactory
     .parseString("""
       |akka.actor {
+      |  allow-java-serialization = on
       |  serializers {
       |    test = "akka.persistence.dynamodb.journal.TestSerializer"
       |  }
