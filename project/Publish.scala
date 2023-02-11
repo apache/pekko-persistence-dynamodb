@@ -1,7 +1,7 @@
 /**
  * Copyright (C) 2009-2015 Typesafe Inc. <http://www.typesafe.com>
  */
-package akka
+package org.apache.pekko
 
 import sbt._
 import sbt.Keys._
@@ -56,6 +56,6 @@ object Publish extends AutoPlugin {
     Some(Resolver.file("Default Local Repository", repository))
 
   private def akkaCredentials: Seq[Credentials] =
-    Option(System.getProperty("akka.publish.credentials", null)).map(f => Credentials(new File(f))).toSeq
+    Option(System.getProperty("pekko.publish.credentials", null)).map(f => Credentials(new File(f))).toSeq
 
 }
