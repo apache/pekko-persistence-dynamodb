@@ -8,7 +8,7 @@ import akka.persistence.JournalProtocol._
 import akka.persistence._
 import akka.persistence.dynamodb._
 import akka.testkit._
-import org.scalactic.ConversionCheckedTripleEquals
+import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest._
 import org.scalatest.concurrent.ScalaFutures
 
@@ -19,7 +19,7 @@ class PersistAllConsistencySpec
     with BeforeAndAfterAll
     with Matchers
     with ScalaFutures
-    with ConversionCheckedTripleEquals
+    with TypeCheckedTripleEquals
     with DynamoDBUtils
     with IntegSpec {
 
