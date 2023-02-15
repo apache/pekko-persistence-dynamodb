@@ -101,7 +101,7 @@ trait DynamoDBCurrentPersistenceIdsQuery extends PublicDynamoDBCurrentPersistenc
     def lazyStream(currentResult: ResultSource): ResultSource = {
       def nextResult: ResultSource = currentResult.mapAsync(parallelism = 1)(nextCall)
 
-      currentResult.concatLazy( Source.lazySource{ () => lazyStream(nextResult) } )
+      currentResult.concatLazy(Source.lazySource { () => lazyStream(nextResult) })
     }
 
     val infiniteStreamOfResults: ResultSource =
