@@ -19,18 +19,8 @@ import org.scalatest.concurrent.ScalaFutures
 
 import java.util.Base64
 
-object BackwardsCompatibilityV1Spec {
-  val config = ConfigFactory
-    .parseString("""
-                   |akka.actor {
-                   |  allow-java-serialization = on
-                   |}
-    """.stripMargin)
-    .withFallback(ConfigFactory.load())
-}
-
 class BackwardsCompatibilityV1Spec
-    extends TestKit(ActorSystem("PartialAsyncSerializationSpec", BackwardsCompatibilityV1Spec.config))
+    extends TestKit(ActorSystem("BackwardsCompatibilityV1Spec"))
     with ImplicitSender
     with WordSpecLike
     with BeforeAndAfterAll
