@@ -4,7 +4,7 @@ scalaVersion := "2.13.7"
 crossScalaVersions := Seq("2.12.13", "2.12.15", "2.13.5", "2.13.7")
 crossVersion := CrossVersion.binary
 
-val akkaVersion = "2.5.29"
+val akkaVersion = "2.6.20"
 val amzVersion = "1.12.286"
 val testcontainersScalaVersion = "0.40.10"
 
@@ -19,7 +19,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-persistence-tck" % akkaVersion % "test",
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % "test",
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % "test",
-  "org.scalatest" %% "scalatest" % "3.0.8" % "test",
+  "org.scalatest" %% "scalatest" % "3.1.4" % "test",
   "commons-io" % "commons-io" % "2.11.0" % "test",
   "org.hdrhistogram" % "HdrHistogram" % "2.1.8" % "test",
   "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % "test")

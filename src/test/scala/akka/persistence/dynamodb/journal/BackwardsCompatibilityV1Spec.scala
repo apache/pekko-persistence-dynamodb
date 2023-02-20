@@ -20,7 +20,7 @@ import org.scalatest.concurrent.ScalaFutures
 import java.util.Base64
 
 class BackwardsCompatibilityV1Spec
-    extends TestKit(ActorSystem("PartialAsyncSerializationSpec"))
+    extends TestKit(ActorSystem("BackwardsCompatibilityV1Spec"))
     with ImplicitSender
     with WordSpecLike
     with BeforeAndAfterAll
@@ -104,7 +104,7 @@ class BackwardsCompatibilityV1Spec
     val messages = 20
     val probe = TestProbe()
 
-    s"successfully replay events in old format - created by old version of the plugin" in {
+    "successfully replay events in old format - created by old version of the plugin" in {
 
       journal ! ReplayMessages(0, 20, Long.MaxValue, persistenceId, probe.ref)
       (1 to messages).foreach(i => {
