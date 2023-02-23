@@ -1,3 +1,5 @@
+import PekkoDependency.pekkoVersion
+
 name := "pekko-persistence-dynamodb"
 
 scalaVersion := "2.13.7"
@@ -5,7 +7,6 @@ crossScalaVersions := Seq("2.12.15", "2.13.7")
 crossVersion := CrossVersion.binary
 
 val amzVersion = "1.12.286"
-val pekkoVersion = "0.0.0+26546-767209a8-SNAPSHOT"
 val testcontainersScalaVersion = "0.40.10"
 
 resolvers += "Apache Nexus Snapshots".at("https://repository.apache.org/content/repositories/snapshots/")
