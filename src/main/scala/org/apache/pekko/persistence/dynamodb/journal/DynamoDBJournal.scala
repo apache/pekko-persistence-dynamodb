@@ -3,29 +3,22 @@
  */
 package org.apache.pekko.persistence.dynamodb.journal
 
-import java.nio.ByteBuffer
 import java.util.{ HashMap => JHMap, Map => JMap }
 import org.apache.pekko.Done
-import org.apache.pekko.actor.{ ActorLogging, ActorRef, ActorRefFactory, ActorSystem, ExtendedActorSystem }
-import org.apache.pekko.actor.TypedActor.context
-import org.apache.pekko.event.{ Logging, LoggingAdapter }
+import org.apache.pekko.actor.{ ActorLogging, ActorRef, ExtendedActorSystem }
+import org.apache.pekko.dispatch.ExecutionContexts
 import org.apache.pekko.pattern.pipe
 import org.apache.pekko.persistence.journal.AsyncWriteJournal
-import org.apache.pekko.persistence.{ AtomicWrite, Persistence, PersistentRepr }
+import org.apache.pekko.persistence.{ AtomicWrite, Persistence }
 import org.apache.pekko.persistence.dynamodb._
-import org.apache.pekko.serialization.{ AsyncSerializer, Serialization, SerializationExtension }
-import org.apache.pekko.stream.{ ActorMaterializer, Materializer, SystemMaterializer }
-import org.apache.pekko.util.ByteString
-import com.amazonaws.AmazonServiceException
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient
+import org.apache.pekko.serialization.{ Serialization, SerializationExtension }
+import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
 import com.amazonaws.services.dynamodbv2.model._
 import com.typesafe.config.Config
 
 import scala.collection.immutable
-import scala.concurrent.{ ExecutionContext, Future, Promise }
-import scala.util.{ Failure, Success, Try }
-import scala.util.control.NoStackTrace
+import scala.concurrent.{ Future, Promise }
+import scala.util.{ Success, Try }
 
 class DynamoDBJournalFailure(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
 class DynamoDBJournalRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
@@ -115,7 +108,7 @@ class DynamoDBJournal(config: Config)
     f.onComplete { _ =>
       self ! OpFinished(pid, p.future)
       p.success(Done)
-    }(org.apache.pekko.dispatch.ExecutionContexts.sameThreadExecutionContext)
+    }(ExecutionContexts.sameThreadExecutionContext)
 
     f
   }
