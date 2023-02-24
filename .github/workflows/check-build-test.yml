@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -31,7 +31,7 @@ jobs:
           git checkout scratch
 
       - name: Set up JDK 11
-        uses: olafurpg/setup-scala@v10
+        uses: olafurpg/setup-scala@v13
         with:
           java-version: adopt@1.11.0-9
 
@@ -49,13 +49,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { java-version: adopt@1.8,      scala-version: 2.12.13, sbt-opts: '' }
-          - { java-version: adopt@1.8,      scala-version: 2.13.5, sbt-opts: '' }
-          - { java-version: adopt@1.11.0-9, scala-version: 2.12.13,  sbt-opts: '-J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler' }
-          - { java-version: adopt@1.11.0-9, scala-version: 2.13.5, sbt-opts: '-J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler' }
+          - { java-version: adopt@1.8,      scala-version: 2.12.15, sbt-opts: '' }
+          - { java-version: adopt@1.8,      scala-version: 2.13.7, sbt-opts: '' }
+          - { java-version: adopt@1.11.0-9, scala-version: 2.12.15,  sbt-opts: '-J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler' }
+          - { java-version: adopt@1.11.0-9, scala-version: 2.13.7, sbt-opts: '-J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler' }
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -66,7 +66,7 @@ jobs:
           git checkout scratch
 
       - name: Setup Scala with Java ${{ matrix.java-version }}
-        uses: olafurpg/setup-scala@v10
+        uses: olafurpg/setup-scala@v13
         with:
           java-version: ${{ matrix.java-version }}
 

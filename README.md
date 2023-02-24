@@ -38,7 +38,7 @@ Configuration
 
 ### Journal
 ~~~
-akka.persistence.journal.plugin = "my-dynamodb-journal"
+pekko.persistence.journal.plugin = "my-dynamodb-journal"
 
 my-dynamodb-journal = ${dynamodb-journal} # include the default settings
 my-dynamodb-journal {                     # and add some overrides
@@ -50,7 +50,7 @@ my-dynamodb-journal {                     # and add some overrides
 }
 ~~~
 
-For details on the endpoint URL please refer to the [DynamoDB documentation](http://docs.aws.amazon.com/general/latest/gr/rande.html#ddb_region). There are many more settings that can be used for fine-tuning and adapting this journal plugin to your use-case, please refer to the [reference.conf](https://github.com/akka/akka-persistence-dynamodb/blob/master/src/main/resources/reference.conf) file.
+For details on the endpoint URL please refer to the [DynamoDB documentation](http://docs.aws.amazon.com/general/latest/gr/rande.html#ddb_region). There are many more settings that can be used for fine-tuning and adapting this journal plugin to your use-case, please refer to the [reference.conf](https://github.com/apache/incubator-pekko-persistence-dynamodb/blob/main/src/main/resources/reference.conf) file.
 
 Before you can use these settings you will have to create a table, e.g. using the AWS console, with the following schema:
 
@@ -61,7 +61,7 @@ Before you can use these settings you will have to create a table, e.g. using th
 (**Since:** `1.1.0`; contributed by [@joost-de-vries](https://github.com/joost-de-vries))
 
 ~~~
-akka.persistence.snapshot-store.plugin = "my-dynamodb-snapshot-store"
+pekko.persistence.snapshot-store.plugin = "my-dynamodb-snapshot-store"
 
 my-dynamodb-snapshot-store = ${dynamodb-snapshot-store} # include the default settings
 my-dynamodb-snapshot-store {                     # and add some overrides
