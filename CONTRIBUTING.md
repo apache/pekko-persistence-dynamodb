@@ -12,7 +12,7 @@ These guidelines are meant to be a living document that should be changed and ad
 
 ## General Workflow
 
-This is the process for committing code into master. There are of course exceptions to these rules, for example minor changes to comments and documentation, fixing a broken build etc.
+This is the process for committing code into main branch. There are of course exceptions to these rules, for example minor changes to comments and documentation, fixing a broken build etc.
 
 1. For non-trivial changes, you will be asked to submit a [CLA](https://www.apache.org/licenses/contributor-agreements.html) - if you do not have one on file.
 2. Before starting to work on a feature or a fix, make sure that:
@@ -26,7 +26,7 @@ This is the process for committing code into master. There are of course excepti
 
     When the branch conflicts with its merge target (either by way of git merge conflict or failing CI tests), do **not** merge the target branch into your feature branch. Instead rebase your branch onto the target branch. Merges complicate the git history, especially for the squashing which is necessary later (see below).
 
-7. Once the code has passed review the Pull Request can be merged into the master branch. For this purpose the commits which were added on the feature branch should be squashed into a single commit. This can be done using the command `git rebase -i master` (or the appropriate target branch), `pick`ing the first commit and `squash`ing all following ones.
+7. Once the code has passed review the Pull Request can be merged into the main branch. For this purpose the commits which were added on the feature branch should be squashed into a single commit. This can be done using the command `git rebase -i main` (or the appropriate target branch), `pick`ing the first commit and `squash`ing all following ones.
 
     Also make sure that the commit message conforms to the syntax specified below.
 
@@ -59,13 +59,13 @@ For a Pull Request to be considered at all it has to meet these requirements:
     - Never delete or change existing copyright notices, just add additional info.  
     - Do not use ``@author`` tags since it does not encourage [Collective Code Ownership](http://www.extremeprogramming.org/rules/collective.html). However, each project should make sure that the contributors gets the credit they deserve—in a text file or page on the project website and in the release notes etc. 
 
-If these requirements are not met then the code should **not** be merged into master, or even reviewed - regardless of how good or important it is. No exceptions.
+If these requirements are not met then the code should **not** be merged into main branch, or even reviewed - regardless of how good or important it is. No exceptions.
 
 Whether or not a pull request (or parts of it) shall be back- or forward-ported will be discussed on the pull request discussion page, it shall therefore not be part of the commit messages. If desired the intent can be expressed in the pull request description.
 
 ## Continuous Integration
 
-Each project should be configured to use a continuous integration (CI) tool (i.e. a build server à la Jenkins). Typesafe has a Jenkins server farm that can be used. The CI tool should, on each push to master, build the **full** distribution and run **all** tests, and if something fails it should email out a notification with the failure report to the committer and the core team. The CI tool should also be used in conjunction with Typesafe’s Pull Request Validator (discussed below).
+Each project should be configured to use a continuous integration (CI) tool (i.e. a build server à la Jenkins). Typesafe has a Jenkins server farm that can be used. The CI tool should, on each push to main branch, build the **full** distribution and run **all** tests, and if something fails it should email out a notification with the failure report to the committer and the core team. The CI tool should also be used in conjunction with Typesafe’s Pull Request Validator (discussed below).
 
 ## Documentation
 
@@ -102,7 +102,7 @@ Each project must also create and maintain a list of all dependencies and their 
 
 ## Work In Progress
 
-It is ok to work on a public feature branch in the GitHub repository. Something that can sometimes be useful for early feedback etc. If so then it is preferable to name the branch accordingly. This can be done by either prefix the name with ``wip-`` as in ‘Work In Progress’, or use hierarchical names like ``wip/..``, ``feature/..`` or ``topic/..``. Either way is fine as long as it is clear that it is work in progress and not ready for merge. This work can temporarily have a lower standard. However, to be merged into master it will have to go through the regular process outlined above, with Pull Request, review etc..
+It is ok to work on a public feature branch in the GitHub repository. Something that can sometimes be useful for early feedback etc. If so then it is preferable to name the branch accordingly. This can be done by either prefix the name with ``wip-`` as in ‘Work In Progress’, or use hierarchical names like ``wip/..``, ``feature/..`` or ``topic/..``. Either way is fine as long as it is clear that it is work in progress and not ready for merge. This work can temporarily have a lower standard. However, to be merged into main branch it will have to go through the regular process outlined above, with Pull Request, review etc..
 
 Also, to facilitate both well-formed commits and working together, the ``wip`` and ``feature``/``topic`` identifiers also have special meaning.   Any branch labelled with ``wip`` is considered “git-unstable” and may be rebased and have its history rewritten.   Any branch with ``feature``/``topic`` in the name is considered “stable” enough for others to depend on when a group is working on a feature.
 
