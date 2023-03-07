@@ -11,6 +11,8 @@ val testcontainersScalaVersion = "0.40.10"
 
 resolvers += "Apache Nexus Snapshots".at("https://repository.apache.org/content/repositories/snapshots/")
 
+ThisBuild / apacheSonatypeProjectProfile := "pekko"
+
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-core" % amzVersion,
   "com.amazonaws" % "aws-java-sdk-dynamodb" % amzVersion,
@@ -32,5 +34,3 @@ Test / parallelExecution := false
 Test / fork := true
 logBuffered := false
 Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
-
-MetaInfLicenseNoticeCopy.settings
