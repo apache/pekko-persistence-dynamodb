@@ -6,5 +6,4 @@ addSbtPlugin("com.lightbend" % "sbt-whitesource" % "0.1.7")
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.9.3")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.6")
 addSbtPlugin("org.mdedetrich" % "sbt-apache-sonatype" % "0.1.5")
-// https://github.com/dwijnand/sbt-dynver
-addSbtPlugin("com.dwijnand" % "sbt-dynver" % "4.1.1")
+addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.5.10")

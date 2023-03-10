@@ -15,7 +15,6 @@ package org.apache.pekko
 import sbt._
 import sbt.Keys._
 
-import java.io.File
 import org.mdedetrich.apache.sonatype.SonatypeApachePlugin
 import SonatypeApachePlugin.autoImport.apacheSonatypeDisclaimerFile
 
@@ -27,16 +26,9 @@ object Publish extends AutoPlugin {
   override lazy val projectSettings = Seq(
     crossPaths := false,
     homepage := Some(url("https://github.com/apache/incubator-pekko-persistence-dynamodb")),
-    publishTo := {
-      val nexus = s"https://${apacheBaseRepo}/"
-      if (isSnapshot.value) Some("snapshots".at(nexus + "content/repositories/snapshots"))
-      else Some("releases".at(nexus + "service/local/staging/deploy/maven2"))
-    },
     developers += Developer("contributors",
       "Contributors",
       "dev@pekko.apache.org",
       url("https://github.com/apache/incubator-pekko-persistence-dynamodb/graphs/contributors")),
     apacheSonatypeDisclaimerFile := Some((LocalRootProject / baseDirectory).value / "DISCLAIMER"))
-
-  private val apacheBaseRepo = "repository.apache.org"
 }
