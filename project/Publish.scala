@@ -14,14 +14,15 @@ package org.apache.pekko
 
 import sbt._
 import sbt.Keys._
-
 import org.mdedetrich.apache.sonatype.SonatypeApachePlugin
 import SonatypeApachePlugin.autoImport.apacheSonatypeDisclaimerFile
+import sbtdynver.DynVerPlugin
+import sbtdynver.DynVerPlugin.autoImport.dynverSonatypeSnapshots
 
 object Publish extends AutoPlugin {
 
   override def trigger = allRequirements
-  override def requires = SonatypeApachePlugin
+  override def requires = SonatypeApachePlugin && DynVerPlugin
 
   override lazy val projectSettings = Seq(
     crossPaths := false,
@@ -31,4 +32,7 @@ object Publish extends AutoPlugin {
       "dev@pekko.apache.org",
       url("https://github.com/apache/incubator-pekko-persistence-dynamodb/graphs/contributors")),
     apacheSonatypeDisclaimerFile := Some((LocalRootProject / baseDirectory).value / "DISCLAIMER"))
+
+  override lazy val buildSettings = Seq(
+    dynverSonatypeSnapshots := true)
 }
