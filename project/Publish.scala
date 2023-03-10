@@ -16,16 +16,13 @@ import sbt._
 import sbt.Keys._
 
 import java.io.File
-import sbtrelease.ReleasePlugin.autoImport.releasePublishArtifactsAction
 import org.mdedetrich.apache.sonatype.SonatypeApachePlugin
 import SonatypeApachePlugin.autoImport.apacheSonatypeDisclaimerFile
 
 object Publish extends AutoPlugin {
 
-  val defaultPublishTo = settingKey[File]("Default publish directory")
-
   override def trigger = allRequirements
-  override def requires = sbtrelease.ReleasePlugin && SonatypeApachePlugin
+  override def requires = SonatypeApachePlugin
 
   override lazy val projectSettings = Seq(
     crossPaths := false,
@@ -33,7 +30,11 @@ object Publish extends AutoPlugin {
     credentials ++= apacheNexusCredentials,
     homepage := Some(url("https://github.com/apache/incubator-pekko-persistence-dynamodb")),
     pomIncludeRepository := { x => false },
-    defaultPublishTo := crossTarget.value / "repository",
+    publishTo := {
+      val nexus = s"https://${apacheBaseRepo}/"
+      if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
+      else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+    },
     apacheSonatypeDisclaimerFile := Some((LocalRootProject / baseDirectory).value / "DISCLAIMER"))
 
   def pekkoPomExtra = {
