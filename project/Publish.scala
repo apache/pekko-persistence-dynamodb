@@ -26,35 +26,17 @@ object Publish extends AutoPlugin {
 
   override lazy val projectSettings = Seq(
     crossPaths := false,
-    pomExtra := pekkoPomExtra,
-    credentials ++= apacheNexusCredentials,
     homepage := Some(url("https://github.com/apache/incubator-pekko-persistence-dynamodb")),
-    pomIncludeRepository := { x => false },
     publishTo := {
       val nexus = s"https://${apacheBaseRepo}/"
       if (isSnapshot.value) Some("snapshots".at(nexus + "content/repositories/snapshots"))
       else Some("releases".at(nexus + "service/local/staging/deploy/maven2"))
     },
+    developers += Developer("contributors",
+      "Contributors",
+      "dev@pekko.apache.org",
+      url("https://github.com/apache/incubator-pekko-persistence-dynamodb/graphs/contributors")),
     apacheSonatypeDisclaimerFile := Some((LocalRootProject / baseDirectory).value / "DISCLAIMER"))
 
-  def pekkoPomExtra = {
-    <developers>
-      <developer>
-        <id>contributors</id>
-        <name>Contributors</name>
-        <email>dev@pekko.apache.org</email>
-        <url>https://github.com/apache/incubator-pekko-persistence-dynamodb/graphs/contributors</url>
-      </developer>
-    </developers>
-  }
-
   private val apacheBaseRepo = "repository.apache.org"
-
-  private def apacheNexusCredentials: Seq[Credentials] =
-    (sys.env.get("NEXUS_USER"), sys.env.get("NEXUS_PW")) match {
-      case (Some(user), Some(password)) =>
-        Seq(Credentials("Sonatype Nexus Repository Manager", apacheBaseRepo, user, password))
-      case _ =>
-        Seq.empty
-    }
 }
