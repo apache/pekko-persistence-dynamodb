@@ -15,45 +15,20 @@ package org.apache.pekko
 import sbt._
 import sbt.Keys._
 
-import java.io.File
-import sbtrelease.ReleasePlugin.autoImport.releasePublishArtifactsAction
 import org.mdedetrich.apache.sonatype.SonatypeApachePlugin
 import SonatypeApachePlugin.autoImport.apacheSonatypeDisclaimerFile
 
 object Publish extends AutoPlugin {
 
-  val defaultPublishTo = settingKey[File]("Default publish directory")
-
   override def trigger = allRequirements
-  override def requires = sbtrelease.ReleasePlugin && SonatypeApachePlugin
+  override def requires = SonatypeApachePlugin
 
   override lazy val projectSettings = Seq(
     crossPaths := false,
-    pomExtra := pekkoPomExtra,
-    credentials ++= apacheNexusCredentials,
     homepage := Some(url("https://github.com/apache/incubator-pekko-persistence-dynamodb")),
-    pomIncludeRepository := { x => false },
-    defaultPublishTo := crossTarget.value / "repository",
+    developers += Developer("contributors",
+      "Contributors",
+      "dev@pekko.apache.org",
+      url("https://github.com/apache/incubator-pekko-persistence-dynamodb/graphs/contributors")),
     apacheSonatypeDisclaimerFile := Some((LocalRootProject / baseDirectory).value / "DISCLAIMER"))
-
-  def pekkoPomExtra = {
-    <developers>
-      <developer>
-        <id>contributors</id>
-        <name>Contributors</name>
-        <email>dev@pekko.apache.org</email>
-        <url>https://github.com/apache/incubator-pekko-persistence-dynamodb/graphs/contributors</url>
-      </developer>
-    </developers>
-  }
-
-  private val apacheBaseRepo = "repository.apache.org"
-
-  private def apacheNexusCredentials: Seq[Credentials] =
-    (sys.env.get("NEXUS_USER"), sys.env.get("NEXUS_PW")) match {
-      case (Some(user), Some(password)) =>
-        Seq(Credentials("Sonatype Nexus Repository Manager", apacheBaseRepo, user, password))
-      case _ =>
-        Seq.empty
-    }
 }
