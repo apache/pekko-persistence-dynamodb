@@ -32,8 +32,8 @@ object Publish extends AutoPlugin {
     pomIncludeRepository := { x => false },
     publishTo := {
       val nexus = s"https://${apacheBaseRepo}/"
-      if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-      else Some("releases" at nexus + "service/local/staging/deploy/maven2")
+      if (isSnapshot.value) Some("snapshots".at(nexus + "content/repositories/snapshots"))
+      else Some("releases".at(nexus + "service/local/staging/deploy/maven2"))
     },
     apacheSonatypeDisclaimerFile := Some((LocalRootProject / baseDirectory).value / "DISCLAIMER"))
 
