@@ -2,8 +2,8 @@ import PekkoDependency.pekkoVersion
 
 name := "pekko-persistence-dynamodb"
 
-scalaVersion := "2.13.7"
-crossScalaVersions := Seq("2.12.15", "2.13.7")
+scalaVersion := "2.13.10"
+crossScalaVersions := Seq("2.12.17", "2.13.10")
 crossVersion := CrossVersion.binary
 
 val amzVersion = "1.12.286"
