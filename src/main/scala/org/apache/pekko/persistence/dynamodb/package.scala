@@ -41,13 +41,13 @@ package object dynamodb {
   def B(value: Array[Byte]): AttributeValue = new AttributeValue().withB(ByteBuffer.wrap(value))
 
   def lift[T](f: Future[T]): Future[Try[T]] = {
-    val p = Promise[Try[T]]
+    val p = Promise[Try[T]]()
     f.onComplete(p.success)(ExecutionContexts.sameThreadExecutionContext)
     p.future
   }
 
   def liftUnit(f: Future[Any]): Future[Try[Unit]] = {
-    val p = Promise[Try[Unit]]
+    val p = Promise[Try[Unit]]()
     f.onComplete {
       case Success(_)     => p.success(Success(()))
       case f @ Failure(_) => p.success(f.asInstanceOf[Failure[Unit]])

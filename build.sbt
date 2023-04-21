@@ -29,6 +29,7 @@ libraryDependencies ++= Seq(
   "org.hdrhistogram" % "HdrHistogram" % "2.1.8" % "test",
   "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % "test")
 
+scalacOptions ++= Seq("-deprecation", "-feature")
 Test / parallelExecution := false
 // required by test-containers-scala
 Test / fork := true

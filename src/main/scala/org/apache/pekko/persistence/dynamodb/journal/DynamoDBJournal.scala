@@ -152,7 +152,7 @@ class DynamoDBJournal(config: Config)
       for {
         lowest <- lowF
         highest <- highF
-        val upTo = Math.min(toSequenceNr, highest)
+        upTo = Math.min(toSequenceNr, highest)
         _ <- if (upTo + 1 > lowest) setLS(persistenceId, to = upTo + 1) else Future.successful(Done)
         _ <- if (lowest <= upTo) deleteMessages(persistenceId, lowest, upTo) else Future.successful(Done)
       } yield {
