@@ -20,8 +20,10 @@ import org.apache.pekko.stream.scaladsl.Sink
 import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
 import org.apache.pekko.testkit._
 import org.scalactic.TypeCheckedTripleEquals
-import org.scalatest._
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
@@ -30,7 +32,7 @@ import CurrentPersistenceIdsSpec.{ toPersistenceId, RichSeq }
 class CurrentPersistenceIdsSpec
     extends TestKit(ActorSystem("CurrentPersistenceIdsSpec"))
     with ImplicitSender
-    with WordSpecLike
+    with AnyWordSpecLike
     with BeforeAndAfterAll
     with Matchers
     with ScalaFutures

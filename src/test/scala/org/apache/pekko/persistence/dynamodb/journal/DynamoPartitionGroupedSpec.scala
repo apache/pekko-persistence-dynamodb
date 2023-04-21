@@ -10,13 +10,13 @@
 package org.apache.pekko.persistence.dynamodb.journal
 
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.stream.{ ActorMaterializer, Materializer, SystemMaterializer }
+import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
 import org.apache.pekko.stream.scaladsl.Source
 import org.apache.pekko.stream.testkit.scaladsl.TestSink
 import org.apache.pekko.testkit.TestKit
-import org.scalatest.WordSpecLike
+import org.scalatest.wordspec.AnyWordSpecLike
 
-class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGroupedSpec")) with WordSpecLike {
+class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGroupedSpec")) with AnyWordSpecLike {
   implicit val materializer: Materializer = SystemMaterializer(system).materializer
 
   assert(PartitionSize == 100, "This test is only valid with PartitionSize == 100")
