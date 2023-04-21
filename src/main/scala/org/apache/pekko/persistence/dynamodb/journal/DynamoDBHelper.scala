@@ -53,7 +53,7 @@ trait DynamoDBHelper {
     def name = d.desc(aws)
 
     def sendSingle(): Future[Out] = {
-      val p = Promise[Out]
+      val p = Promise[Out]()
 
       val handler = new AsyncHandler[In, Out] {
         override def onError(ex: Exception) =
