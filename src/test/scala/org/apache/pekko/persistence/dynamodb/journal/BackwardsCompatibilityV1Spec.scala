@@ -24,15 +24,17 @@ import com.amazonaws.services.dynamodbv2.document.{ DynamoDB, Item }
 import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClient }
 import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
-import org.scalatest._
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.Base64
 
 class BackwardsCompatibilityV1Spec
     extends TestKit(ActorSystem("BackwardsCompatibilityV1Spec"))
     with ImplicitSender
-    with WordSpecLike
+    with AnyWordSpecLike
     with BeforeAndAfterAll
     with Matchers
     with ScalaFutures

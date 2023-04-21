@@ -18,7 +18,9 @@ import org.apache.pekko.persistence._
 import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.testkit._
 import com.typesafe.config.ConfigFactory
-import org.scalatest._
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
 
@@ -129,7 +131,7 @@ import org.apache.pekko.persistence.dynamodb.journal.DynamoDBIntegrationLoadSpec
 class DynamoDBIntegrationLoadSpec
     extends TestKit(ActorSystem("test", config))
     with ImplicitSender
-    with WordSpecLike
+    with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll
     with DynamoDBUtils

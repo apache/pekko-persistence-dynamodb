@@ -22,8 +22,10 @@ import org.apache.pekko.testkit._
 import com.amazonaws.services.dynamodbv2.model._
 import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
-import org.scalatest._
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
@@ -31,7 +33,7 @@ import scala.concurrent.duration._
 class FailureReportingSpec
     extends TestKit(ActorSystem("FailureReportingSpec"))
     with ImplicitSender
-    with WordSpecLike
+    with AnyWordSpecLike
     with BeforeAndAfterAll
     with Matchers
     with ScalaFutures

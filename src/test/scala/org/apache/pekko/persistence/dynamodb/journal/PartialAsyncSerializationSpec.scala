@@ -20,8 +20,10 @@ import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.testkit._
 import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
-import org.scalatest._
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 trait SerializeAsync
 
@@ -46,7 +48,7 @@ object PartialAsyncSerializationSpec {
 class PartialAsyncSerializationSpec
     extends TestKit(ActorSystem("PartialAsyncSerializationSpec", PartialAsyncSerializationSpec.config))
     with ImplicitSender
-    with WordSpecLike
+    with AnyWordSpecLike
     with BeforeAndAfterAll
     with Matchers
     with ScalaFutures
