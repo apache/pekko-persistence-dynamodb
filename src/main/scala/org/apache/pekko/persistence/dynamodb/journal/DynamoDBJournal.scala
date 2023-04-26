@@ -109,7 +109,7 @@ class DynamoDBJournal(config: Config)
   private val opQueue: JMap[String, Future[Done]] = new JHMap
 
   override def asyncWriteMessages(messages: immutable.Seq[AtomicWrite]): Future[immutable.Seq[Try[Unit]]] = {
-    val p = Promise[Done]
+    val p = Promise[Done]()
     val pid = messages.head.persistenceId
     opQueue.put(pid, p.future)
 

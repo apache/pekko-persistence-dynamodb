@@ -24,6 +24,7 @@ import scala.util.{ Failure, Success, Try }
 import scala.util.control.NonFatal
 import org.apache.pekko.Done
 import org.apache.pekko.actor.ExtendedActorSystem
+import org.apache.pekko.dispatch.ExecutionContexts
 import org.apache.pekko.pattern.after
 import org.apache.pekko.persistence.{ AtomicWrite, PersistentRepr }
 import org.apache.pekko.persistence.dynamodb._
@@ -46,12 +47,13 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
     // optimize the common case
     if (writes.size == 1) {
       writeMessages(writes.head)
-        .map(bubbleUpFailures(_) :: Nil)(org.apache.pekko.dispatch.ExecutionContexts.sameThreadExecutionContext)
+        .map(bubbleUpFailures(_) :: Nil)(ExecutionContexts.sameThreadExecutionContext)
     } else {
       def rec(todo: List[AtomicWrite], acc: List[Try[Unit]]): Future[List[Try[Unit]]] =
         todo match {
           case write :: remainder =>
-            writeMessages(write).flatMap(result => rec(remainder, bubbleUpFailures(result) :: acc))
+            writeMessages(write)
+              .flatMap(result => rec(remainder, bubbleUpFailures(result) :: acc))
           case Nil => Future.successful(acc.reverse)
         }
       rec(writes.toList, Nil)

@@ -41,7 +41,7 @@ class FailureReportingSpec
     with DynamoDBUtils
     with IntegSpec {
 
-  implicit val patience = PatienceConfig(5.seconds)
+  implicit val patience: PatienceConfig = PatienceConfig(5.seconds)
 
   override val persistenceId = "FailureReportingSpec"
 
@@ -78,7 +78,7 @@ class FailureReportingSpec
       val config = ConfigFactory
         .parseString("my-dynamodb-journal.journal-table=ThisTableDoesNotExist")
         .withFallback(ConfigFactory.load())
-      implicit val system = ActorSystem("FailureReportingSpec-test1", config)
+      implicit val system: ActorSystem = ActorSystem("FailureReportingSpec-test1", config)
       try EventFilter[ResourceNotFoundException](pattern = ".*ThisTableDoesNotExist.*", occurrences = 1).intercept {
           Persistence(system).journalFor("")
         }

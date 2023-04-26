@@ -27,8 +27,6 @@ import java.util.{ concurrent => juc }
 import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.concurrent.duration._
-import scala.reflect.ClassTag
-import scala.util.control.NoStackTrace
 
 case class LatencyReport(nanos: Long, retries: Int)
 private class RetryStateHolder(var retries: Int = 10, var backoff: FiniteDuration = 1.millis)

@@ -29,15 +29,15 @@ trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
   val system: ActorSystem
   import system.dispatcher
 
-  override lazy val journalSettings = {
+  override val journalSettings = {
     val c = system.settings.config
     val config = c.getConfig(c.getString("pekko.persistence.journal.plugin"))
     new DynamoDBJournalConfig(config)
   }
 
-  override lazy val dynamo: DynamoDBHelper = dynamoClient(system, journalSettings)
+  override val dynamo: DynamoDBHelper = dynamoClient(system, journalSettings)
 
-  implicit val timeout = Timeout(5.seconds)
+  implicit val timeout: Timeout = Timeout(5.seconds)
 
   def ensureJournalTableExists(read: Long = 10L, write: Long = 10L): Unit = {
     val create =
