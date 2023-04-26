@@ -14,15 +14,10 @@
 package org.apache.pekko.persistence.dynamodb.journal
 
 import org.apache.pekko.NotUsed
-import org.apache.pekko.actor.{ ActorSystem, ExtendedActorSystem }
+import org.apache.pekko.actor.ExtendedActorSystem
+import org.apache.pekko.dispatch.MessageDispatcher
 import org.apache.pekko.persistence.PersistentRepr
 import org.apache.pekko.persistence.dynamodb._
-import org.apache.pekko.persistence.dynamodb.{
-  ActorSystemProvider,
-  DynamoProvider,
-  LoggingProvider,
-  MaterializerProvider
-}
 import org.apache.pekko.serialization.{ AsyncSerializer, Serialization }
 import org.apache.pekko.stream._
 import org.apache.pekko.stream.scaladsl._
@@ -32,8 +27,7 @@ import com.amazonaws.services.dynamodbv2.model._
 import java.util.function.Consumer
 import java.util.{ ArrayList, Collections, Map => JMap }
 import scala.collection.immutable
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
 
 object DynamoDBRecovery {
@@ -215,7 +209,7 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
   import DynamoDBRecovery._
   import journalSettings._
 
-  implicit lazy val replayDispatcher = system.dispatchers.lookup(ReplayDispatcher)
+  implicit lazy val replayDispatcher: MessageDispatcher = system.dispatchers.lookup(ReplayDispatcher)
 
   override def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(
       replayCallback: (PersistentRepr) => Unit): Future[Unit] = {
@@ -463,7 +457,7 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
             Future.successful(deserializedEvent)
       }
 
-      fut.map { event: AnyRef =>
+      fut.map { (event: AnyRef) =>
         PersistentRepr(
           event,
           sequenceNr = sN,

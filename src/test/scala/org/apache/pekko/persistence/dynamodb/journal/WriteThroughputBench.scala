@@ -126,8 +126,9 @@ writer-dispatcher {
 """).resolve)
       .withFallback(ConfigFactory.load())
 
-  implicit val system = ActorSystem("WriteThroughputBench", config)
-  implicit val materializer = ActorMaterializer(ActorMaterializerSettings(system).withInputBuffer(1, 1))
+  implicit val system: ActorSystem = ActorSystem("WriteThroughputBench", config)
+  implicit val materializer: ActorMaterializer =
+    ActorMaterializer(ActorMaterializerSettings(system).withInputBuffer(1, 1))
 
   /*
    * You will want to make sure that the table is deployed with the proper values for

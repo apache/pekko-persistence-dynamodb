@@ -22,15 +22,14 @@ import com.amazonaws.services.dynamodbv2.model._
 import java.util.UUID
 import scala.collection.JavaConverters._
 import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
-import org.scalatest.Suite
+import scala.concurrent.{ Await, ExecutionContext, Future }
 
 trait DynamoDBUtils {
 
   def system: ActorSystem
-  implicit val executionContext = system.dispatcher
+  implicit val executionContext: ExecutionContext = system.dispatcher
 
-  lazy val settings: DynamoDBSnapshotConfig = {
+  val settings: DynamoDBSnapshotConfig = {
     val c = system.settings.config
     val config = c.getConfig(c.getString("pekko.persistence.snapshot-store.plugin"))
     new DynamoDBSnapshotConfig(config)
@@ -39,7 +38,7 @@ trait DynamoDBUtils {
 
   lazy val client: DynamoDBHelper = dynamoClient(system, settings)
 
-  implicit val timeout = Timeout(5.seconds)
+  implicit val timeout: Timeout = Timeout(5.seconds)
 
   import com.amazonaws.services.dynamodbv2.model.{ KeySchemaElement, KeyType }
 
