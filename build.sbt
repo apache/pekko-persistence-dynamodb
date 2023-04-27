@@ -16,8 +16,7 @@ ThisBuild / apacheSonatypeProjectProfile := "pekko"
 Test / unmanagedSourceDirectories ++= {
   if (scalaVersion.value.startsWith("2.")) {
     Seq(
-      (LocalRootProject / baseDirectory).value / "src" / "test" / "scala-2"
-    )
+      (LocalRootProject / baseDirectory).value / "src" / "test" / "scala-2")
   } else {
     Seq.empty
   }
