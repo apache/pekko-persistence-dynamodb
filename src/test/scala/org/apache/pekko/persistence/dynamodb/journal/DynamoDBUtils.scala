@@ -26,8 +26,7 @@ import scala.concurrent.duration._
 
 trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
 
-  val system: ActorSystem
-  import system.dispatcher
+  def system: ActorSystem
 
   override val journalSettings = {
     val c = system.settings.config
@@ -35,7 +34,7 @@ trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
     new DynamoDBJournalConfig(config)
   }
 
-  override val dynamo: DynamoDBHelper = dynamoClient(system, journalSettings)
+  override lazy val dynamo: DynamoDBHelper = dynamoClient(system, journalSettings)
 
   implicit val timeout: Timeout = Timeout(5.seconds)
 
@@ -44,6 +43,7 @@ trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
       schema
         .withTableName(journalSettings.JournalTable)
         .withProvisionedThroughput(new ProvisionedThroughput(read, write))
+    implicit val dispatcher = system.dispatcher
 
     var names = Vector.empty[String]
     lazy val complete: ListTablesResult => Future[Vector[String]] = aws =>
