@@ -12,6 +12,7 @@ val testcontainersScalaVersion = "0.40.10"
 resolvers += "Apache Nexus Snapshots".at("https://repository.apache.org/content/repositories/snapshots/")
 
 ThisBuild / apacheSonatypeProjectProfile := "pekko"
+sourceDistName := "incubating-pekko-persistence-dynamodb"
 
 libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-core" % amzVersion,
