@@ -9,7 +9,7 @@ crossVersion := CrossVersion.binary
 val amzVersion = "1.12.286"
 val testcontainersScalaVersion = "0.40.10"
 
-resolvers += "Apache Nexus Snapshots".at("https://repository.apache.org/content/repositories/snapshots/")
+resolvers += Resolver.ApacheMavenSnapshotsRepo
 
 ThisBuild / apacheSonatypeProjectProfile := "pekko"
 sourceDistName := "incubating-pekko-persistence-dynamodb"
