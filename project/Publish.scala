@@ -14,15 +14,15 @@ package org.apache.pekko
 
 import sbt._
 import sbt.Keys._
-import org.mdedetrich.apache.sonatype.SonatypeApachePlugin
-import SonatypeApachePlugin.autoImport.apacheSonatypeDisclaimerFile
+import org.mdedetrich.apache.sonatype.ApacheSonatypePlugin
+import ApacheSonatypePlugin.autoImport.apacheSonatypeDisclaimerFile
 import sbtdynver.DynVerPlugin
 import sbtdynver.DynVerPlugin.autoImport.dynverSonatypeSnapshots
 
 object Publish extends AutoPlugin {
 
   override def trigger = allRequirements
-  override def requires = SonatypeApachePlugin && DynVerPlugin
+  override def requires = ApacheSonatypePlugin && DynVerPlugin
 
   override lazy val projectSettings = Seq(
     crossPaths := false,
