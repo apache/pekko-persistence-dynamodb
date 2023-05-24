@@ -40,7 +40,7 @@ object PekkoDependency {
           case Some("main")        => mainSnapshot
           case Some("release-1.0") =>
             // Don't 'downgrade' building even if pekko.sources asks for it
-            // (typically for the docs that require 2.6)
+            // (typically for the docs that require Pekko 1.0)
             if (defaultVersion.startsWith("1.0")) Artifact(determineLatestSnapshot("0.0.0"), true)
             else Artifact(defaultVersion)
           case Some("default") | None =>
