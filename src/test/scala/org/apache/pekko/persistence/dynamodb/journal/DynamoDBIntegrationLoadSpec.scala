@@ -89,7 +89,7 @@ pekko.persistence.snapshot-store.plugin = ""
     def receiveRecover: Receive = {
       case SnapshotOffer(_, snapshot: String) =>
         last = snapshot
-        probe ! s"offered-${last}"
+        probe ! s"offered-$last"
       case payload: String =>
         handle(payload)
     }
@@ -98,7 +98,7 @@ pekko.persistence.snapshot-store.plugin = ""
       case "snap" =>
         saveSnapshot(last)
       case SaveSnapshotSuccess(_) =>
-        probe ! s"snapped-${last}"
+        probe ! s"snapped-$last"
       case payload: String =>
         persist(payload)(handle)
       case DeleteTo(sequenceNr) =>
@@ -160,8 +160,8 @@ class DynamoDBIntegrationLoadSpec
 
     val processor1 = system.actorOf(Props(classOf[ProcessorA], persistenceId, self))
     (1L to 16L).foreach { i =>
-      processor1 ! s"a-${i}"
-      expectMsgAllOf(s"a-${i}", i, false)
+      processor1 ! s"a-$i"
+      expectMsgAllOf(s"a-$i", i, false)
     }
 
     processor1 ! DeleteTo(3L)
@@ -169,7 +169,7 @@ class DynamoDBIntegrationLoadSpec
 
     system.actorOf(Props(classOf[ProcessorA], persistenceId, self))
     (4L to 16L).foreach { i =>
-      expectMsgAllOf(s"a-${i}", i, true)
+      expectMsgAllOf(s"a-$i", i, true)
     }
 
     processor1 ! DeleteTo(7L)
@@ -177,7 +177,7 @@ class DynamoDBIntegrationLoadSpec
 
     system.actorOf(Props(classOf[ProcessorA], persistenceId, self))
     (8L to 16L).foreach { i =>
-      expectMsgAllOf(s"a-${i}", i, true)
+      expectMsgAllOf(s"a-$i", i, true)
     }
   }
 
@@ -187,13 +187,13 @@ class DynamoDBIntegrationLoadSpec
       val persistenceId = UUID.randomUUID().toString
       val processor1 = system.actorOf(Props(classOf[ProcessorA], persistenceId, self), "p1")
       (1L to 16L).foreach { i =>
-        processor1 ! s"a-${i}"
-        expectMsgAllOf(s"a-${i}", i, false)
+        processor1 ! s"a-$i"
+        expectMsgAllOf(s"a-$i", i, false)
       }
 
       val processor2 = system.actorOf(Props(classOf[ProcessorA], persistenceId, self), "p2")
       (1L to 16L).foreach { i =>
-        expectMsgAllOf(s"a-${i}", i, true)
+        expectMsgAllOf(s"a-$i", i, true)
       }
 
       processor2 ! "b"
@@ -210,8 +210,8 @@ class DynamoDBIntegrationLoadSpec
       val probe = TestProbe()
       val processor1 = system.actorOf(Props(classOf[ProcessorA], persistenceId, self))
       1L to 6L foreach { i =>
-        processor1 ! s"a-${i}"
-        expectMsgAllOf(s"a-${i}", i, false)
+        processor1 ! s"a-$i"
+        expectMsgAllOf(s"a-$i", i, false)
       }
 
       val view = system.actorOf(Props(classOf[ViewA], "p7-view", persistenceId, probe.ref))
@@ -236,13 +236,13 @@ class DynamoDBIntegrationLoadSpec
 
       processorAtomic ! List("a-1", "a-2", "a-3", "a-4", "a-5", "a-6")
       (1L to 6L).foreach { i =>
-        expectMsgAllOf(s"a-${i}", i, false)
+        expectMsgAllOf(s"a-$i", i, false)
       }
 
       val testProbe = TestProbe()
       val processor2 = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, testProbe.ref))
       (1L to 6L).foreach { i =>
-        testProbe.expectMsgAllOf(s"a-${i}", i, true)
+        testProbe.expectMsgAllOf(s"a-$i", i, true)
       }
     }
     "write and replay with persistAll greater than partition size skipping part of a partition" in {
@@ -252,18 +252,18 @@ class DynamoDBIntegrationLoadSpec
 
       processorAtomic ! List("a-1", "a-2", "a-3")
       (1L to 3L).foreach { i =>
-        expectMsgAllOf(s"a-${i}", i, false)
+        expectMsgAllOf(s"a-$i", i, false)
       }
 
       processorAtomic ! List("a-4", "a-5", "a-6")
       (4L to 6L).foreach { i =>
-        expectMsgAllOf(s"a-${i}", i, false)
+        expectMsgAllOf(s"a-$i", i, false)
       }
 
       val testProbe = TestProbe()
       val processor2 = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, testProbe.ref))
       (1L to 6L).foreach { i =>
-        testProbe.expectMsgAllOf(s"a-${i}", i, true)
+        testProbe.expectMsgAllOf(s"a-$i", i, true)
       }
     }
     "write and replay with persistAll less than partition size" in {
@@ -273,12 +273,12 @@ class DynamoDBIntegrationLoadSpec
 
       processorAtomic ! List("a-1", "a-2", "a-3", "a-4")
       (1L to 4L).foreach { i =>
-        expectMsgAllOf(s"a-${i}", i, false)
+        expectMsgAllOf(s"a-$i", i, false)
       }
 
       val processor2 = system.actorOf(Props(classOf[ProcessorAtomic], persistenceId, self))
       (1L to 4L).foreach { i =>
-        expectMsgAllOf(s"a-${i}", i, true)
+        expectMsgAllOf(s"a-$i", i, true)
       }
     }
     "not replay messages deleted from the +1 partition" in {
@@ -290,7 +290,7 @@ class DynamoDBIntegrationLoadSpec
 
       List("a-1", "a-2", "a-3", "a-4", "a-5", "a-6").foreach(processorAtomic ! List(_))
       (1L to 6L).foreach { i =>
-        expectMsgAllOf(s"a-${i}", i, false)
+        expectMsgAllOf(s"a-$i", i, false)
       }
       processorAtomic ! DeleteTo(5L)
       awaitRangeDeletion(deleteProbe)
