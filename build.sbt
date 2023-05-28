@@ -12,6 +12,7 @@ val testcontainersScalaVersion = "0.40.10"
 resolvers += Resolver.ApacheMavenSnapshotsRepo
 
 ThisBuild / apacheSonatypeProjectProfile := "pekko"
+ThisBuild / versionScheme := Some("semver-spec")
 sourceDistName := "incubating-pekko-persistence-dynamodb"
 
 Test / unmanagedSourceDirectories ++= {
