@@ -10,7 +10,10 @@ github:
     - scala
     - dynamodb
     - journal
-  
+
+  protected_tags:
+    - "v*.*.*"
+
   features:
     # Enable wiki for documentation
     wiki: false
