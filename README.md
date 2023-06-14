@@ -130,9 +130,9 @@ Changing this number changes both the number of concurrent connections and the u
 Compatibility with Akka versions
 -----------------------------------
 
-pekko-persistence-dynamodb is derived from [akka-persistence-dynamodb](https://github.com/akka/akka-persistence-dynamodb) v1.1.2.
+pekko-persistence-dynamodb is derived from [akka-persistence-dynamodb](https://github.com/akka/akka-persistence-dynamodb) v1.3.0.
 
-Anyone migrating from using akka-persistence-dynamodb should first upgrade to akka-persistence-dynamodb v1.1.2.
+Anyone migrating from using akka-persistence-dynamodb should first upgrade to akka-persistence-dynamodb v1.3.0.
 
 Plugin Development
 ------------------
