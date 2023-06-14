@@ -8,7 +8,7 @@ A replicated Pekko Persistence journal backed by
 - This includes a Pekko Persistence Query plugin. However, this requires an additional GSI for efficient usage.
 
 Supported versions:
-- Scala: `2.12.x`, `2.13.x`
+- Scala: `2.12.x`, `2.13.x`, `3.3.0+`
 - Pekko: `1.0.x+`
 - Java: `1.8+`
 
@@ -17,7 +17,7 @@ Supported versions:
 Installation
 ------------
 
-This plugin is published to the Maven Central repository with the following names:
+This plugin is not yet released. When it is released, it will be published to the Maven Central repository with the following names:
 
 ~~~
 <dependency>
@@ -32,6 +32,11 @@ or for sbt users:
 ```sbt
 libraryDependencies += "org.apache.pekko" %% "pekko-persistence-dynamodb" % "1.0.0"
 ```
+
+Snapshot versions are available.
+- To work out a version to use, see https://repository.apache.org/content/groups/snapshots/org/apache/pekko/pekko-persistence-dynamodb_2.13/
+- you will need to a resolver to `https://repository.apache.org/content/groups/snapshots`
+- in sbt 1.9.0+, you can add `resolvers += Resolver.ApacheMavenSnapshotsRepo`
 
 Configuration
 -------------
@@ -58,7 +63,7 @@ Before you can use these settings you will have to create a table, e.g. using th
   * a sort key of type Number with name `num`
 
 ### Snapshot store
-(**Since:** `1.1.0`; contributed by [@joost-de-vries](https://github.com/joost-de-vries))
+contributed by [@joost-de-vries](https://github.com/joost-de-vries)
 
 ~~~
 pekko.persistence.snapshot-store.plugin = "my-dynamodb-snapshot-store"
@@ -82,8 +87,9 @@ The table to create for snapshot storage has the schema:
 
 The DynamoDB item of a snapshot [can be 400 kB](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html#limits-items). Using a binary serialisation format like ProtoBuf or Kryo will use that space most effectively.
 
-### Read journal (Akka persistence query)
-(**Since:** `1.3.0`; contributed by [@joost-de-vries](https://github.com/joost-de-vries))
+### Read journal (Pekko persistence query)
+contributed by [@joost-de-vries](https://github.com/joost-de-vries))
+
 See `CreatePersistenceIdsIndex.createPersistenceIdsIndexRequest` how to create the Global Secondary Index that is required to query currentPersistenceIds
 ~~~
 dynamodb-read-journal {
@@ -95,7 +101,7 @@ dynamodb-read-journal {
 Storage Semantics
 -----------------
 
-DynamoDB only offers consistency guarantees for a single storage item—which corresponds to one event in the case of this Akka Persistence plugin. This means that any single event is either written to the journal (and thereby visible to later replays) or it is not. This plugin supports atomic multi-event batches nevertheless, by marking the contained events such that partial replay can be avoided (see the `idx` and `cnt` attributes in the storage format description below). Consider the following actions of a PersistentActor:
+DynamoDB only offers consistency guarantees for a single storage item—which corresponds to one event in the case of this Pekko Persistence plugin. This means that any single event is either written to the journal (and thereby visible to later replays) or it is not. This plugin supports atomic multi-event batches nevertheless, by marking the contained events such that partial replay can be avoided (see the `idx` and `cnt` attributes in the storage format description below). Consider the following actions of a PersistentActor:
 
 ```scala
 val events = List(<some events>)
@@ -121,10 +127,12 @@ my-dynamodb-journal.aws-client-config.max-connections = <your value here>
 
 Changing this number changes both the number of concurrent connections and the used thread-pool size.
 
-Compatibility with pre-1.0 versions
+Compatibility with Akka versions
 -----------------------------------
 
-The storage layout has been changed incompatibly for performance and correctness reasons, therefore events stored with the old plugin cannot be used with versions since 1.0.
+pekko-persistence-dynamodb is derived from [akka-persistence-dynamodb](https://github.com/akka/akka-persistence-dynamodb) v1.1.2.
+
+Anyone migrating from using akka-persistence-dynamodb should first upgrade to akka-persistence-dynamodb v1.1.2.
 
 Plugin Development
 ------------------
@@ -210,6 +218,7 @@ Credits
 - Update to Akka 2.4 and further development up to version 1.0 was kindly sponsored by [Zynga Inc.](https://www.zynga.com/).
 - The snapshot store and readjournal were contributed by [Joost de Vries](https://github.com/joost-de-vries)
 - [Corey O'Connor](https://dogheadbone.com/)
+- Lightbend team
 - Ryan Means
 - Jean-Luc Deprez
 - Michal Janousek
