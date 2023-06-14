@@ -35,7 +35,7 @@ libraryDependencies += "org.apache.pekko" %% "pekko-persistence-dynamodb" % "1.0
 
 Snapshot versions are available.
 - To work out a version to use, see https://repository.apache.org/content/groups/snapshots/org/apache/pekko/pekko-persistence-dynamodb_2.13/
-- you will need to a resolver to `https://repository.apache.org/content/groups/snapshots`
+- you will need to add a resolver set to `https://repository.apache.org/content/groups/snapshots`
 - in sbt 1.9.0+, you can add `resolvers += Resolver.ApacheMavenSnapshotsRepo`
 
 Configuration
