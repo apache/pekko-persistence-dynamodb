@@ -51,13 +51,12 @@ object PekkoDependency {
     }
   }
 
-  // Default version updated only when needed, https://doc.akka.io//docs/akka/current/project/downstream-upgrade-strategy.html
-  val minimumExpectedPekkoVersion = "1.0.0"
+  // Default version updated only when needed, https://pekko.apache.org/docs/pekko/current/project/downstream-upgrade-strategy.html
+  val minimumExpectedPekkoVersion = "0.0.0+26720-01379c41-SNAPSHOT"
   val default = pekkoDependency(defaultVersion = minimumExpectedPekkoVersion)
-  val minimumExpectedPekko26Version = "1.0.0"
-  val docs = pekkoDependency(defaultVersion = minimumExpectedPekko26Version)
+  val docs = pekkoDependency(defaultVersion = minimumExpectedPekkoVersion)
 
-  lazy val mainSnapshot = Artifact(determineLatestSnapshot("0.0.0"), true)
+  lazy val mainSnapshot = Artifact(determineLatestSnapshot(minimumExpectedPekkoVersion), true)
 
   val pekkoVersion: String = default match {
     case Artifact(version, _) => version
