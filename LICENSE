@@ -199,3 +199,9 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+---------------
+
+pekko-persistence-dynamodb contains DynamoDBIntegrationLoadSpec.scala in its test source
+that is based on test code from https://github.com/krasserm/akka-persistence-cassandra
+that was released under the Apache 2.0 license.
