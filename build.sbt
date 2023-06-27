@@ -42,7 +42,6 @@ libraryDependencies ++= Seq(
   "org.apache.pekko" %% "pekko-persistence" % pekkoVersion,
   "org.apache.pekko" %% "pekko-persistence-query" % pekkoVersion,
   "org.apache.pekko" %% "pekko-stream" % pekkoVersion,
-  "org.scala-lang.modules" %% "scala-collection-compat" % "2.6.0",
   "org.apache.pekko" %% "pekko-persistence-tck" % pekkoVersion % "test",
   "org.apache.pekko" %% "pekko-testkit" % pekkoVersion % "test",
   "org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion % "test",
