@@ -13,22 +13,23 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import org.apache.pekko.NotUsed
-import org.apache.pekko.actor.ExtendedActorSystem
-import org.apache.pekko.dispatch.MessageDispatcher
-import org.apache.pekko.persistence.PersistentRepr
-import org.apache.pekko.persistence.dynamodb._
-import org.apache.pekko.serialization.{ AsyncSerializer, Serialization }
-import org.apache.pekko.stream._
-import org.apache.pekko.stream.scaladsl._
-import org.apache.pekko.stream.stage._
+import org.apache.pekko
+import pekko.NotUsed
+import pekko.actor.ExtendedActorSystem
+import pekko.dispatch.MessageDispatcher
+import pekko.persistence.PersistentRepr
+import pekko.persistence.dynamodb._
+import pekko.serialization.{ AsyncSerializer, Serialization }
+import pekko.stream._
+import pekko.stream.scaladsl._
+import pekko.stream.stage._
+import pekko.util.ccompat.JavaConverters._
 import com.amazonaws.services.dynamodbv2.model._
 
 import java.util.function.Consumer
 import java.util.{ ArrayList, Collections, Map => JMap }
 import scala.collection.immutable
 import scala.concurrent.Future
-import scala.jdk.CollectionConverters._
 
 object DynamoDBRecovery {
   val ItemAttributesForReplay: Seq[String] = Seq(
