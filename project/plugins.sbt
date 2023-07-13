@@ -11,8 +11,7 @@ resolvers += "Typesafe repository".at("https://repo.typesafe.com/typesafe/releas
 
 addSbtPlugin("de.heikoseeberger" % "sbt-header" % "5.9.0")
 addSbtPlugin("com.jsuereth" % "sbt-pgp" % "2.0.1")
-addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "0.9.3")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.4.6")
 addSbtPlugin("org.mdedetrich" % "sbt-apache-sonatype" % "0.1.10")
-addSbtPlugin("com.github.pjfanning" % "sbt-source-dist" % "0.1.6")
+addSbtPlugin("com.github.pjfanning" % "sbt-source-dist" % "0.1.8")
 addSbtPlugin("com.dwijnand" % "sbt-dynver" % "4.1.1")
