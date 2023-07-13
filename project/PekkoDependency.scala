@@ -37,22 +37,15 @@ object PekkoDependency {
         Sources(pekkoSources)
       case None =>
         Option(System.getProperty("pekko.build.pekko.version")) match {
-          case Some("main")        => mainSnapshot
-          case Some("release-1.0") =>
-            // Don't 'downgrade' building even if pekko.sources asks for it
-            // (typically for the docs that require Pekko 1.0)
-            if (defaultVersion.startsWith("1.0")) Artifact(determineLatestSnapshot("0.0.0"), true)
-            else Artifact(defaultVersion)
-          case Some("default") | None =>
-            // TODO: Revert to Artifact(defaultVersion) when release of Pekko is made
-            mainSnapshot
-          case Some(other) => Artifact(other, true)
+          case Some("main")           => mainSnapshot
+          case Some("default") | None => Artifact(defaultVersion)
+          case Some(other)            => Artifact(other, true)
         }
     }
   }
 
   // Default version updated only when needed, https://pekko.apache.org/docs/pekko/current/project/downstream-upgrade-strategy.html
-  val minimumExpectedPekkoVersion = "0.0.0+26720-01379c41-SNAPSHOT"
+  val minimumExpectedPekkoVersion = "1.0.0"
   val default = pekkoDependency(defaultVersion = minimumExpectedPekkoVersion)
   val docs = pekkoDependency(defaultVersion = minimumExpectedPekkoVersion)
 

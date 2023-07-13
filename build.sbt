@@ -18,10 +18,6 @@ crossVersion := CrossVersion.binary
 val amzVersion = "1.12.286"
 val testcontainersScalaVersion = "0.40.10"
 
-// TODO: Remove when Pekko has a proper release
-resolvers += Resolver.ApacheMavenSnapshotsRepo
-updateOptions := updateOptions.value.withLatestSnapshots(false)
-
 ThisBuild / apacheSonatypeProjectProfile := "pekko"
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
 sourceDistName := "incubating-pekko-persistence-dynamodb"
