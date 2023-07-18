@@ -13,14 +13,15 @@
 
 package org.apache.pekko.persistence.dynamodb.snapshot
 
-import org.apache.pekko.persistence.dynamodb.dynamoClient
-import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.util.Timeout
 import com.amazonaws.services.dynamodbv2.model._
+import org.apache.pekko
+import pekko.persistence.dynamodb.dynamoClient
+import pekko.persistence.dynamodb.journal.DynamoDBHelper
+import pekko.actor.ActorSystem
+import pekko.util.Timeout
+import pekko.util.ccompat.JavaConverters._
 
 import java.util.UUID
-import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext, Future }
 

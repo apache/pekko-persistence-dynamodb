@@ -13,12 +13,14 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import org.apache.pekko.actor._
-import org.apache.pekko.event.Logging
-import org.apache.pekko.persistence.JournalProtocol._
-import org.apache.pekko.persistence._
-import org.apache.pekko.persistence.dynamodb._
-import org.apache.pekko.testkit._
+import org.apache.pekko
+import pekko.actor._
+import pekko.event.Logging
+import pekko.persistence.JournalProtocol._
+import pekko.persistence._
+import pekko.persistence.dynamodb._
+import pekko.testkit._
+import pekko.util.ccompat.JavaConverters._
 import com.amazonaws.services.dynamodbv2.model._
 import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
@@ -27,7 +29,6 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 
 class FailureReportingSpec

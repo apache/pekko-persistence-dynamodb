@@ -15,21 +15,21 @@ package org.apache.pekko.persistence.dynamodb.journal
 
 import java.nio.ByteBuffer
 import java.util.Collections
-import com.amazonaws.services.dynamodbv2.model._
-
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success, Try }
 import scala.util.control.NonFatal
-import org.apache.pekko.Done
-import org.apache.pekko.actor.ExtendedActorSystem
-import org.apache.pekko.dispatch.ExecutionContexts
-import org.apache.pekko.pattern.after
-import org.apache.pekko.persistence.{ AtomicWrite, PersistentRepr }
-import org.apache.pekko.persistence.dynamodb._
-import org.apache.pekko.serialization.{ AsyncSerializer, Serialization, Serializers }
-import org.apache.pekko.persistence.dynamodb.DynamoDBRequests
+
+import com.amazonaws.services.dynamodbv2.model._
+import org.apache.pekko
+import pekko.Done
+import pekko.actor.ExtendedActorSystem
+import pekko.dispatch.ExecutionContexts
+import pekko.pattern.after
+import pekko.persistence.{ AtomicWrite, PersistentRepr }
+import pekko.persistence.dynamodb._
+import pekko.serialization.{ AsyncSerializer, Serialization, Serializers }
+import pekko.util.ccompat.JavaConverters._
 
 trait DynamoDBJournalRequests extends DynamoDBRequests {
   this: DynamoDBJournal =>
