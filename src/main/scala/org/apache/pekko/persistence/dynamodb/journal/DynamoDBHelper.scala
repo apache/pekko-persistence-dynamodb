@@ -13,18 +13,19 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import com.amazonaws.{ AmazonServiceException, AmazonWebServiceRequest }
+import com.amazonaws.AmazonWebServiceRequest
 import com.amazonaws.handlers.AsyncHandler
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
 import com.amazonaws.services.dynamodbv2.model._
-import org.apache.pekko.actor.{ ActorRef, Scheduler }
-import org.apache.pekko.event.LoggingAdapter
-import org.apache.pekko.pattern.after
-import org.apache.pekko.persistence.dynamodb.{ DynamoDBConfig, Item }
+import org.apache.pekko
+import pekko.actor.{ ActorRef, Scheduler }
+import pekko.event.LoggingAdapter
+import pekko.pattern.after
+import pekko.persistence.dynamodb.{ DynamoDBConfig, Item }
+import pekko.util.ccompat.JavaConverters._
 
 import java.util.{ concurrent => juc }
 
-import scala.collection.JavaConverters._
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.concurrent.duration._
 

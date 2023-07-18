@@ -14,18 +14,18 @@
 package org.apache.pekko.persistence.dynamodb
 
 import java.util.Collections
-import java.util.{ Collections, HashMap => JHMap, List => JList, Map => JMap }
-import org.apache.pekko.Done
-import org.apache.pekko.actor.{ Actor, ActorLogging }
-import org.apache.pekko.pattern.after
-import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
+import java.util.{ List => JList, Map => JMap }
 import com.amazonaws.services.dynamodbv2.model._
+import org.apache.pekko
+import pekko.Done
+import pekko.actor.{ Actor, ActorLogging }
+import pekko.pattern.after
+import pekko.persistence.dynamodb.journal.DynamoDBHelper
+import pekko.util.ccompat.JavaConverters._
 
-import scala.collection.JavaConverters._
 import scala.concurrent.Future
-import scala.concurrent.duration.FiniteDuration
-import scala.util.control.NonFatal
 import scala.concurrent.duration._
+import scala.util.control.NonFatal
 
 private[dynamodb] trait DynamoDBRequests {
   this: ActorLogging with Actor =>
