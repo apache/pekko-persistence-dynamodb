@@ -22,6 +22,12 @@ ThisBuild / apacheSonatypeProjectProfile := "pekko"
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
 sourceDistName := "incubating-pekko-persistence-dynamodb"
 
+commands := commands.value.filterNot { command =>
+  command.nameOption.exists { name =>
+    name.contains("sonatypeRelease") || name.contains("sonatypeBundleRelease")
+  }
+}
+
 Test / unmanagedSourceDirectories ++= {
   if (scalaVersion.value.startsWith("2.")) {
     Seq(
