@@ -21,7 +21,8 @@ val testcontainersScalaVersion = "0.40.10"
 
 ThisBuild / apacheSonatypeProjectProfile := "pekko"
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
-sourceDistName := "incubating-pekko-persistence-dynamodb"
+sourceDistName := "apache-pekko-persistence-dynamodb"
+sourceDistIncubating := true
 
 ThisBuild / reproducibleBuildsCheckResolver :=
   "Apache Pekko Staging".at("https://repository.apache.org/content/groups/staging/")
