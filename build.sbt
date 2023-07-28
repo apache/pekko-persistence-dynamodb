@@ -8,6 +8,7 @@
  */
 
 import PekkoDependency.pekkoVersion
+import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCheckResolver
 
 name := "pekko-persistence-dynamodb"
 
@@ -21,6 +22,9 @@ val testcontainersScalaVersion = "0.40.10"
 ThisBuild / apacheSonatypeProjectProfile := "pekko"
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
 sourceDistName := "incubating-pekko-persistence-dynamodb"
+
+ThisBuild / reproducibleBuildsCheckResolver :=
+  "Apache Pekko Staging".at("https://repository.apache.org/content/groups/staging/")
 
 commands := commands.value.filterNot { command =>
   command.nameOption.exists { name =>
@@ -58,3 +62,5 @@ Test / parallelExecution := false
 Test / fork := true
 logBuffered := false
 Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
+
+enablePlugins(ReproducibleBuildsPlugin)
