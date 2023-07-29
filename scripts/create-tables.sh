@@ -3,8 +3,8 @@ set -o errexit -o nounset
 
 DIR=$(dirname "$0")
 
-JOURNAL_JSON=$(sed -e "s/\${TABLE_NAME}/$DDB_TABLE_JOURNAL/" "${DIR}/akka-journal-table.json")
-SNAPSHOT_JSON=$(sed -e "s/\${TABLE_NAME}/$DDB_TABLE_SNAPSHOT/" "${DIR}/akka-snapshot-table.json")
+JOURNAL_JSON=$(sed -e "s/\${TABLE_NAME}/$DDB_TABLE_JOURNAL/" "${DIR}/pekko-journal-table.json")
+SNAPSHOT_JSON=$(sed -e "s/\${TABLE_NAME}/$DDB_TABLE_SNAPSHOT/" "${DIR}/pekko-snapshot-table.json")
 
 echo "Creating journal table"
 aws dynamodb create-table \
