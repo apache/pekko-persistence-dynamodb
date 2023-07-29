@@ -1,4 +1,4 @@
-# DApache Pekko DynamoDB Persistence Plugin
+# Apache Pekko DynamoDB Persistence Plugin
 
 A replicated Pekko Persistence journal backed by
 [Amazon DynamoDB](https://aws.amazon.com/dynamodb/).
