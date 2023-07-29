@@ -41,23 +41,19 @@ This is the process for committing code into main branch. There are of course ex
 For a Pull Request to be considered at all it has to meet these requirements:
 
 1. Live up to the current code standard:
-   - Not violate [DRY](http://programmer.97things.oreilly.com/wiki/index.php/Don%27t_Repeat_Yourself).
-   - [Boy Scout Rule](http://programmer.97things.oreilly.com/wiki/index.php/The_Boy_Scout_Rule) needs to have been applied.
+   - Not violate [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself).
+   - [Boy Scout Rule](https://www.oreilly.com/library/view/97-things-every/9780596809515/ch08.html) needs to have been applied.
 2. Regardless if the code introduces new features or fixes bugs or regressions, it must have comprehensive tests.
 3. The code must be well documented in the Typesafe's standard documentation format (see the ‘Documentation’ section below).
 4. The commit messages must properly describe the changes, see further below.
-5. All Typesafe projects must include Typesafe copyright notices.  Each project can choose between one of two approaches:
-    
-    1. All source files in the project must have a Typesafe copyright notice in the file header.   
-    2. The Notices file for the project includes the Typesafe copyright notice and no other files contain copyright notices.  See http://www.apache.org/legal/src-headers.html for instructions for managing this approach for copyrights.
-    
-    Akka uses the first choice, having copyright notices in every file header.
-    
-    Other guidelines to follow for copyright notices:
-    
-    - Use a form of ``Copyright (C) 2011-2016 Typesafe Inc. <http://www.typesafe.com>``, where the start year is when the project or file was first created and the end year is the last time the project or file was modified.
-    - Never delete or change existing copyright notices, just add additional info.  
-    - Do not use ``@author`` tags since it does not encourage [Collective Code Ownership](http://www.extremeprogramming.org/rules/collective.html). However, each project should make sure that the contributors gets the credit they deserve—in a text file or page on the project website and in the release notes etc. 
+5. All ASF projects require the source code to have license headers.
+     
+Other guidelines to follow for copyright notices:
+ 
+- If you copy code from another source then retain its source header(s).
+- New source files should have an [Apache Source License](https://www.apache.org/legal/src-headers.html).
+- Never delete or change existing source headers.
+- Do not use ``@author`` tags since it does not encourage [Collective Code Ownership](http://www.extremeprogramming.org/rules/collective.html).
 
 If these requirements are not met then the code should **not** be merged into main branch, or even reviewed - regardless of how good or important it is. No exceptions.
 
@@ -69,24 +65,16 @@ Each project should be configured to use a continuous integration (CI) tool (i.e
 
 ## Documentation
 
-All documentation should be generated using the sbt-site-plugin, *or* publish artifacts to a repository that can be consumed by the Typesafe stack.
+Unlike most Apache Pekko projects, the Apache Pekko DynamoDB Persistence Plugin project does not yet have documentation
+that is published to [pekko.apache.org](https://pekko.apache.org). Until this happens, we will use the GitHub project
+README and wiki to document how this project works.
 
-All documentation must abide by the following maxims:
-
-- Example code should be run as part of an automated test suite.
-- Version should be **programmatically** specifiable to the build.
-- Generation should be **completely automated** and available for scripting.
-- Artifacts that must be included in the Typesafe stack should be published to a maven “documentation” repository as documentation artifacts.
-
-All documentation is preferred to be in Typesafe's standard documentation format [reStructuredText](http://doc.akka.io/docs/akka/snapshot/dev/documentation.html) compiled using Typesafe's customized [Sphinx](http://sphinx.pocoo.org/) based documentation generation system, which among other things allows all code in the documentation to be externalized into compiled files and imported into the documentation.
-
-For more info, or for a starting point for new projects, look at the [Typesafe Documentation Template project](https://github.com/typesafehub/doc-template).
-
-For larger projects that have invested a lot of time and resources into their current documentation and samples scheme (like for example Play), it is understandable that it will take some time to migrate to this new model. In these cases someone from the project needs to take the responsibility of manual QA and verifier for the documentation and samples.
+Any new features should be documented. If there are any mistakes in the documentation, please get in touch and we will
+try to get the documentation fixed.
 
 ## External Dependencies
 
-All the external runtime dependencies for the project, including transitive dependencies, must have an open source license that is equal to, or compatible with, [Apache 2](http://www.apache.org/licenses/LICENSE-2.0). 
+All the external runtime dependencies for the project, including transitive dependencies, must have an open source license that is equal to, or compatible with, [Apache 2](https://www.apache.org/licenses/LICENSE-2.0). 
 
 This must be ensured by manually verifying the license for all the dependencies for the project: 
 
@@ -94,9 +82,9 @@ This must be ensured by manually verifying the license for all the dependencies 
 2. Whenever a committer to the project adds a new dependency.
 3. Whenever a new release is cut (public or private for a customer). 
 
-Which licenses are compatible with Apache 2 are defined in [this doc](http://www.apache.org/legal/3party.html#category-a), where you can see that the licenses that are listed under ``Category A`` automatically compatible with Apache 2, while the ones listed under ``Category B`` needs additional action:
+Which licenses are compatible with Apache 2 are defined in [this doc](https://www.apache.org/legal/resolved.html#category-a), where you can see that the licenses that are listed under ``Category A`` automatically compatible with Apache 2, while the ones listed under ``Category B`` needs additional action:
 
-> Each license in this category requires some degree of [reciprocity](http://www.apache.org/legal/3party.html#define-reciprocal); therefore, additional action must be taken in order to minimize the chance that a user of an Apache product will create a derivative work of a reciprocally-licensed portion of an Apache product without being aware of the applicable requirements.
+> Each license in this category requires some degree of [reciprocity](https://www.apache.org/legal/resolved.html#weak-copyleft-licenses); therefore, additional action must be taken in order to minimize the chance that a user of an Apache product will create a derivative work of a reciprocally-licensed portion of an Apache product without being aware of the applicable requirements.
 
 Each project must also create and maintain a list of all dependencies and their licenses, including all their transitive dependencies. This can be done in either in the documentation or in the build file next to each dependency.
 
@@ -110,9 +98,9 @@ Also, to facilitate both well-formed commits and working together, the ``wip`` a
 
 Follow these guidelines when creating public commits and writing commit messages.
 
-1. If your work spans multiple local commits (for example; if you do safe point commits while working in a feature branch or work in a branch for long time doing merges/rebases etc.) then please do not commit it all but rewrite the history by squashing the commits into a single big commit which you write a good commit message for (like discussed in the following sections). For more info read this article: [Git Workflow](http://sandofsky.com/blog/git-workflow.html). Every commit should be able to be used in isolation, cherry picked etc.
+1. If your work spans multiple local commits (for example; if you do safe point commits while working in a feature branch or work in a branch for long time doing merges/rebases etc.) then please do not commit it all but rewrite the history by squashing the commits into a single big commit which you write a good commit message for (like discussed in the following sections). For more info read this article: [Git Workflow](https://sandofsky.com/workflow/git-workflow/). Every commit should be able to be used in isolation, cherry picked etc.
 
-2. First line should be a descriptive sentence what the commit is doing, including the ticket number. It should be possible to fully understand what the commit does—but not necessarily how it does it—by just reading this single line. We follow the “imperative present tense” style for commit messages ([more info here](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)).
+2. First line should be a descriptive sentence what the commit is doing, including the ticket number. It should be possible to fully understand what the commit does—but not necessarily how it does it—by just reading this single line. We follow the “imperative present tense” style for commit messages ([more info here](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html)).
    
    It is **not ok** to only list the ticket number, type "minor fix" or similar.
    If the commit is a small fix, then you are done. If not, go to 3.
@@ -132,4 +120,4 @@ Example:
 
 ## Source style
 
-Akka uses [scalafmt](https://scalameta.org/scalafmt/) to enforce some of the code style rules.
+Apache Pekko uses [scalafmt](https://scalameta.org/scalafmt/) to enforce some of the code style rules.

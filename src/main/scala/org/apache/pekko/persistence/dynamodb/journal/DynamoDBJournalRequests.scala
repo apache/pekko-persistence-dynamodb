@@ -63,8 +63,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
    * Write all PersistentRepr in the AtomicWrite provided
    *
    * If there are any errors serializing (preparing the batch writes), then we must return
-   * a Future.success(Failure) as the result.  This is needed to be compliant with
-   * Akka Persistence 2.4
+   * a Future.success(Failure) as the result.
    *
    * @param atomicWrite Contains a list of persistentRepr that need to be persisted atomically
    * @return a successfully completed Future that contains either a Success or Failure
