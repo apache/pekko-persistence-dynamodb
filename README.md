@@ -1,4 +1,4 @@
-# DynamoDBJournal for Apache Pekko Persistence
+# DApache Pekko DynamoDB Persistence Plugin
 
 A replicated Pekko Persistence journal backed by
 [Amazon DynamoDB](https://aws.amazon.com/dynamodb/).
@@ -260,4 +260,4 @@ Apache Pekko is governed by the [Apache code of conduct](https://www.apache.org/
 
 ## License
 
-DynamoDBJournal for Apache Pekko Persistence is available under the Apache License, version 2.0. See [LICENSE](LICENSE) file for details.
+Apache Pekko DynamoDB Persistence Plugin is available under the Apache License, version 2.0. See [LICENSE](LICENSE) file for details.

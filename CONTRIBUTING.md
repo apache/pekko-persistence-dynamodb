@@ -65,20 +65,12 @@ Each project should be configured to use a continuous integration (CI) tool (i.e
 
 ## Documentation
 
-All documentation should be generated using the sbt-site-plugin, *or* publish artifacts to a repository that can be consumed by the Typesafe stack.
+Unlike most Apache Pekko projects, the Apache Pekko DynamoDB Persistence Plugin project does not yet have documentation
+that is published to [pekko.apache.org](https://pekko.apache.org). Until this happens, we will use the GitHub project
+README and wiki to document how this project works.
 
-All documentation must abide by the following maxims:
-
-- Example code should be run as part of an automated test suite.
-- Version should be **programmatically** specifiable to the build.
-- Generation should be **completely automated** and available for scripting.
-- Artifacts that must be included in the Typesafe stack should be published to a maven “documentation” repository as documentation artifacts.
-
-All documentation is preferred to be in Typesafe's standard documentation format [reStructuredText](https://docutils.sourceforge.io/rst.html) compiled using Typesafe's customized [Sphinx](https://www.sphinx-doc.org/en/master/) based documentation generation system, which among other things allows all code in the documentation to be externalized into compiled files and imported into the documentation.
-
-For more info, or for a starting point for new projects, look at the [Typesafe Documentation Template project](https://github.com/typesafehub/doc-template).
-
-For larger projects that have invested a lot of time and resources into their current documentation and samples scheme (like for example Play), it is understandable that it will take some time to migrate to this new model. In these cases someone from the project needs to take the responsibility of manual QA and verifier for the documentation and samples.
+Any new features should be documented. If there are any mistakes in the documentation, please get in touch and we will
+try to get the documentation fixed.
 
 ## External Dependencies
 
