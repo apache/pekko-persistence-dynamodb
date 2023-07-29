@@ -53,7 +53,7 @@ Other guidelines to follow for copyright notices:
 - If you copy code from another source then retain its source header(s).
 - New source files should have an [Apache Source License](https://www.apache.org/legal/src-headers.html).
 - Never delete or change existing source headers.
-- Do not use ``@author`` tags since it does not encourage [Collective Code Ownership](http://www.extremeprogramming.org/rules/collective.html). However, each project should make sure that the contributors gets the credit they deserve—in a text file or page on the project website and in the release notes etc. 
+- Do not use ``@author`` tags since it does not encourage [Collective Code Ownership](http://www.extremeprogramming.org/rules/collective.html).
 
 If these requirements are not met then the code should **not** be merged into main branch, or even reviewed - regardless of how good or important it is. No exceptions.
 
