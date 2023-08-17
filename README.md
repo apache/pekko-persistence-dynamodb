@@ -15,7 +15,7 @@ Supported versions:
 
 ## Installation
 
-This plugin is not yet released. When it is released, it will be published to the Maven Central repository with the following names:
+This plugin is published to the Maven Central repository with the following names:
 
 ~~~
 <dependency>
