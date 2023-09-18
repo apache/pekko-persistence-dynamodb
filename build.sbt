@@ -19,6 +19,7 @@ crossVersion := CrossVersion.binary
 val amzVersion = "1.12.286"
 val testcontainersScalaVersion = "0.40.10"
 
+ThisBuild / resolvers += Resolver.ApacheMavenSnapshotsRepo
 ThisBuild / apacheSonatypeProjectProfile := "pekko"
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
 sourceDistName := "apache-pekko-persistence-dynamodb"
