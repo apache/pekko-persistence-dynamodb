@@ -19,12 +19,20 @@ crossVersion := CrossVersion.binary
 val amzVersion = "1.12.286"
 val testcontainersScalaVersion = "0.40.10"
 
+ThisBuild / resolvers += Resolver.ApacheMavenSnapshotsRepo
 ThisBuild / apacheSonatypeProjectProfile := "pekko"
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
 sourceDistName := "apache-pekko-persistence-dynamodb"
 sourceDistIncubating := true
 
 ThisBuild / reproducibleBuildsCheckResolver := Resolver.ApacheMavenStagingRepo
+
+inThisBuild(Def.settings(
+  onLoad in Global := {
+    sLog.value.info(
+      s"Building Pekko Persistence DynamoDB ${version.value} against Pekko ${PekkoDependency.pekkoVersion} on Scala ${(ThisBuild / scalaVersion).value}")
+    (onLoad in Global).value
+  }))
 
 commands := commands.value.filterNot { command =>
   command.nameOption.exists { name =>
