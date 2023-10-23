@@ -16,8 +16,8 @@ scalaVersion := "2.13.12"
 crossScalaVersions := Seq("2.12.18", "2.13.12", "3.3.1")
 crossVersion := CrossVersion.binary
 
-val amzVersion = "1.12.286"
-val testcontainersScalaVersion = "0.40.10"
+val amzVersion = "1.12.571"
+val testcontainersScalaVersion = "0.41.0"
 
 ThisBuild / resolvers += Resolver.ApacheMavenSnapshotsRepo
 ThisBuild / apacheSonatypeProjectProfile := "pekko"
@@ -56,13 +56,13 @@ libraryDependencies ++= Seq(
   "org.apache.pekko" %% "pekko-persistence" % pekkoVersion,
   "org.apache.pekko" %% "pekko-persistence-query" % pekkoVersion,
   "org.apache.pekko" %% "pekko-stream" % pekkoVersion,
-  "org.apache.pekko" %% "pekko-persistence-tck" % pekkoVersion % "test",
-  "org.apache.pekko" %% "pekko-testkit" % pekkoVersion % "test",
-  "org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion % "test",
-  "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-  "commons-io" % "commons-io" % "2.11.0" % "test",
-  "org.hdrhistogram" % "HdrHistogram" % "2.1.8" % "test",
-  "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % "test")
+  "org.apache.pekko" %% "pekko-persistence-tck" % pekkoVersion % Test,
+  "org.apache.pekko" %% "pekko-testkit" % pekkoVersion % Test,
+  "org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion % Test,
+  "org.scalatest" %% "scalatest" % "3.2.17" % "test",
+  "commons-io" % "commons-io" % "2.14.0" % Test,
+  "org.hdrhistogram" % "HdrHistogram" % "2.1.8" % Test,
+  "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test)
 
 scalacOptions ++= Seq("-deprecation", "-feature")
 Test / parallelExecution := false
