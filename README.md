@@ -131,15 +131,6 @@ Anyone migrating from using akka-persistence-dynamodb should first upgrade to ak
 
 ## Plugin Development
 
-### Dev Setup
-
-* Run `./docker-compose up` to download and start [Localstack](https://github.com/localstack/localstack/).
-* Make sure that env variables from .env.test are exported `source .env.test`
-* Now you are all set for running the test suite from `sbt`.
-* In order to stop the DynamoDB and clean up execute `./docker-compose down`.
-
-Please also read the [CONTRIBUTING.md](CONTRIBUTING.md) file.
-
 ### DynamoDB table structure discussion
 
 The structure for journal storage in dynamodb has evolved over iterations of performance tuning. Most of these lessons were learned in creating the eventsourced dynamodb journal, but apply here as well.
@@ -211,6 +202,7 @@ When writing an item we typically do not touch the high sequence number storage,
 - Make sure you have installed a Java Development Kit (JDK) version 8 or later.
 - Make sure you have [sbt](https://www.scala-sbt.org/) installed and using this JDK.
 - [Graphviz](https://graphviz.gitlab.io/download/) is needed for the scaladoc generation build task, which is part of the release.
+- Tests require `docker` and `docker-compose` to run the local DynamoDB instance.
 
 ### Running the Build
 - Open a command window and change directory to your preferred base directory
@@ -218,8 +210,11 @@ When writing an item we typically do not touch the high sequence number storage,
 - Change directory to the directory where you installed the source (you should have a file called `build.sbt` in this directory)
 - `sbt compile` compiles the main source for project default version of Scala (2.13)
     - `sbt +compile` will compile for all supported versions of Scala
+- `sbt dockerComposeUp` will start the local DynamoDB instance
 - `sbt test` will compile the code and run the unit tests
 - `sbt testQuick` similar to test but when repeated in shell mode will only run failing tests
+- `sbt dockerComposeTest` will start the local DynamoDB instance and run the unit tests
+- `sbt dockerComposeDown` will stop the local DynamoDB instance
 - `sbt package` will build the jar
     - the jar will be built to `target` directory
 - `sbt publishLocal` will push the jars to your local Apache Ivy repository
@@ -232,6 +227,13 @@ When writing an item we typically do not touch the high sequence number storage,
         - eg `sbt "set ThisBuild / version := \"1.0.0\"; sourceDistGenerate"`
     - Or you can add a file called `version.sbt` to the same directory that has the `build.sbt` containing something like
         - `ThisBuild / version := "1.0.0"`
+
+### Start the local DynamoDB instance without sbt
+
+* Run `docker-compose up` to download and start [Localstack](https://github.com/localstack/localstack/).
+* Make sure that env variables from .env.test are exported `source .env.test`
+* Now you are all set for running the test suite from `sbt`.
+* In order to stop the DynamoDB and clean up execute `docker-compose down`.
 
 ## Community
 

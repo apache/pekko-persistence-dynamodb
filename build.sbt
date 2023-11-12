@@ -72,3 +72,4 @@ logBuffered := false
 Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 
 enablePlugins(ReproducibleBuildsPlugin)
+enablePlugins(DockerComposePlugin)
