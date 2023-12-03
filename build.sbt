@@ -7,7 +7,7 @@
  * This file is part of the Apache Pekko project, which was derived from Akka.
  */
 
-import PekkoDependency.pekkoVersion
+import com.github.pjfanning.pekkobuild.PekkoDependency.pekkoVersion
 import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCheckResolver
 
 name := "pekko-persistence-dynamodb"
@@ -30,7 +30,7 @@ ThisBuild / reproducibleBuildsCheckResolver := Resolver.ApacheMavenStagingRepo
 inThisBuild(Def.settings(
   onLoad in Global := {
     sLog.value.info(
-      s"Building Pekko Persistence DynamoDB ${version.value} against Pekko ${PekkoDependency.pekkoVersion} on Scala ${(ThisBuild / scalaVersion).value}")
+      s"Building Pekko Persistence DynamoDB ${version.value} against Pekko $pekkoVersion on Scala ${(ThisBuild / scalaVersion).value}")
     (onLoad in Global).value
   }))
 
