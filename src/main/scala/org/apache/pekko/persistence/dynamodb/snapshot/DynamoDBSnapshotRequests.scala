@@ -14,6 +14,7 @@
 package org.apache.pekko.persistence.dynamodb.snapshot
 
 import com.amazonaws.services.dynamodbv2.model._
+import com.amazonaws.services.dynamodbv2.model.Select.ALL_ATTRIBUTES
 import org.apache.pekko
 import pekko.actor.ExtendedActorSystem
 import pekko.persistence.dynamodb._
@@ -106,6 +107,8 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       .withScanIndexForward(false)
       .withConsistentRead(true)
     limit.foreach(request.setLimit(_))
+
+    request.setSelect(ALL_ATTRIBUTES)
 
     dynamo.query(request)
   }
