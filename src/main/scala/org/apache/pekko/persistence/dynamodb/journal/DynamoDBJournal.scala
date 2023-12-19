@@ -118,7 +118,7 @@ class DynamoDBJournal(config: Config)
     f.onComplete { _ =>
       self ! OpFinished(pid, p.future)
       p.success(Done)
-    }(ExecutionContexts.sameThreadExecutionContext)
+    }(ExecutionContexts.parasitic)
 
     f
   }

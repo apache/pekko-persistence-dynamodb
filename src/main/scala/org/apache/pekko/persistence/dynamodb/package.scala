@@ -42,7 +42,7 @@ package object dynamodb {
 
   def lift[T](f: Future[T]): Future[Try[T]] = {
     val p = Promise[Try[T]]()
-    f.onComplete(p.success)(ExecutionContexts.sameThreadExecutionContext)
+    f.onComplete(p.success)(ExecutionContexts.parasitic)
     p.future
   }
 
@@ -51,7 +51,7 @@ package object dynamodb {
     f.onComplete {
       case Success(_)     => p.success(Success(()))
       case f @ Failure(_) => p.success(f.asInstanceOf[Failure[Unit]])
-    }(ExecutionContexts.sameThreadExecutionContext)
+    }(ExecutionContexts.parasitic)
     p.future
   }
 

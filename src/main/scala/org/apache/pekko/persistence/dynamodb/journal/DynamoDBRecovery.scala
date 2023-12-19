@@ -233,7 +233,7 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
       toSequenceNr: Long,
       max: Long): Source[PersistentRepr, NotUsed] =
     // toSequenceNr is already capped to highest and guaranteed to be no less than fromSequenceNr
-    Source.fromFuture(readSequenceNr(persistenceId, highest = false)).flatMapConcat { lowest =>
+    Source.future(readSequenceNr(persistenceId, highest = false)).flatMapConcat { lowest =>
       val start = Math.max(fromSequenceNr, lowest)
       val async = ReplayParallelism > 1
 

@@ -160,7 +160,7 @@ writer-dispatcher {
 
   val (eRef, cRef) =
     RunnableGraph
-      .fromGraph(GraphDSL.create(endToEnd, calls)(Keep.both) { implicit b => (e, c) =>
+      .fromGraph(GraphDSL.createGraph(endToEnd, calls)(Keep.both) { implicit b => (e, c) =>
         val zip = b.add(ZipWith((_: Unit, er: Report, cr: Report) => er + cr))
         Source.tick(1.second, 1.second, ()) ~> zip.in0
         e                                   ~> zip.in1

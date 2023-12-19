@@ -47,7 +47,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
     // optimize the common case
     if (writes.size == 1) {
       writeMessages(writes.head)
-        .map(bubbleUpFailures(_) :: Nil)(ExecutionContexts.sameThreadExecutionContext)
+        .map(bubbleUpFailures(_) :: Nil)(ExecutionContexts.parasitic)
     } else {
       def rec(todo: List[AtomicWrite], acc: List[Try[Unit]]): Future[List[Try[Unit]]] =
         todo match {
