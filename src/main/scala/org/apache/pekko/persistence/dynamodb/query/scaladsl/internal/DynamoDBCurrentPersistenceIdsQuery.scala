@@ -114,7 +114,7 @@ trait DynamoDBCurrentPersistenceIdsQuery extends PublicDynamoDBCurrentPersistenc
     }
 
     val infiniteStreamOfResults: ResultSource =
-      lazyStream(Source.fromFuture(getPersistenceIds(None).map(Some(_))))
+      lazyStream(Source.future(getPersistenceIds(None).map(Some(_))))
 
     infiniteStreamOfResults
       .takeWhile(_.isDefined)

@@ -57,7 +57,7 @@ trait DynamoDBCurrentEventsByPersistenceIdQuery
     require(fromSequenceNr < toSequenceNr, "fromSequenceNr should be smaller than toSequenceNr")
     log.debug("starting currentEventsByPersistenceId for {} from {} to {}", persistenceId, fromSequenceNr, toSequenceNr)
     Source
-      .fromFuture(readSequenceNr(persistenceId = persistenceId, highest = true))
+      .future(readSequenceNr(persistenceId = persistenceId, highest = true))
       .flatMapConcat { highest =>
         val end = Math.min(highest, toSequenceNr)
         eventsStream(
