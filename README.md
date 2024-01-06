@@ -85,7 +85,7 @@ The table to create for snapshot storage has the schema:
 The DynamoDB item of a snapshot [can be 400 kB](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Limits.html#limits-items). Using a binary serialisation format like ProtoBuf or Kryo will use that space most effectively.
 
 ### Read journal (Pekko persistence query)
-contributed by [@joost-de-vries](https://github.com/joost-de-vries))
+contributed by [@joost-de-vries](https://github.com/joost-de-vries)
 
 See `CreatePersistenceIdsIndex.createPersistenceIdsIndexRequest` how to create the Global Secondary Index that is required to query currentPersistenceIds
 ~~~
