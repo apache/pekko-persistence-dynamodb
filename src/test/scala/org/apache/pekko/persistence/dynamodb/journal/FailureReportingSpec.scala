@@ -140,7 +140,7 @@ pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
         }
         probe.expectMsgType[Logging.Error].message.toString should include("DescribeTableRequest(pekko-persistence)")
         probe.expectMsgType[Logging.Error].message.toString should include("until the table 'pekko-persistence'")
-        probe.expectNoMsg(0.seconds)
+        probe.expectNoMessage(0.seconds)
       } finally system.terminate()
     }
 
