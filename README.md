@@ -123,6 +123,18 @@ my-dynamodb-journal.aws-client-config.max-connections = <your value here>
 
 Changing this number changes both the number of concurrent connections and the used thread-pool size.
 
+## Retry behavior
+
+This plugin uses exponential backoff when 50X errors from DynamoDB would occur. This includes network glitches and provisioned throughput exceptions (request rate is too high).
+
+The backoff strategy is very simple. 
+- There are a maximum of 10 retries.
+- The first time it retries, it takes 1 millisecond.
+- That time is doubled with every retry.
+
+This means that the last waiting time would be about half a second, and if responses would be immediate, the total retrial process would take about 1 second. In practice, response time would be more than 0 of course.
+
+
 ## Compatibility with Akka versions
 
 pekko-persistence-dynamodb is derived from [akka-persistence-dynamodb](https://github.com/akka/akka-persistence-dynamodb) v1.3.0.
