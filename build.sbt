@@ -7,7 +7,6 @@
  * This file is part of the Apache Pekko project, which was derived from Akka.
  */
 
-import PekkoDependency.pekkoVersion
 import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCheckResolver
 
 name := "pekko-persistence-dynamodb"
@@ -20,17 +19,17 @@ val amzVersion = "1.12.571"
 val testcontainersScalaVersion = "0.41.0"
 
 ThisBuild / resolvers += Resolver.ApacheMavenSnapshotsRepo
-ThisBuild / apacheSonatypeProjectProfile := "pekko"
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
 sourceDistName := "apache-pekko-persistence-dynamodb"
 sourceDistIncubating := true
 
+ThisBuild / pekkoInlineEnabled := false
 ThisBuild / reproducibleBuildsCheckResolver := Resolver.ApacheMavenStagingRepo
 
 inThisBuild(Def.settings(
   onLoad in Global := {
     sLog.value.info(
-      s"Building Pekko Persistence DynamoDB ${version.value} against Pekko ${PekkoDependency.pekkoVersion} on Scala ${(ThisBuild / scalaVersion).value}")
+      s"Building Pekko Persistence DynamoDB ${version.value} against Pekko ${PekkoCoreDependency.version} on Scala ${(ThisBuild / scalaVersion).value}")
     (onLoad in Global).value
   }))
 
@@ -53,12 +52,12 @@ libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-java-sdk-core" % amzVersion,
   "com.amazonaws" % "aws-java-sdk-dynamodb" % amzVersion,
   "javax.xml.bind" % "jaxb-api" % "2.3.1", // see https://github.com/seek-oss/gradle-aws-plugin/issues/15
-  "org.apache.pekko" %% "pekko-persistence" % pekkoVersion,
-  "org.apache.pekko" %% "pekko-persistence-query" % pekkoVersion,
-  "org.apache.pekko" %% "pekko-stream" % pekkoVersion,
-  "org.apache.pekko" %% "pekko-persistence-tck" % pekkoVersion % Test,
-  "org.apache.pekko" %% "pekko-testkit" % pekkoVersion % Test,
-  "org.apache.pekko" %% "pekko-stream-testkit" % pekkoVersion % Test,
+  "org.apache.pekko" %% "pekko-persistence" % PekkoCoreDependency.version,
+  "org.apache.pekko" %% "pekko-persistence-query" % PekkoCoreDependency.version,
+  "org.apache.pekko" %% "pekko-stream" % PekkoCoreDependency.version,
+  "org.apache.pekko" %% "pekko-persistence-tck" % PekkoCoreDependency.version % Test,
+  "org.apache.pekko" %% "pekko-testkit" % PekkoCoreDependency.version % Test,
+  "org.apache.pekko" %% "pekko-stream-testkit" % PekkoCoreDependency.version % Test,
   "org.scalatest" %% "scalatest" % "3.2.17" % "test",
   "commons-io" % "commons-io" % "2.14.0" % Test,
   "org.hdrhistogram" % "HdrHistogram" % "2.1.8" % Test,
