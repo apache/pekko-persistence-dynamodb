@@ -3,8 +3,8 @@
 ## Infrastructure
 
 * [Apache Contributor License Agreement](https://www.apache.org/licenses/contributor-agreements.html)
-* [Issue Tracker](https://github.com/apache/incubator-pekko-persistence-dynamodb/issues)
-* [Github Actions](https://github.com/apache/incubator-pekko-persistence-dynamodb/actions)
+* [Issue Tracker](https://github.com/apache/pekko-persistence-dynamodb/issues)
+* [Github Actions](https://github.com/apache/pekko-persistence-dynamodb/actions)
 
 # Project & Developer Guidelines
 
