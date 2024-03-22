@@ -29,7 +29,7 @@ jobs:
   publish-nightly:
     name: Publish nightly
     runs-on: ubuntu-20.04
-    if: github.repository == 'apache/incubator-pekko-persistence-dynamodb'
+    if: github.repository == 'apache/pekko-persistence-dynamodb'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

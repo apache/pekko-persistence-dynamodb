@@ -26,11 +26,11 @@ object Publish extends AutoPlugin {
 
   override lazy val projectSettings = Seq(
     crossPaths := false,
-    homepage := Some(url("https://github.com/apache/incubator-pekko-persistence-dynamodb")),
+    homepage := Some(url("https://github.com/apache/pekko-persistence-dynamodb")),
     developers += Developer("contributors",
       "Contributors",
       "dev@pekko.apache.org",
-      url("https://github.com/apache/incubator-pekko-persistence-dynamodb/graphs/contributors")),
+      url("https://github.com/apache/pekko-persistence-dynamodb/graphs/contributors")),
     apacheSonatypeDisclaimerFile := Some((LocalRootProject / baseDirectory).value / "DISCLAIMER"))
 
   override lazy val buildSettings = Seq(
