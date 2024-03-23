@@ -21,7 +21,7 @@ val testcontainersScalaVersion = "0.41.0"
 ThisBuild / resolvers += Resolver.ApacheMavenSnapshotsRepo
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
 sourceDistName := "apache-pekko-persistence-dynamodb"
-sourceDistIncubating := true
+sourceDistIncubating := false
 
 ThisBuild / pekkoInlineEnabled := false
 ThisBuild / reproducibleBuildsCheckResolver := Resolver.ApacheMavenStagingRepo

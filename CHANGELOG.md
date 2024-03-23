@@ -12,5 +12,5 @@ We have gone through the code base and have tried to properly acknowledge all th
 
 ### Changes
 
-* We have made some minor dependency upgrades, notably the AWS libs ([PR](https://github.com/apache/incubator-pekko-persistence-dynamodb/pull/84)).
+* We have made some minor dependency upgrades, notably the AWS libs ([PR](https://github.com/apache/pekko-persistence-dynamodb/pull/84)).
 * We added support for Scala 3.3.0+.
