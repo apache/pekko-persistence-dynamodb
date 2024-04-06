@@ -15,7 +15,7 @@ scalaVersion := "2.13.13"
 crossScalaVersions := Seq("2.12.19", "2.13.13", "3.3.3")
 crossVersion := CrossVersion.binary
 
-val amzVersion = "1.12.571"
+val amzVersion = "1.12.696"
 val testcontainersScalaVersion = "0.41.0"
 
 ThisBuild / resolvers += Resolver.ApacheMavenSnapshotsRepo
