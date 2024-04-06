@@ -59,7 +59,7 @@ libraryDependencies ++= Seq(
   "org.apache.pekko" %% "pekko-stream-testkit" % PekkoCoreDependency.version % Test,
   "org.scalatest" %% "scalatest" % "3.2.17" % "test",
   "commons-io" % "commons-io" % "2.14.0" % Test,
-  "org.hdrhistogram" % "HdrHistogram" % "2.1.8" % Test,
+  "org.hdrhistogram" % "HdrHistogram" % "2.1.12" % Test,
   "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test)
 
 scalacOptions ++= Seq("-deprecation", "-feature")
