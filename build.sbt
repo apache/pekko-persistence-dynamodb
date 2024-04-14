@@ -58,7 +58,7 @@ libraryDependencies ++= Seq(
   "org.apache.pekko" %% "pekko-testkit" % PekkoCoreDependency.version % Test,
   "org.apache.pekko" %% "pekko-stream-testkit" % PekkoCoreDependency.version % Test,
   "org.scalatest" %% "scalatest" % "3.2.18" % "test",
-  "commons-io" % "commons-io" % "2.16.0" % Test,
+  "commons-io" % "commons-io" % "2.16.1" % Test,
   "org.hdrhistogram" % "HdrHistogram" % "2.1.12" % Test,
   "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test)
 
