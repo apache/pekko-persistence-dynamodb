@@ -11,8 +11,8 @@ import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCh
 
 name := "pekko-persistence-dynamodb"
 
-scalaVersion := "2.13.13"
-crossScalaVersions := Seq("2.12.19", "2.13.13", "3.3.3")
+scalaVersion := "2.13.14"
+crossScalaVersions := Seq("2.12.19", "2.13.14", "3.3.3")
 crossVersion := CrossVersion.binary
 
 val amzVersion = "1.12.715"
