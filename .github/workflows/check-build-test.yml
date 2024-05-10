@@ -10,10 +10,6 @@ on:
       - 1.1.x
     tags-ignore: [ v.* ]
 
-env:
-  AKKA_TEST_TIMEFACTOR: 10.0
-  EVENT_NAME: ${{ github.event_name }}
-
 jobs:
   check-code-compilation:
     name: Check Code Compilation
@@ -51,11 +47,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { java-version: 8,  scala-version: 2.12.18, sbt-opts: '' }
-          - { java-version: 8,  scala-version: 2.13.12, sbt-opts: '' }
-          - { java-version: 8,  scala-version: 3.3.1, sbt-opts: '' }
-          - { java-version: 11, scala-version: 2.12.18, sbt-opts: '-J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler' }
-          - { java-version: 11, scala-version: 2.13.12, sbt-opts: '-J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler' }
+          - { java-version: 8,  scala-version: 2.12, sbt-opts: '' }
+          - { java-version: 8,  scala-version: 2.13, sbt-opts: '' }
+          - { java-version: 8,  scala-version: 3.3, sbt-opts: '' }
+          - { java-version: 11, scala-version: 2.12, sbt-opts: '-J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler' }
+          - { java-version: 11, scala-version: 2.13, sbt-opts: '-J-XX:+UnlockExperimentalVMOptions -J-XX:+UseJVMCICompiler' }
     steps:
       - name: Checkout
         uses: actions/checkout@v4
