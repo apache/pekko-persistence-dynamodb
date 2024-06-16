@@ -20,7 +20,6 @@ trait IntegSpec extends ForAllTestContainer { self: Suite =>
   // TODO: Use dynamic ports. This is a annoying to do as the actor system is init prior to beforeAll.
   override val container: FixedHostPortGenericContainer = FixedHostPortGenericContainer(
     "amazon/dynamodb-local:1.22.0",
-    exposedContainerPort = 8000,
-    exposedHostPort = 8888,
+    portBindings = Seq((8888, 8000)),
     waitStrategy = new HttpWaitStrategy().forPath("/").forStatusCode(400))
 }
