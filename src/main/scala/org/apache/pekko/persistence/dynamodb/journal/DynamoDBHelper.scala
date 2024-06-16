@@ -15,7 +15,7 @@ package org.apache.pekko.persistence.dynamodb.journal
 
 import com.amazonaws.AmazonWebServiceRequest
 import com.amazonaws.handlers.AsyncHandler
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsync
 import com.amazonaws.services.dynamodbv2.model._
 import org.apache.pekko
 import pekko.actor.{ ActorRef, Scheduler }
@@ -25,9 +25,8 @@ import pekko.persistence.dynamodb.{ DynamoDBConfig, Item }
 import pekko.util.ccompat.JavaConverters._
 
 import java.util.{ concurrent => juc }
-
-import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future, Promise }
 
 case class LatencyReport(nanos: Long, retries: Int)
 private class RetryStateHolder(var retries: Int = 10, var backoff: FiniteDuration = 1.millis)
@@ -36,7 +35,7 @@ trait DynamoDBHelper {
 
   implicit val ec: ExecutionContext
   val scheduler: Scheduler
-  val dynamoDB: AmazonDynamoDBAsyncClient
+  val dynamoDB: AmazonDynamoDBAsync
   val log: LoggingAdapter
   val settings: DynamoDBConfig
   import settings._

@@ -13,16 +13,18 @@
 
 package org.apache.pekko.persistence
 
-import java.nio.ByteBuffer
-import java.util.concurrent.Executors
+import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
+import com.amazonaws.regions.Regions
+import com.amazonaws.services.dynamodbv2.model.{ AttributeValue, AttributeValueUpdate }
+import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDBAsync, AmazonDynamoDBAsyncClientBuilder }
 import org.apache.pekko.actor.{ ActorSystem, Scheduler }
 import org.apache.pekko.dispatch.ExecutionContexts
 import org.apache.pekko.event.{ Logging, LoggingAdapter }
 import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
-import com.amazonaws.services.dynamodbv2.model.{ AttributeValue, AttributeValueUpdate }
 
+import java.nio.ByteBuffer
+import java.util.concurrent.Executors
 import java.util.{ Map => JMap }
 import scala.collection.generic.CanBuildFrom
 import scala.concurrent.{ ExecutionContext, Future, Promise }
@@ -69,16 +71,23 @@ package object dynamodb {
         val conns = settings.client.config.getMaxConnections
         val executor = Executors.newFixedThreadPool(conns)
         val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
-        new AmazonDynamoDBAsyncClient(creds, settings.client.config, executor)
+        AmazonDynamoDBAsyncClientBuilder.standard()
+          .withCredentials(new AWSStaticCredentialsProvider(creds))
+          .withClientConfiguration(settings.client.config)
+          .withExecutorFactory(() => executor)
+          .withEndpointConfiguration(new EndpointConfiguration(settings.Endpoint, Regions.DEFAULT_REGION.name()))
+          .build()
       } else {
-        new AmazonDynamoDBAsyncClient(settings.client.config)
+        AmazonDynamoDBAsyncClientBuilder.standard()
+          .withClientConfiguration(settings.client.config)
+          .withEndpointConfiguration(new EndpointConfiguration(settings.Endpoint, Regions.DEFAULT_REGION.name()))
+          .build()
       }
-    client.setEndpoint(settings.Endpoint)
     val dispatcher = system.dispatchers.lookup(settings.ClientDispatcher)
 
     class DynamoDBClient(
         override val ec: ExecutionContext,
-        override val dynamoDB: AmazonDynamoDBAsyncClient,
+        override val dynamoDB: AmazonDynamoDBAsync,
         override val settings: DynamoDBConfig,
         override val scheduler: Scheduler,
         override val log: LoggingAdapter)
