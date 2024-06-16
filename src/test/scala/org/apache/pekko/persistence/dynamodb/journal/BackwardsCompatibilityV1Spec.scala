@@ -18,10 +18,11 @@ import org.apache.pekko.persistence.JournalProtocol._
 import org.apache.pekko.persistence._
 import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.testkit._
-import com.amazonaws.auth.BasicAWSCredentials
+import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.dynamodbv2.document.{ DynamoDB, Item }
-import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClient }
+import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClient, AmazonDynamoDBClientBuilder }
 import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.BeforeAndAfterAll
@@ -46,13 +47,13 @@ class BackwardsCompatibilityV1Spec
     val config = ConfigFactory.load()
     val endpoint = config.getString("my-dynamodb-journal.endpoint")
     val tableName = config.getString("my-dynamodb-journal.journal-table")
-    val accesKey = config.getString("my-dynamodb-journal.aws-access-key-id")
+    val accessKey = config.getString("my-dynamodb-journal.aws-access-key-id")
     val secretKey = config.getString("my-dynamodb-journal.aws-secret-access-key")
 
-    val client: AmazonDynamoDB =
-      new AmazonDynamoDBClient(new BasicAWSCredentials(accesKey, secretKey)).withRegion(Regions.US_EAST_1)
-
-    client.setEndpoint(endpoint)
+    val client: AmazonDynamoDB = AmazonDynamoDBClientBuilder.standard()
+      .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accessKey, secretKey)))
+      .withEndpointConfiguration(new EndpointConfiguration(endpoint, Regions.US_EAST_1.getName))
+      .build()
 
     val dynamoDB = new DynamoDB(client)
 
