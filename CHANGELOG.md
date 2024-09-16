@@ -4,7 +4,7 @@
 
 Pekko Persistence DynamoDB 1.0.0 is based on Akka Persistence DynamoDB 1.1.2. Pekko came about as a result of Lightbend’s decision to make future Akka releases under a [Business Software License](https://www.lightbend.com/blog/why-we-are-changing-the-license-for-akka), a license that is not compatible with Open Source usage.
 
-Apache Pekko has changed the package names, among other changes. Config names have changed to use `pekko` instead of `akka` in their names. Users switching from Akka to Pekko should read our [Migration Guide](https://pekko.apache.org/docs/pekko/current/project/migration-guides.html).
+Apache Pekko has changed the package names, among other changes. Config names have changed to use `pekko` instead of `akka` in their names. Users switching from Akka to Pekko should read our [Migration Guide](https://pekko.apache.org/docs/pekko/1.0/project/migration-guides.html).
 
 Generally, we have tried to make it as easy as possible to switch existing Akka based projects over to using Pekko.
 
