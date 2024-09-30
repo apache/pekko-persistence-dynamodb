@@ -25,4 +25,22 @@ package object snapshot {
   val SerializerId = "ser_id"
   val SerializerManifest = "ser_manifest"
   val PayloadData = "pay_data"
+
+  /**
+   * Returns (a slightly overestimated) size of the fixed fields in a snapshot DynamoDB record.
+   *
+   * Assumes the maximum of 21 bytes for a number.
+   *
+   * Sources
+   * https://zaccharles.medium.com/calculating-a-dynamodb-items-size-and-consumed-capacity-d1728942eb7c
+   * https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/CapacityUnitCalculations.html
+   */
+  val DynamoFixedByteSize =
+    Key.length() + // + partitionKey.size
+    SequenceNr.length() + 21 +
+    Timestamp.length() + 21 +
+    Payload.length() + // + payload.size
+    100 + // Standard 100 bytes overhead
+    100 // Safety factor for enabling extra features
+
 }
