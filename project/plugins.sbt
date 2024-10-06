@@ -8,7 +8,7 @@
  */
 
 addSbtPlugin("de.heikoseeberger" % "sbt-header" % "5.10.0")
-addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.2.1")
+addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.3.0")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.2")
 addSbtPlugin("com.github.pjfanning" % "sbt-source-dist" % "0.1.12")
 addSbtPlugin("com.github.pjfanning" % "sbt-pekko-build" % "0.4.0")
