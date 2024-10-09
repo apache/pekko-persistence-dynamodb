@@ -7,36 +7,17 @@
  * This file is part of the Apache Pekko project, which was derived from Akka.
  */
 
+import com.github.pjfanning.pekkobuild._
 import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCheckResolver
-
-name := "pekko-persistence-dynamodb"
-
-scalaVersion := "2.13.15"
-crossScalaVersions := Seq("2.12.20", "2.13.15", "3.3.4")
-crossVersion := CrossVersion.binary
 
 val amzVersion = "1.12.773"
 val testcontainersScalaVersion = "0.41.4"
 
-ThisBuild / resolvers += Resolver.ApacheMavenSnapshotsRepo
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
 sourceDistName := "apache-pekko-persistence-dynamodb"
 sourceDistIncubating := false
 
 ThisBuild / reproducibleBuildsCheckResolver := Resolver.ApacheMavenStagingRepo
-
-inThisBuild(Def.settings(
-  onLoad in Global := {
-    sLog.value.info(
-      s"Building Pekko Persistence DynamoDB ${version.value} against Pekko ${PekkoCoreDependency.version} on Scala ${(ThisBuild / scalaVersion).value}")
-    (onLoad in Global).value
-  }))
-
-commands := commands.value.filterNot { command =>
-  command.nameOption.exists { name =>
-    name.contains("sonatypeRelease") || name.contains("sonatypeBundleRelease")
-  }
-}
 
 Test / unmanagedSourceDirectories ++= {
   if (scalaVersion.value.startsWith("2.")) {
@@ -47,26 +28,38 @@ Test / unmanagedSourceDirectories ++= {
   }
 }
 
-libraryDependencies ++= Seq(
-  "com.amazonaws" % "aws-java-sdk-core" % amzVersion,
-  "com.amazonaws" % "aws-java-sdk-dynamodb" % amzVersion,
-  "javax.xml.bind" % "jaxb-api" % "2.3.1", // see https://github.com/seek-oss/gradle-aws-plugin/issues/15
-  "org.apache.pekko" %% "pekko-persistence" % PekkoCoreDependency.version,
-  "org.apache.pekko" %% "pekko-persistence-query" % PekkoCoreDependency.version,
-  "org.apache.pekko" %% "pekko-stream" % PekkoCoreDependency.version,
-  "org.apache.pekko" %% "pekko-persistence-tck" % PekkoCoreDependency.version % Test,
-  "org.apache.pekko" %% "pekko-testkit" % PekkoCoreDependency.version % Test,
-  "org.apache.pekko" %% "pekko-stream-testkit" % PekkoCoreDependency.version % Test,
-  "org.scalatest" %% "scalatest" % "3.2.19" % "test",
-  "commons-io" % "commons-io" % "2.17.0" % Test,
-  "org.hdrhistogram" % "HdrHistogram" % "2.2.2" % Test,
-  "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test)
-
-scalacOptions ++= Seq("-deprecation", "-feature")
-Test / parallelExecution := false
-// required by test-containers-scala
-Test / fork := true
-logBuffered := false
-Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
-
-enablePlugins(ReproducibleBuildsPlugin)
+lazy val root = Project(
+  id = "pekko-persistence-dynamodb",
+  base = file("."))
+  .enablePlugins(ReproducibleBuildsPlugin)
+  .addPekkoModuleDependency("pekko-persistence", "", PekkoCoreDependency.default)
+  .addPekkoModuleDependency("pekko-persistence-query", "", PekkoCoreDependency.default)
+  .addPekkoModuleDependency("pekko-stream", "", PekkoCoreDependency.default)
+  .addPekkoModuleDependency("pekko-persistence-tck", "test", PekkoCoreDependency.default)
+  .addPekkoModuleDependency("pekko-testkit", "test", PekkoCoreDependency.default)
+  .addPekkoModuleDependency("pekko-stream-testkit", "test", PekkoCoreDependency.default)
+  .settings(
+    name := "pekko-persistence-dynamodb",
+    scalaVersion := "2.13.15",
+    crossScalaVersions := Seq("2.12.20", "2.13.15", "3.3.4"),
+    crossVersion := CrossVersion.binary,
+    libraryDependencies ++= Seq(
+      "com.amazonaws" % "aws-java-sdk-core" % amzVersion,
+      "com.amazonaws" % "aws-java-sdk-dynamodb" % amzVersion,
+      "javax.xml.bind" % "jaxb-api" % "2.3.1", // see https://github.com/seek-oss/gradle-aws-plugin/issues/15
+      "org.scalatest" %% "scalatest" % "3.2.19" % "test",
+      "commons-io" % "commons-io" % "2.17.0" % Test,
+      "org.hdrhistogram" % "HdrHistogram" % "2.2.2" % Test,
+      "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test),
+    scalacOptions ++= Seq("-deprecation", "-feature"),
+    Test / parallelExecution := false,
+    // required by test-containers-scala
+    Test / fork := true,
+    logBuffered := false,
+    Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"),
+    onLoad := {
+      sLog.value.info(
+        s"Building Pekko Persistence DynamoDB ${version.value} against Pekko ${PekkoCoreDependency.version} on Scala ${scalaVersion.value}")
+      onLoad.value
+    }
+  )
