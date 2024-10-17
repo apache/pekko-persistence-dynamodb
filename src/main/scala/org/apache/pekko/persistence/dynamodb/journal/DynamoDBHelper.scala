@@ -38,12 +38,22 @@ private class RetryStateHolder(var retries: Int = 10, var backoff: FiniteDuratio
 object DynamoRetriableException {
   def unapply(ex: AmazonServiceException) = {
     ex match {
-      case _: ProvisionedThroughputExceededException =>
-        Some(ex)
+      // 50x network glitches
       case _: InternalServerErrorException =>
         Some(ex)
       case ase if ase.getStatusCode >= 502 && ase.getStatusCode <= 504 =>
         // retry on more common server errors
+        Some(ex)
+
+      // 400 throughput issues
+      case _: ProvisionedThroughputExceededException =>
+        Some(ex)
+      case _: RequestLimitExceededException =>
+        // rate of on-demand requests exceeds the allowed account throughput
+        // and the table cannot be scaled further
+        Some(ex)
+      case ase if ase.getErrorCode == "ThrottlingException" =>
+        // // rate of AWS requests exceeds the allowed throughput
         Some(ex)
       case _ =>
         None

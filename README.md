@@ -125,7 +125,7 @@ Changing this number changes both the number of concurrent connections and the u
 
 ## Retry behavior
 
-This plugin uses exponential backoff when 50X errors from DynamoDB would occur. This includes network glitches and provisioned throughput exceptions (request rate is too high).
+This plugin uses exponential backoff when plausible and retriable errors from DynamoDB occur. This includes network glitches (50x; since Pekko 1.1.0) and throughput exceptions (400; extended in Pekko 1.1.0).
 
 The backoff strategy is very simple. 
 - There are a maximum of 10 retries.
