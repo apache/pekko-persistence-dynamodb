@@ -72,8 +72,8 @@ object CreatePersistenceIdsIndex {
   /**
    * required by [[DynamoDBCurrentPersistenceIdsQuery.currentPersistenceIdsByPageQuery]]
    *
-   * When requesting snapshots by timestamp, Select ALL_ATTRIBUTES is used. Thus, a duplicate of
-   * the payload doesn't need to be stored in the index, which is more space efficient.
+   * Since v1.1.0, when requesting snapshots by timestamp, select ALL_ATTRIBUTES is used. Thus, a
+   * duplicate of the payload doesn't need to be stored in the index, which is more space efficient.
    * This allows to make the choice between time and space efficiency by selecting the projection
    * strategy for the created index.
    */
