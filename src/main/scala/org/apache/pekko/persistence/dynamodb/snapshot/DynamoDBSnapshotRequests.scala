@@ -33,6 +33,9 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
 
   val toUnit: Any => Unit = _ => ()
 
+  private def itemSize(partitionKey: String, serializedSnapshot: Array[Byte]) =
+    DynamoFixedByteSize + partitionKey.length + serializedSnapshot.size
+
   def delete(metadata: SnapshotMetadata): Future[Unit] = {
     val request = new DeleteItemRequest()
       .withTableName(Table)
@@ -151,7 +154,8 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   private def toSnapshotItem(persistenceId: String, sequenceNr: Long, timestamp: Long, snapshot: Any): Future[Item] = {
     val item: Item = new JHMap
 
-    item.put(Key, S(messagePartitionKey(persistenceId)))
+    val partitionKey = messagePartitionKey(persistenceId)
+    item.put(Key, S(partitionKey))
     item.put(SequenceNr, N(sequenceNr))
     item.put(Timestamp, N(timestamp))
     val snapshotData = snapshot.asInstanceOf[AnyRef]
@@ -171,6 +175,11 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
     }
 
     fut.map { data =>
+      val size = itemSize(partitionKey, data)
+
+      if (size > MaxItemSize)
+        throw new DynamoDBSnapshotRejection(s"MaxItemSize exceeded: $size > $MaxItemSize")
+
       item.put(PayloadData, B(data))
       if (manifest.nonEmpty) {
         item.put(SerializerManifest, S(manifest))

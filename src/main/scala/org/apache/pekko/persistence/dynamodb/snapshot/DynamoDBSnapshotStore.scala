@@ -22,6 +22,8 @@ import com.typesafe.config.Config
 
 import scala.concurrent.Future
 
+class DynamoDBSnapshotRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
+
 class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBSnapshotRequests with ActorLogging {
   val journalSettings = new DynamoDBSnapshotConfig(config)
   val dynamo = dynamoClient(context.system, journalSettings)
