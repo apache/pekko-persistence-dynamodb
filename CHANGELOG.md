@@ -1,5 +1,16 @@
 # Apache Pekko Persistence DynamoDB Releases
 
+## v1.1.0
+
+### Changes
+
+* We have made some minor dependency upgrades, notably the AWS libs (latest available [AWS SDK for Java 1.x](https://github.com/aws/aws-sdk-java) lib at release time, October 2024).
+* Built with Pekko 1.1.x. With this release, it is recommended to use the latest Pekko 1.1.x libs but in theory, the 1.0.x libs should work too.
+* Retry on 50x responses from AWS. (#11) 
+* Add setSelect(ALL_ATTRIBUTES) to retrieve snapshots. (#12)
+* Protect against doing requests for snapshots that are over 400KB. (#13)
+
+
 ## v1.0.0
 
 Pekko Persistence DynamoDB 1.0.0 is based on Akka Persistence DynamoDB 1.1.2. Pekko came about as a result of Lightbend’s decision to make future Akka releases under a [Business Software License](https://www.lightbend.com/blog/why-we-are-changing-the-license-for-akka), a license that is not compatible with Open Source usage.
