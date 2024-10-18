@@ -23,6 +23,7 @@ import pekko.event.LoggingAdapter
 import pekko.pattern.after
 import pekko.persistence.dynamodb.{ DynamoDBConfig, Item }
 import pekko.util.ccompat.JavaConverters._
+import pekko.annotation.InternalApi
 
 import java.util.{ concurrent => juc }
 
@@ -35,7 +36,8 @@ private class RetryStateHolder(var retries: Int = 10, var backoff: FiniteDuratio
 /**
  * Auxiliary object to help determining whether we should retry on a certain throwable.
  */
-object DynamoRetriableException {
+@InternalApi
+private object DynamoRetriableException {
   def unapply(ex: AmazonServiceException) = {
     ex match {
       // 50x network glitches
@@ -53,7 +55,7 @@ object DynamoRetriableException {
         // and the table cannot be scaled further
         Some(ex)
       case ase if ase.getErrorCode == "ThrottlingException" =>
-        // // rate of AWS requests exceeds the allowed throughput
+        // rate of AWS requests exceeds the allowed throughput
         Some(ex)
       case _ =>
         None
