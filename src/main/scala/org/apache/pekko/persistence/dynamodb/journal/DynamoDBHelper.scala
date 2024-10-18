@@ -13,7 +13,7 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import com.amazonaws.AmazonWebServiceRequest
+import com.amazonaws.{ AmazonServiceException, AmazonWebServiceRequest }
 import com.amazonaws.handlers.AsyncHandler
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
 import com.amazonaws.services.dynamodbv2.model._
@@ -23,6 +23,7 @@ import pekko.event.LoggingAdapter
 import pekko.pattern.after
 import pekko.persistence.dynamodb.{ DynamoDBConfig, Item }
 import pekko.util.ccompat.JavaConverters._
+import pekko.annotation.InternalApi
 
 import java.util.{ concurrent => juc }
 
@@ -31,6 +32,36 @@ import scala.concurrent.duration._
 
 case class LatencyReport(nanos: Long, retries: Int)
 private class RetryStateHolder(var retries: Int = 10, var backoff: FiniteDuration = 1.millis)
+
+/**
+ * Auxiliary object to help determining whether we should retry on a certain throwable.
+ */
+@InternalApi
+private object DynamoRetriableException {
+  def unapply(ex: AmazonServiceException) = {
+    ex match {
+      // 50x network glitches
+      case _: InternalServerErrorException =>
+        Some(ex)
+      case ase if ase.getStatusCode >= 502 && ase.getStatusCode <= 504 =>
+        // retry on more common server errors
+        Some(ex)
+
+      // 400 throughput issues
+      case _: ProvisionedThroughputExceededException =>
+        Some(ex)
+      case _: RequestLimitExceededException =>
+        // rate of on-demand requests exceeds the allowed account throughput
+        // and the table cannot be scaled further
+        Some(ex)
+      case ase if ase.getErrorCode == "ThrottlingException" =>
+        // rate of AWS requests exceeds the allowed throughput
+        Some(ex)
+      case _ =>
+        None
+    }
+  }
+}
 
 trait DynamoDBHelper {
 
@@ -57,7 +88,7 @@ trait DynamoDBHelper {
       val handler = new AsyncHandler[In, Out] {
         override def onError(ex: Exception) =
           ex match {
-            case e: ProvisionedThroughputExceededException =>
+            case DynamoRetriableException(_) =>
               p.tryFailure(ex)
             case _ =>
               val n = name
@@ -81,12 +112,16 @@ trait DynamoDBHelper {
     val state = new RetryStateHolder
 
     lazy val retry: PartialFunction[Throwable, Future[Out]] = {
-      case _: ProvisionedThroughputExceededException if state.retries > 0 =>
+      case DynamoRetriableException(ex) if state.retries > 0 =>
         val backoff = state.backoff
         state.retries -= 1
         state.backoff *= 2
+        log.warning("failure while executing {} but will retry! Message: {}", name, ex.getMessage())
         after(backoff, scheduler)(sendSingle().recoverWith(retry))
-      case other => Future.failed(other)
+      case other: DynamoDBJournalFailure => Future.failed(other)
+      case other =>
+        val n = name
+        Future.failed(new DynamoDBJournalFailure("failed retry " + n, other))
     }
 
     if (Tracing) log.debug("{}", name)
