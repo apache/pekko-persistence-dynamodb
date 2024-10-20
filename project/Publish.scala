@@ -24,7 +24,6 @@ object Publish extends AutoPlugin {
   override def requires = ApacheSonatypePlugin && DynVerPlugin
 
   override lazy val projectSettings = Seq(
-    crossPaths := false,
     homepage := Some(url("https://github.com/apache/pekko-persistence-dynamodb")),
     developers += Developer("contributors",
       "Contributors",
