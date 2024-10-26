@@ -21,14 +21,14 @@ This plugin is published to the Maven Central repository with the following name
 <dependency>
     <groupId>org.apache.pekko</groupId>
     <artifactId>pekko-persistence-dynamodb_2.13</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ~~~
 
 or for sbt users:
 
 ```sbt
-libraryDependencies += "org.apache.pekko" %% "pekko-persistence-dynamodb" % "1.0.0"
+libraryDependencies += "org.apache.pekko" %% "pekko-persistence-dynamodb" % "1.1.0"
 ```
 
 Snapshot versions are available.
