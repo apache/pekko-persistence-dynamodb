@@ -1,6 +1,5 @@
 name: Update Dependency Graph
 on:
-  pull_request:
   push:
     branches:
       - main # default branch of the project
