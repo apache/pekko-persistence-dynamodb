@@ -55,7 +55,8 @@ package object dynamodb {
     p.future
   }
 
-  def trySequence[A, M[X] <: TraversableOnce[X]](in: M[Future[A]])(implicit
+  def trySequence[A, M[X] <: TraversableOnce[X]](in: M[Future[A]])(
+      implicit
       cbf: CanBuildFrom[M[Future[A]], Try[A], M[Try[A]]],
       executor: ExecutionContext): Future[M[Try[A]]] =
     in.foldLeft(Future.successful(cbf(in))) { (fr, a) =>
