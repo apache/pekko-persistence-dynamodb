@@ -48,7 +48,7 @@ lazy val root = Project(
       "com.amazonaws" % "aws-java-sdk-dynamodb" % amzVersion,
       "javax.xml.bind" % "jaxb-api" % "2.3.1", // see https://github.com/seek-oss/gradle-aws-plugin/issues/15
       "org.scalatest" %% "scalatest" % "3.2.19" % "test",
-      "commons-io" % "commons-io" % "2.18.0" % Test,
+      "commons-io" % "commons-io" % "2.19.0" % Test,
       "org.hdrhistogram" % "HdrHistogram" % "2.2.2" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test),
     scalacOptions ++= Seq("-deprecation", "-feature"),
