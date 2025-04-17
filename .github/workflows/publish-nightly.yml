@@ -28,7 +28,7 @@ permissions:
 jobs:
   publish-nightly:
     name: Publish nightly
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     if: github.repository == 'apache/pekko-persistence-dynamodb'
     steps:
       - name: Checkout
@@ -42,6 +42,9 @@ jobs:
         with:
           distribution: temurin
           java-version: 8
+
+      - name: Install sbt
+        uses: sbt/setup-sbt@v1
 
       - name: Publish to Apache Maven repo
         env:
