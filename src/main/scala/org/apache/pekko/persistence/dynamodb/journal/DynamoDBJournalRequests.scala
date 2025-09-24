@@ -15,8 +15,9 @@ package org.apache.pekko.persistence.dynamodb.journal
 
 import java.nio.ByteBuffer
 import java.util.Collections
-import scala.concurrent.Future
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
 import scala.util.{ Failure, Success, Try }
 import scala.util.control.NonFatal
 
@@ -24,12 +25,10 @@ import com.amazonaws.services.dynamodbv2.model._
 import org.apache.pekko
 import pekko.Done
 import pekko.actor.ExtendedActorSystem
-import pekko.dispatch.ExecutionContexts
 import pekko.pattern.after
 import pekko.persistence.{ AtomicWrite, PersistentRepr }
 import pekko.persistence.dynamodb._
 import pekko.serialization.{ AsyncSerializer, Serialization, Serializers }
-import pekko.util.ccompat.JavaConverters._
 
 trait DynamoDBJournalRequests extends DynamoDBRequests {
   this: DynamoDBJournal =>
@@ -47,7 +46,7 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
     // optimize the common case
     if (writes.size == 1) {
       writeMessages(writes.head)
-        .map(bubbleUpFailures(_) :: Nil)(ExecutionContexts.parasitic)
+        .map(bubbleUpFailures(_) :: Nil)(ExecutionContext.parasitic)
     } else {
       def rec(todo: List[AtomicWrite], acc: List[Try[Unit]]): Future[List[Try[Unit]]] =
         todo match {

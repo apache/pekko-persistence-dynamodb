@@ -20,7 +20,6 @@ import pekko.persistence.JournalProtocol._
 import pekko.persistence._
 import pekko.persistence.dynamodb._
 import pekko.testkit._
-import pekko.util.ccompat.JavaConverters._
 import com.amazonaws.services.dynamodbv2.model._
 import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
@@ -30,6 +29,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
 
 class FailureReportingSpec
     extends TestKit(ActorSystem("FailureReportingSpec"))

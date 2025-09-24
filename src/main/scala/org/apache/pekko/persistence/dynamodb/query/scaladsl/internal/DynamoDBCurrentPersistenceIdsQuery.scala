@@ -24,11 +24,11 @@ import org.apache.pekko.persistence.dynamodb.query.scaladsl.{
 import org.apache.pekko.persistence.dynamodb.query.{ ReadJournalSettingsProvider, RichOption }
 import org.apache.pekko.persistence.dynamodb.{ ActorSystemProvider, DynamoProvider, LoggingProvider }
 import org.apache.pekko.stream.scaladsl.Source
-import org.apache.pekko.util.ccompat.JavaConverters._
 import com.amazonaws.services.dynamodbv2.model._
 
 import java.util
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 
 trait DynamoDBCurrentPersistenceIdsQuery extends PublicDynamoDBCurrentPersistenceIdsQuery {
