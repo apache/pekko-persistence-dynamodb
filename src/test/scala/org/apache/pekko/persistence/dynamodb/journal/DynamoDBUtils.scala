@@ -19,11 +19,11 @@ import pekko.actor.ActorSystem
 import pekko.persistence.PersistentRepr
 import pekko.persistence.dynamodb._
 import pekko.util.Timeout
-import pekko.util.ccompat.JavaConverters._
 
 import java.util.UUID
 import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
 
 trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
 

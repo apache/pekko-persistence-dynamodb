@@ -16,7 +16,6 @@ package org.apache.pekko.persistence
 import java.nio.ByteBuffer
 import java.util.concurrent.Executors
 import org.apache.pekko.actor.{ ActorSystem, Scheduler }
-import org.apache.pekko.dispatch.ExecutionContexts
 import org.apache.pekko.event.{ Logging, LoggingAdapter }
 import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
 import com.amazonaws.auth.BasicAWSCredentials
@@ -42,7 +41,7 @@ package object dynamodb {
 
   def lift[T](f: Future[T]): Future[Try[T]] = {
     val p = Promise[Try[T]]()
-    f.onComplete(p.success)(ExecutionContexts.parasitic)
+    f.onComplete(p.success)(ExecutionContext.parasitic)
     p.future
   }
 
@@ -51,7 +50,7 @@ package object dynamodb {
     f.onComplete {
       case Success(_)     => p.success(Success(()))
       case f @ Failure(_) => p.success(f.asInstanceOf[Failure[Unit]])
-    }(ExecutionContexts.parasitic)
+    }(ExecutionContext.parasitic)
     p.future
   }
 

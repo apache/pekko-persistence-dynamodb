@@ -7,9 +7,9 @@ A replicated Pekko Persistence journal backed by
 - This includes a Pekko Persistence Query plugin. However, this requires an additional GSI for efficient usage.
 
 Supported versions:
-- Scala: `2.12.x`, `2.13.x`, `3.3.0+`
+- Scala: `2.13.x`, `3.3.0+`
 - Pekko: `1.0.x+`
-- Java: `1.8+`
+- Java: `17+`
 
 [![Build Status](https://github.com/apache/pekko-persistence-dynamodb/actions/workflows/check-build-test.yml/badge.svg?branch=main)](https://github.com/apache/pekko-persistence-dynamodb/actions)
 

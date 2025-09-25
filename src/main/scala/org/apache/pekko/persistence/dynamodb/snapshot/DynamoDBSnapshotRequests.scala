@@ -21,10 +21,10 @@ import pekko.persistence.dynamodb._
 import pekko.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import pekko.persistence.serialization.Snapshot
 import pekko.serialization.{ AsyncSerializer, Serialization, Serializers }
-import pekko.util.ccompat.JavaConverters._
 
 import java.util.{ HashMap => JHMap }
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 
 trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   this: DynamoDBSnapshotStore =>

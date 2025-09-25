@@ -16,7 +16,6 @@ package org.apache.pekko.persistence.dynamodb.journal
 import java.util.{ HashMap => JHMap, Map => JMap }
 import org.apache.pekko.Done
 import org.apache.pekko.actor.{ ActorLogging, ActorRef, ExtendedActorSystem }
-import org.apache.pekko.dispatch.ExecutionContexts
 import org.apache.pekko.pattern.pipe
 import org.apache.pekko.persistence.journal.AsyncWriteJournal
 import org.apache.pekko.persistence.{ AtomicWrite, Persistence }
@@ -27,7 +26,7 @@ import com.amazonaws.services.dynamodbv2.model._
 import com.typesafe.config.Config
 
 import scala.collection.immutable
-import scala.concurrent.{ Future, Promise }
+import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Success, Try }
 
 class DynamoDBJournalFailure(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
@@ -118,7 +117,7 @@ class DynamoDBJournal(config: Config)
     f.onComplete { _ =>
       self ! OpFinished(pid, p.future)
       p.success(Done)
-    }(ExecutionContexts.parasitic)
+    }(ExecutionContext.parasitic)
 
     f
   }

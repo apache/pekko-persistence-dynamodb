@@ -23,13 +23,13 @@ import pekko.serialization.{ AsyncSerializer, Serialization }
 import pekko.stream._
 import pekko.stream.scaladsl._
 import pekko.stream.stage._
-import pekko.util.ccompat.JavaConverters._
 import com.amazonaws.services.dynamodbv2.model._
 
 import java.util.function.Consumer
 import java.util.{ ArrayList, Collections, Map => JMap }
 import scala.collection.immutable
 import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
 
 object DynamoDBRecovery {
   val ItemAttributesForReplay: Seq[String] = Seq(

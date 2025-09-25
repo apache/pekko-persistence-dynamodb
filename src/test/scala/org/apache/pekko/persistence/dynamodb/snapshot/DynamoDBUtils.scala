@@ -19,11 +19,11 @@ import pekko.persistence.dynamodb.dynamoClient
 import pekko.persistence.dynamodb.journal.DynamoDBHelper
 import pekko.actor.ActorSystem
 import pekko.util.Timeout
-import pekko.util.ccompat.JavaConverters._
 
 import java.util.UUID
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext, Future }
+import scala.jdk.CollectionConverters._
 
 trait DynamoDBUtils {
 

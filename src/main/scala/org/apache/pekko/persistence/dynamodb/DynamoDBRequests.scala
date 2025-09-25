@@ -21,10 +21,10 @@ import pekko.Done
 import pekko.actor.{ Actor, ActorLogging }
 import pekko.pattern.after
 import pekko.persistence.dynamodb.journal.DynamoDBHelper
-import pekko.util.ccompat.JavaConverters._
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 
 private[dynamodb] trait DynamoDBRequests {
