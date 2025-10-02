@@ -23,7 +23,7 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
 import com.amazonaws.services.dynamodbv2.model.{ AttributeValue, AttributeValueUpdate }
 
 import java.util.{ Map => JMap }
-import scala.collection.generic.CanBuildFrom
+import scala.collection.BuildFrom
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Failure, Success, Try }
 
@@ -54,11 +54,11 @@ package object dynamodb {
     p.future
   }
 
-  def trySequence[A, M[X] <: TraversableOnce[X]](in: M[Future[A]])(
+  def trySequence[A, M[X] <: IterableOnce[X]](in: M[Future[A]])(
       implicit
-      cbf: CanBuildFrom[M[Future[A]], Try[A], M[Try[A]]],
+      cbf: BuildFrom[M[Future[A]], Try[A], M[Try[A]]],
       executor: ExecutionContext): Future[M[Try[A]]] =
-    in.foldLeft(Future.successful(cbf(in))) { (fr, a) =>
+    in.iterator.foldLeft(Future.successful(cbf.newBuilder(in))) { (fr, a) =>
       val fb = lift(a)
       for (r <- fr; b <- fb) yield r += b
     }.map(_.result())
