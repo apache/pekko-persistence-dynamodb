@@ -40,8 +40,8 @@ lazy val root = Project(
   .addPekkoModuleDependency("pekko-stream-testkit", "test", PekkoCoreDependency.default)
   .settings(
     name := "pekko-persistence-dynamodb",
-    scalaVersion := "2.13.16",
-    crossScalaVersions := Seq("2.13.16", "3.3.6"),
+    scalaVersion := "2.13.17",
+    crossScalaVersions := Seq("2.13.17", "3.3.6"),
     crossVersion := CrossVersion.binary,
     libraryDependencies ++= Seq(
       "com.amazonaws" % "aws-java-sdk-core" % amzVersion,
