@@ -119,7 +119,7 @@ trait DynamoDBHelper {
         log.warning("failure while executing {} but will retry! Message: {}", name, ex.getMessage())
         after(backoff, scheduler)(sendSingle().recoverWith(retry))
       case other: DynamoDBJournalFailure => Future.failed(other)
-      case other =>
+      case other                         =>
         val n = name
         Future.failed(new DynamoDBJournalFailure("failed retry " + n, other))
     }
