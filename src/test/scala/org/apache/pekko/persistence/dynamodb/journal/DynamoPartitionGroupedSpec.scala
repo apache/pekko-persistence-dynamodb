@@ -27,7 +27,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
         Source(1L to 250).via(DynamoPartitionGrouped)
 
       sourceUnderTest
-        .runWith(TestSink.probe[PartitionKeys])
+        .runWith(TestSink[PartitionKeys]())
         .request(1)
         .expectNext(PartitionKeys(0L, 1L to 99))
         .request(1)
@@ -42,7 +42,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
         Source(85L to 300).via(DynamoPartitionGrouped)
 
       sourceUnderTest
-        .runWith(TestSink.probe[PartitionKeys])
+        .runWith(TestSink[PartitionKeys]())
         .request(1)
         .expectNext(PartitionKeys(0L, 85L to 99))
         .request(1)
@@ -59,7 +59,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
         Source(185L to 512).via(DynamoPartitionGrouped)
 
       sourceUnderTest
-        .runWith(TestSink.probe[PartitionKeys])
+        .runWith(TestSink[PartitionKeys]())
         .request(1)
         .expectNext(PartitionKeys(1L, 185L to 199))
         .request(3)
@@ -76,7 +76,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
         Source(1L to 15).via(DynamoPartitionGrouped)
 
       sourceUnderTest
-        .runWith(TestSink.probe[PartitionKeys])
+        .runWith(TestSink[PartitionKeys]())
         .request(2)
         .expectNext(PartitionKeys(0L, 1L to 15))
         .expectComplete()
@@ -87,7 +87,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
         Source(1L to 99).via(DynamoPartitionGrouped)
 
       sourceUnderTest
-        .runWith(TestSink.probe[PartitionKeys])
+        .runWith(TestSink[PartitionKeys]())
         .request(2)
         .expectNext(PartitionKeys(0L, 1L to 99))
         .expectComplete()
