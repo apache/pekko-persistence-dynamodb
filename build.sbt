@@ -10,7 +10,7 @@
 import com.github.pjfanning.pekkobuild._
 import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCheckResolver
 
-val amzVersion = "1.12.793"
+val amzVersion = "1.12.794"
 val testcontainersScalaVersion = "0.44.0"
 
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
@@ -40,8 +40,8 @@ lazy val root = Project(
   .addPekkoModuleDependency("pekko-stream-testkit", "test", PekkoCoreDependency.default)
   .settings(
     name := "pekko-persistence-dynamodb",
-    scalaVersion := "2.13.17",
-    crossScalaVersions := Seq("2.13.17", "3.3.7"),
+    scalaVersion := "2.13.18",
+    crossScalaVersions := Seq("2.13.18", "3.3.7"),
     crossVersion := CrossVersion.binary,
     libraryDependencies ++= Seq(
       "com.amazonaws" % "aws-java-sdk-core" % amzVersion,
