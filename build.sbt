@@ -11,7 +11,7 @@ import com.github.pjfanning.pekkobuild._
 import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCheckResolver
 
 val amzVersion = "1.12.794"
-val testcontainersScalaVersion = "0.43.6"
+val testcontainersScalaVersion = "0.44.0"
 
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
 sourceDistName := "apache-pekko-persistence-dynamodb"
