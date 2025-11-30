@@ -10,7 +10,7 @@
 import com.github.pjfanning.pekkobuild._
 import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCheckResolver
 
-val amzVersion = "1.12.793"
+val amzVersion = "1.12.794"
 val testcontainersScalaVersion = "0.43.6"
 
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
