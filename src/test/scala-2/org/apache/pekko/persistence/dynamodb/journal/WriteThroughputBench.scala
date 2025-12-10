@@ -13,11 +13,12 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import org.apache.pekko.actor._
-import org.apache.pekko.persistence._
-import org.apache.pekko.stream._
-import org.apache.pekko.stream.scaladsl.GraphDSL.Implicits._
-import org.apache.pekko.stream.scaladsl._
+import org.apache.pekko
+import pekko.actor._
+import pekko.persistence._
+import pekko.stream._
+import pekko.stream.scaladsl.GraphDSL.Implicits._
+import pekko.stream.scaladsl._
 import com.typesafe.config.ConfigFactory
 import org.HdrHistogram.Histogram
 
@@ -127,7 +128,7 @@ writer-dispatcher {
       .withFallback(ConfigFactory.load())
 
   implicit val system: ActorSystem = ActorSystem("WriteThroughputBench", config)
-  implicit val materializer: ActorMaterializer =
+  implicit val materializer: Materializer =
     ActorMaterializer(ActorMaterializerSettings(system).withInputBuffer(1, 1))
 
   /*
@@ -139,15 +140,25 @@ writer-dispatcher {
 
   val writers = system.settings.config.getInt("writers")
 
+  val completionMatcher: PartialFunction[Any, CompletionStrategy] = {
+    case pekko.actor.Status.Success(s: CompletionStrategy) => s
+    case pekko.actor.Status.Success(_)                     => CompletionStrategy.Draining
+    case pekko.actor.Status.Success                        => CompletionStrategy.Draining
+  }
+
+  val failureMatcher: PartialFunction[Any, Throwable] = {
+    case pekko.actor.Status.Failure(cause) => cause
+  }
+
   val endToEnd = Source
-    .actorRef[Report](3 * writers, OverflowStrategy.dropHead)
+    .actorRef[Report](completionMatcher, failureMatcher, 3 * writers, OverflowStrategy.dropHead)
     .conflate(_ + _)
     .prepend(Source.single(Report()))
     .expand(Iterator.continually(_))
     .withAttributes(Attributes.asyncBoundary)
 
   val calls = Source
-    .actorRef[LatencyReport](1000, OverflowStrategy.dropNew)
+    .actorRef[LatencyReport](completionMatcher, failureMatcher, 1000, OverflowStrategy.dropHead)
     .conflateWithSeed(r => ({ val h = new Histogram(3); h.recordValue(r.nanos); h }, new H(r.retries))) {
       case ((hist, h), LatencyReport(nanos, retries)) =>
         hist.recordValue(nanos)
