@@ -18,10 +18,7 @@ import org.apache.pekko.persistence.dynamodb.query.scaladsl.{
   DynamoDBCurrentEventsByPersistenceIdQuery => PublicDynamoDBCurrentEventsByPersistenceIdQuery
 }
 import org.apache.pekko.persistence.dynamodb.{
-  ActorSystemProvider,
-  DynamoProvider,
-  LoggingProvider,
-  MaterializerProvider
+  ActorSystemProvider, DynamoProvider, LoggingProvider, MaterializerProvider
 }
 import org.apache.pekko.persistence.query.{ EventEnvelope, Sequence }
 import org.apache.pekko.stream.scaladsl.Source
