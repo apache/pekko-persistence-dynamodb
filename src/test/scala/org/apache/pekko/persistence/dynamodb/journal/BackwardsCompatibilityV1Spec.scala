@@ -28,6 +28,7 @@ import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.testkit._
 import software.amazon.awssdk.auth.credentials.{ AwsBasicCredentials, StaticCredentialsProvider }
 import software.amazon.awssdk.core.SdkBytes
+import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient
 import software.amazon.awssdk.services.dynamodb.model.{ AttributeValue, PutItemRequest }
 import com.typesafe.config.ConfigFactory
@@ -62,6 +63,7 @@ class BackwardsCompatibilityV1Spec
     val client: DynamoDbClient = DynamoDbClient.builder()
       .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
       .endpointOverride(URI.create(endpoint))
+      .region(Region.US_EAST_1)
       .build()
 
     val persistenceId = "journal-P-OldFormatEvents-0"
