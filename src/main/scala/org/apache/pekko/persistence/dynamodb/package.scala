@@ -73,7 +73,15 @@ package object dynamodb {
     }
 
     if (settings.Region.nonEmpty) {
-      builder.region(Region.of(settings.Region))
+      try {
+        builder.region(Region.of(settings.Region))
+      } catch {
+        case e: IllegalArgumentException =>
+          throw new IllegalArgumentException(
+            s"Invalid AWS region '${settings.Region}' in configuration. " +
+            "See https://docs.aws.amazon.com/general/latest/gr/rande.html for valid region identifiers.",
+            e)
+      }
     } else if (settings.Endpoint.nonEmpty) {
       // When using a custom endpoint (e.g. DynamoDB Local), SDK v2 requires a region for
       // request signing. Fall back to us-east-1 since the region is irrelevant for local endpoints.
