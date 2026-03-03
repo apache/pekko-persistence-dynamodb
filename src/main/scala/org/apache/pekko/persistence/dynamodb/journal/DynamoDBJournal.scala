@@ -28,6 +28,8 @@ import org.apache.pekko.persistence.journal.AsyncWriteJournal
 import org.apache.pekko.persistence.{ AtomicWrite, Persistence }
 import org.apache.pekko.serialization.{ Serialization, SerializationExtension }
 import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
+import software.amazon.awssdk.services.dynamodb.model._
+import com.typesafe.config.Config
 
 import com.typesafe.config.Config
 
@@ -98,7 +100,7 @@ class DynamoDBJournal(config: Config)
 
   val dynamo = dynamoClient(context.system, journalSettings)
 
-  dynamo.describeTable(new DescribeTableRequest().withTableName(JournalTable)).onComplete {
+  dynamo.describeTable(DescribeTableRequest.builder().tableName(JournalTable).build()).onComplete {
     case Success(result) => log.info("using DynamoDB table {}", result)
     case _               => log.error("persistent actor requests will fail until the table '{}' is accessible", JournalTable)
   }
