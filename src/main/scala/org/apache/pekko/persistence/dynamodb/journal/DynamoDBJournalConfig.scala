@@ -24,6 +24,7 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
   val AwsKey = c.getString("aws-access-key-id")
   val AwsSecret = c.getString("aws-secret-access-key")
   val Endpoint = c.getString("endpoint")
+  val Region = c.getString("region")
   val ReplayDispatcher = c.getString("replay-dispatcher")
   val ClientDispatcher = c.getString("client-dispatcher")
   val SequenceShards = c.getInt("sequence-shards")
