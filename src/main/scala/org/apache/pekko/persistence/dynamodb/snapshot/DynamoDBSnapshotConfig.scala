@@ -22,6 +22,7 @@ class DynamoDBSnapshotConfig(c: Config) extends DynamoDBConfig {
   val AwsKey = c.getString("aws-access-key-id")
   val AwsSecret = c.getString("aws-secret-access-key")
   val Endpoint = c.getString("endpoint")
+  val Region = c.getString("region")
 
   val MaxBatchGet = c.getInt("aws-api-limits.max-batch-get")
   val MaxBatchWrite = c.getInt("aws-api-limits.max-batch-write")

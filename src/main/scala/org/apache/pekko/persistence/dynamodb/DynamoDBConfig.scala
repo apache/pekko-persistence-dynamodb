@@ -21,6 +21,7 @@ trait DynamoDBConfig {
   val AwsKey: String
   val AwsSecret: String
   val Endpoint: String
+  val Region: String
   val ClientDispatcher: String
   val client: ClientConfig
   val Tracing: Boolean

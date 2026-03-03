@@ -20,6 +20,7 @@ class DynamoDBReadJournalConfig(c: Config) extends DynamoDBConfig {
   val AwsKey: String = c.getString("aws-access-key-id")
   val AwsSecret: String = c.getString("aws-secret-access-key")
   val Endpoint: String = c.getString("endpoint")
+  val Region: String = c.getString("region")
 
   val MaxBatchGet: Int = c.getInt("aws-api-limits.max-batch-get")
   val MaxBatchWrite: Int = c.getInt("aws-api-limits.max-batch-write")
