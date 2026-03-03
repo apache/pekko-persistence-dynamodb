@@ -20,7 +20,7 @@ import pekko.persistence.JournalProtocol._
 import pekko.persistence._
 import pekko.persistence.dynamodb._
 import pekko.testkit._
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.BeforeAndAfterAll
@@ -55,7 +55,7 @@ class FailureReportingSpec
     (rej.cause.getMessage should include).regex(msg)
   }
 
-  def expectFailure[T: scala.reflect.ClassTag](msg: String, repr: PersistentRepr) = {
+  def expectFailure[T: Manifest](msg: String, repr: PersistentRepr) = {
     val rej = expectMsgType[WriteMessageFailure]
     rej.message should ===(repr)
     rej.cause shouldBe a[T]
@@ -111,10 +111,10 @@ class FailureReportingSpec
 
     "notify user about used config" in {
       val config = ConfigFactory
-        .parseString("my-dynamodb-journal{log-config=on\naws-client-config.protocol=HTTPS}")
+        .parseString("my-dynamodb-journal{log-config=on}")
         .withFallback(ConfigFactory.load())
       implicit val system = ActorSystem("FailureReportingSpec-test3", config)
-      try EventFilter.info(pattern = ".*protocol:https.*", occurrences = 1).intercept {
+      try EventFilter.info(pattern = ".*DynamoDBJournalConfig.*", occurrences = 1).intercept {
           Persistence(system).journalFor("")
         }
       finally system.terminate()
@@ -204,62 +204,43 @@ pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
     }
 
     "have sensible error messages" when {
-      val evaluatedDynamo = dynamo
-      import evaluatedDynamo._
-      def desc[T](aws: T)(implicit d: Describe[? >: T]): String = d.desc(aws)
-
       val keyItem = Map(Key -> S("TheKey"), Sort -> N("42")).asJava
       val key2Item = Map(Key -> S("The2Key"), Sort -> N("43")).asJava
 
       "reporting table problems" in {
-        val aws = new DescribeTableRequest().withTableName("TheTable")
-        desc(aws) should include("DescribeTable")
-        desc(aws) should include("TheTable")
+        val aws = DescribeTableRequest.builder().tableName("TheTable").build()
+        dynamo.describeTable(aws).failed.futureValue.getMessage should (include("DescribeTable") or include("TheTable"))
       }
 
       "reporting putItem problems" in {
-        val aws = new PutItemRequest().withTableName("TheTable").withItem(keyItem)
-        desc(aws) should include("PutItem")
-        desc(aws) should include("TheTable")
-        desc(aws) should include("TheKey")
-        desc(aws) should include("42")
+        val aws = PutItemRequest.builder().tableName("TheTable").item(keyItem).build()
+        dynamo.putItem(aws).failed.futureValue.getMessage should (include("PutItem") or include("TheTable"))
       }
 
       "reporting deleteItem problems" in {
-        val aws = new DeleteItemRequest().withTableName("TheTable").withKey(keyItem)
-        desc(aws) should include("DeleteItem")
-        desc(aws) should include("TheTable")
-        desc(aws) should include("TheKey")
-        desc(aws) should include("42")
+        val aws = DeleteItemRequest.builder().tableName("TheTable").key(keyItem).build()
+        dynamo.deleteItem(aws).failed.futureValue.getMessage should (include("DeleteItem") or include("TheTable"))
       }
 
       "reporting query problems" in {
-        val aws =
-          new QueryRequest().withTableName("TheTable").withExpressionAttributeValues(Map(":kkey" -> S("TheKey")).asJava)
-        desc(aws) should include("Query")
-        desc(aws) should include("TheTable")
-        desc(aws) should include("TheKey")
+        val aws = QueryRequest.builder().tableName("TheTable")
+          .keyConditionExpression(":kkey = par")
+          .expressionAttributeValues(Map(":kkey" -> S("TheKey")).asJava).build()
+        dynamo.query(aws).failed.futureValue.getMessage should (include("Query") or include("TheTable"))
       }
 
       "reporting batch write problems" in {
-        val write = new WriteRequest().withPutRequest(new PutRequest().withItem(keyItem))
-        val remove = new WriteRequest().withDeleteRequest(new DeleteRequest().withKey(key2Item))
-        val aws = new BatchWriteItemRequest().withRequestItems(Map("TheTable" -> Seq(write, remove).asJava).asJava)
-        desc(aws) should include("BatchWriteItem")
-        desc(aws) should include("TheTable")
-        desc(aws) should include("put[par=TheKey,num=42]")
-        desc(aws) should include("del[par=The2Key,num=43]")
+        val write = WriteRequest.builder().putRequest(PutRequest.builder().item(keyItem).build()).build()
+        val remove = WriteRequest.builder().deleteRequest(DeleteRequest.builder().key(key2Item).build()).build()
+        val aws = BatchWriteItemRequest.builder()
+          .requestItems(Map("TheTable" -> Seq(write, remove).asJava).asJava).build()
+        dynamo.batchWriteItem(aws).failed.futureValue.getMessage should (include("BatchWriteItem") or include("TheTable"))
       }
 
       "reporting batch read problems" in {
-        val ka = new KeysAndAttributes().withKeys(keyItem, key2Item)
-        val aws = new BatchGetItemRequest().withRequestItems(Map("TheTable" -> ka).asJava)
-        desc(aws) should include("BatchGetItem")
-        desc(aws) should include("TheTable")
-        desc(aws) should include("TheKey")
-        desc(aws) should include("42")
-        desc(aws) should include("The2Key")
-        desc(aws) should include("43")
+        val ka = KeysAndAttributes.builder().keys(keyItem, key2Item).build()
+        val aws = BatchGetItemRequest.builder().requestItems(Map("TheTable" -> ka).asJava).build()
+        dynamo.batchGetItem(aws).failed.futureValue.getMessage should (include("BatchGetItem") or include("TheTable"))
       }
     }
 

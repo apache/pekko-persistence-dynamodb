@@ -13,7 +13,7 @@
 
 package org.apache.pekko.persistence.dynamodb
 
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 
 package object journal {
 
@@ -42,12 +42,12 @@ package object journal {
   // This is the size of each partition used on DynamoDB. This value should never change as it will break backwards compatability.
   val PartitionSize: Int = 100
 
-  val schema = new CreateTableRequest()
-    .withKeySchema(
-      new KeySchemaElement().withAttributeName(Key).withKeyType(KeyType.HASH),
-      new KeySchemaElement().withAttributeName(Sort).withKeyType(KeyType.RANGE))
-    .withAttributeDefinitions(
-      new AttributeDefinition().withAttributeName(Key).withAttributeType("S"),
-      new AttributeDefinition().withAttributeName(Sort).withAttributeType("N"))
+  val schema = CreateTableRequest.builder()
+    .keySchema(
+      KeySchemaElement.builder().attributeName(Key).keyType(KeyType.HASH).build(),
+      KeySchemaElement.builder().attributeName(Sort).keyType(KeyType.RANGE).build())
+    .attributeDefinitions(
+      AttributeDefinition.builder().attributeName(Key).attributeType(ScalarAttributeType.S).build(),
+      AttributeDefinition.builder().attributeName(Sort).attributeType(ScalarAttributeType.N).build())
 
 }

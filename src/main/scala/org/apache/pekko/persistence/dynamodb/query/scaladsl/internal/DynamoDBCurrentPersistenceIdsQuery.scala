@@ -24,7 +24,7 @@ import org.apache.pekko.persistence.dynamodb.query.scaladsl.{
 import org.apache.pekko.persistence.dynamodb.query.{ ReadJournalSettingsProvider, RichOption }
 import org.apache.pekko.persistence.dynamodb.{ ActorSystemProvider, DynamoProvider, LoggingProvider }
 import org.apache.pekko.stream.scaladsl.Source
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 
 import java.util
 import scala.concurrent.Future
@@ -128,36 +128,35 @@ trait DynamoDBCurrentPersistenceIdsQuery extends PublicDynamoDBCurrentPersistenc
       exclusiveStartKey: Option[java.util.Map[String, AttributeValue]]) = {
 
     def queryRequest(exclusiveStartKey: Option[java.util.Map[String, AttributeValue]]): QueryRequest = {
-      val req = new QueryRequest()
-        .withTableName(readJournalSettings.Table)
-        .withIndexName(readJournalSettings.PersistenceIdsIndexName)
-        .withProjectionExpression("par")
+      val builder = QueryRequest.builder()
+        .tableName(readJournalSettings.Table)
+        .indexName(readJournalSettings.PersistenceIdsIndexName)
+        .projectionExpression("par")
 
       fromPersistenceId match {
         case Some(persistenceId) =>
-          req
-            .withKeyConditionExpression("num = :n AND par > :p")
-            .withExpressionAttributeValues(
+          builder
+            .keyConditionExpression("num = :n AND par > :p")
+            .expressionAttributeValues(
               Map(":n" -> 1.toAttribute, ":p" -> messagePartitionKeyFromGroupNr(persistenceId, 0).toAttribute).asJava)
         case None =>
-          req.withKeyConditionExpression("num = :n").withExpressionAttributeValues(Map(":n" -> 1.toAttribute).asJava)
-
+          builder.keyConditionExpression("num = :n").expressionAttributeValues(Map(":n" -> 1.toAttribute).asJava)
       }
-      exclusiveStartKey.foreach(esk => req.withExclusiveStartKey(esk))
-      req
+      exclusiveStartKey.foreach(esk => builder.exclusiveStartKey(esk))
+      builder.build()
     }
     dynamo.query(queryRequest(exclusiveStartKey))
   }
 
   private def scanPersistenceIds(exclusiveStartKey: Option[java.util.Map[String, AttributeValue]]) = {
     def scanRequest(exclusiveStartKey: Option[java.util.Map[String, AttributeValue]]): ScanRequest = {
-      val req = new ScanRequest()
-        .withTableName(readJournalSettings.Table)
-        .withProjectionExpression("par")
-        .withFilterExpression("num = :n")
-        .withExpressionAttributeValues(Map(":n" -> 1.toAttribute).asJava)
-      exclusiveStartKey.foreach(esk => req.withExclusiveStartKey(esk))
-      req
+      val builder = ScanRequest.builder()
+        .tableName(readJournalSettings.Table)
+        .projectionExpression("par")
+        .filterExpression("num = :n")
+        .expressionAttributeValues(Map(":n" -> 1.toAttribute).asJava)
+      exclusiveStartKey.foreach(esk => builder.exclusiveStartKey(esk))
+      builder.build()
     }
     dynamo.scan(scanRequest(exclusiveStartKey))
   }
@@ -186,11 +185,11 @@ trait DynamoDBCurrentPersistenceIdsQuery extends PublicDynamoDBCurrentPersistenc
 
 object DynamoDBCurrentPersistenceIdsQuery {
   implicit class RichString(val s: String) extends AnyVal {
-    def toAttribute: AttributeValue = new AttributeValue().withS(s)
+    def toAttribute: AttributeValue = AttributeValue.fromS(s)
   }
 
   implicit class RichNumber(val n: Int) extends AnyVal {
-    def toAttribute: AttributeValue = new AttributeValue().withN(n.toString)
+    def toAttribute: AttributeValue = AttributeValue.fromN(n.toString)
   }
 
   implicit class SourceLazyOps[E, M](val src: Source[E, M]) extends AnyVal {
@@ -202,7 +201,7 @@ object DynamoDBCurrentPersistenceIdsQuery {
   }
 }
 
-// The commonality between QueryResult and ScanResult which don't share an interface
+// The commonality between QueryResponse and ScanResponse which don't share an interface
 private[query] trait PersistenceIdsResult[A] {
   def toPersistenceIdsPage(result: A): Seq[String]
 
@@ -211,23 +210,25 @@ private[query] trait PersistenceIdsResult[A] {
 
 private[query] object PersistenceIdsResult {
 
-  implicit val persistenceIdsQueryResult: PersistenceIdsResult[QueryResult] = new PersistenceIdsResult[QueryResult] {
-    override def toPersistenceIdsPage(result: QueryResult): Seq[String] =
-      result.getItems.asScala.map(item => item.get("par").getS).toSeq
+  implicit val persistenceIdsQueryResult: PersistenceIdsResult[QueryResponse] =
+    new PersistenceIdsResult[QueryResponse] {
+      override def toPersistenceIdsPage(result: QueryResponse): Seq[String] =
+        result.items.asScala.map(item => item.get("par").s).toSeq
 
-    override def nextEvaluatedKey(result: QueryResult): Option[util.Map[String, AttributeValue]] =
-      if (result.getLastEvaluatedKey != null && !result.getLastEvaluatedKey.isEmpty) Some(result.getLastEvaluatedKey)
-      else None
-  }
+      override def nextEvaluatedKey(result: QueryResponse): Option[util.Map[String, AttributeValue]] =
+        if (result.hasLastEvaluatedKey && !result.lastEvaluatedKey.isEmpty) Some(result.lastEvaluatedKey)
+        else None
+    }
 
-  implicit val persistenceIdsScanResult: PersistenceIdsResult[ScanResult] = new PersistenceIdsResult[ScanResult] {
-    override def toPersistenceIdsPage(result: ScanResult): Seq[String] =
-      result.getItems.asScala.map(item => item.get("par").getS).toSeq
+  implicit val persistenceIdsScanResult: PersistenceIdsResult[ScanResponse] =
+    new PersistenceIdsResult[ScanResponse] {
+      override def toPersistenceIdsPage(result: ScanResponse): Seq[String] =
+        result.items.asScala.map(item => item.get("par").s).toSeq
 
-    override def nextEvaluatedKey(result: ScanResult): Option[util.Map[String, AttributeValue]] =
-      if (result.getLastEvaluatedKey != null && !result.getLastEvaluatedKey.isEmpty) Some(result.getLastEvaluatedKey)
-      else None
-  }
+      override def nextEvaluatedKey(result: ScanResponse): Option[util.Map[String, AttributeValue]] =
+        if (result.hasLastEvaluatedKey && !result.lastEvaluatedKey.isEmpty) Some(result.lastEvaluatedKey)
+        else None
+    }
 
   implicit class RichPersistenceIdsResult[Result](val result: Result) extends AnyVal {
     def toPersistenceIdsPage(implicit persistenceIdsResult: PersistenceIdsResult[Result]): Seq[String] =

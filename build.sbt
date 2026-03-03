@@ -10,7 +10,7 @@
 import com.github.pjfanning.pekkobuild._
 import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCheckResolver
 
-val amzVersion = "1.12.797"
+val amzV2Version = "2.34.0"
 val testcontainersScalaVersion = "0.44.1"
 
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
@@ -49,9 +49,7 @@ lazy val root = Project(
     crossScalaVersions := Seq("2.13.18", "3.3.8", "3.8.4"),
     crossVersion := CrossVersion.binary,
     libraryDependencies ++= Seq(
-      "com.amazonaws" % "aws-java-sdk-core" % amzVersion,
-      "com.amazonaws" % "aws-java-sdk-dynamodb" % amzVersion,
-      "javax.xml.bind" % "jaxb-api" % "2.3.1", // see https://github.com/seek-oss/gradle-aws-plugin/issues/15
+      "software.amazon.awssdk" % "dynamodb" % amzV2Version,
       "org.scalatest" %% "scalatest" % "3.2.20" % "test",
       "commons-io" % "commons-io" % "2.22.0" % Test,
       "org.hdrhistogram" % "HdrHistogram" % "2.2.2" % Test,

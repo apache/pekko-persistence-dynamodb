@@ -18,10 +18,10 @@ import org.apache.pekko.persistence.JournalProtocol._
 import org.apache.pekko.persistence._
 import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.testkit._
-import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.services.dynamodbv2.document.{ DynamoDB, Item }
-import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClientBuilder }
+import software.amazon.awssdk.auth.credentials.{ AwsBasicCredentials, StaticCredentialsProvider }
+import software.amazon.awssdk.core.SdkBytes
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient
+import software.amazon.awssdk.services.dynamodb.model.{ AttributeValue, PutItemRequest }
 import com.typesafe.config.ConfigFactory
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.BeforeAndAfterAll
@@ -29,7 +29,9 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import java.net.URI
 import java.util.Base64
+import scala.jdk.CollectionConverters._
 
 class BackwardsCompatibilityV1Spec
     extends TestKit(ActorSystem("BackwardsCompatibilityV1Spec"))
@@ -46,16 +48,13 @@ class BackwardsCompatibilityV1Spec
     val config = ConfigFactory.load()
     val endpoint = config.getString("my-dynamodb-journal.endpoint")
     val tableName = config.getString("my-dynamodb-journal.journal-table")
-    val accesKey = config.getString("my-dynamodb-journal.aws-access-key-id")
+    val accessKey = config.getString("my-dynamodb-journal.aws-access-key-id")
     val secretKey = config.getString("my-dynamodb-journal.aws-secret-access-key")
 
-    val client: AmazonDynamoDB =
-      AmazonDynamoDBClientBuilder.standard()
-        .withCredentials(new AWSStaticCredentialsProvider(new BasicAWSCredentials(accesKey, secretKey)))
-        .withEndpointConfiguration(new EndpointConfiguration(endpoint, "us-east-1"))
-        .build()
-
-    val dynamoDB = new DynamoDB(client)
+    val client: DynamoDbClient = DynamoDbClient.builder()
+      .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
+      .endpointOverride(URI.create(endpoint))
+      .build()
 
     val persistenceId = "journal-P-OldFormatEvents-0"
 
@@ -81,13 +80,12 @@ class BackwardsCompatibilityV1Spec
       "ChEIARINrO0ABXQABmEtMDAxORATGg9PbGRGb3JtYXRFdmVudHNqJDI5NWZhMTE2LWZhOTUtNGY1Yi1hZjk2LTgwZDk4NjFhODk4ZA==",
       "ChEIARINrO0ABXQABmEtMDAyMBAUGg9PbGRGb3JtYXRFdmVudHNqJDI5NWZhMTE2LWZhOTUtNGY1Yi1hZjk2LTgwZDk4NjFhODk4ZA==")
 
-    val table = dynamoDB.getTable(tableName)
-
     def createItem(number: Int, data: String): Unit = {
-      table.putItem(
-        new Item()
-          .withPrimaryKey("par", persistenceId, "num", number)
-          .withBinary("pay", Base64.getDecoder.decode(data)))
+      val item = Map(
+        "par" -> AttributeValue.fromS(persistenceId),
+        "num" -> AttributeValue.fromN(number.toString),
+        "pay" -> AttributeValue.fromB(SdkBytes.fromByteArray(Base64.getDecoder.decode(data)))).asJava
+      client.putItem(PutItemRequest.builder().tableName(tableName).item(item).build())
     }
 
     for {
@@ -95,6 +93,7 @@ class BackwardsCompatibilityV1Spec
       payload = messagePayloads(i)
     } yield createItem(i + 1, payload)
 
+    client.close()
   }
 
   override def beforeAll(): Unit = {

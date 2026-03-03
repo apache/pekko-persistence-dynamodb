@@ -13,7 +13,7 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 import org.apache.pekko
 import pekko.actor.ActorSystem
 import pekko.persistence.PersistentRepr
@@ -42,20 +42,21 @@ trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
   def ensureJournalTableExists(read: Long = 10L, write: Long = 10L): Unit = {
     val create =
       schema
-        .withTableName(journalSettings.JournalTable)
-        .withProvisionedThroughput(new ProvisionedThroughput(read, write))
+        .tableName(journalSettings.JournalTable)
+        .provisionedThroughput(ProvisionedThroughput.builder().readCapacityUnits(read).writeCapacityUnits(write).build())
+        .build()
     implicit val dispatcher = system.dispatcher
 
     var names = Vector.empty[String]
-    lazy val complete: ListTablesResult => Future[Vector[String]] = aws =>
-      if (aws.getLastEvaluatedTableName == null) Future.successful(names ++ aws.getTableNames.asScala)
+    lazy val complete: ListTablesResponse => Future[Vector[String]] = aws =>
+      if (aws.lastEvaluatedTableName == null) Future.successful(names ++ aws.tableNames.asScala)
       else {
-        names ++= aws.getTableNames.asScala
+        names ++= aws.tableNames.asScala
         dynamo
-          .listTables(new ListTablesRequest().withExclusiveStartTableName(aws.getLastEvaluatedTableName))
+          .listTables(ListTablesRequest.builder().exclusiveStartTableName(aws.lastEvaluatedTableName).build())
           .flatMap(complete)
       }
-    val list = dynamo.listTables(new ListTablesRequest).flatMap(complete)
+    val list = dynamo.listTables(ListTablesRequest.builder().build()).flatMap(complete)
 
     val setup = for {
       exists <- list.map(_ contains journalSettings.JournalTable)
