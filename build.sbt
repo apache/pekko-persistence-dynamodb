@@ -41,7 +41,7 @@ lazy val root = Project(
   .settings(
     name := "pekko-persistence-dynamodb",
     scalaVersion := "2.13.18",
-    crossScalaVersions := Seq("2.13.18", "3.3.7"),
+    crossScalaVersions := Seq("2.13.18", "3.3.8"),
     crossVersion := CrossVersion.binary,
     libraryDependencies ++= Seq(
       "com.amazonaws" % "aws-java-sdk-core" % amzVersion,
