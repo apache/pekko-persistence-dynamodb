@@ -52,6 +52,10 @@ lazy val root = Project(
       "org.hdrhistogram" % "HdrHistogram" % "2.2.2" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test),
     scalacOptions ++= Seq("-deprecation", "-feature"),
+    scalacOptions ++= {
+      if (scalaBinaryVersion.value == "3") Seq("-Yfuture-lazy-vals")
+      else Seq.empty
+    },
     Test / parallelExecution := false,
     // required by test-containers-scala
     Test / fork := true,
