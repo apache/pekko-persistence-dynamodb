@@ -19,6 +19,11 @@ sourceDistIncubating := false
 
 ThisBuild / reproducibleBuildsCheckResolver := Resolver.ApacheMavenStagingRepo
 
+ThisBuild / javafmtFormatterCompatibleJavaVersion := 17
+
+addCommandAlias("checkCodeStyle", "scalafmtCheckAll; scalafmtSbtCheck; javafmtCheckAll; +headerCheckAll")
+addCommandAlias("applyCodeStyle", "+headerCreateAll; scalafmtAll; scalafmtSbt; javafmtAll")
+
 Test / unmanagedSourceDirectories ++= {
   if (scalaVersion.value.startsWith("2.")) {
     Seq(
