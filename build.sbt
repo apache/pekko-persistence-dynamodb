@@ -53,7 +53,7 @@ lazy val root = Project(
       "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test),
     scalacOptions ++= Seq("-deprecation", "-feature"),
     scalacOptions ++= {
-      if (scalaBinaryVersion.value == "3") Seq("-Yfuture-lazy-vals")
+      if (scalaBinaryVersion.value == "3") Seq("-Yfuture-lazy-vals", "-release:17")
       else Seq.empty
     },
     Test / parallelExecution := false,
