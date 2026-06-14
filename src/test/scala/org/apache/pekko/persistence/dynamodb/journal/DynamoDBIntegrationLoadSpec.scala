@@ -53,7 +53,7 @@ pekko.persistence.snapshot-store.plugin = ""
     def receiveCommand: Receive = {
       case DeleteTo(sequenceNr) =>
         deleteMessages(sequenceNr)
-      case payload: List[_] =>
+      case payload: List[?] =>
         persistAll(payload)(handle)
     }
 

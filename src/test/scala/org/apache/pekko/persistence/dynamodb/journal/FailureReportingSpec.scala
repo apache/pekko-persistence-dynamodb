@@ -206,7 +206,7 @@ pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
     "have sensible error messages" when {
       val evaluatedDynamo = dynamo
       import evaluatedDynamo._
-      def desc[T](aws: T)(implicit d: Describe[_ >: T]): String = d.desc(aws)
+      def desc[T](aws: T)(implicit d: Describe[? >: T]): String = d.desc(aws)
 
       val keyItem = Map(Key -> S("TheKey"), Sort -> N("42")).asJava
       val key2Item = Map(Key -> S("The2Key"), Sort -> N("43")).asJava

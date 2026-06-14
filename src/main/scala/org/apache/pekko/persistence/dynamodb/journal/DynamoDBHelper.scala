@@ -78,7 +78,7 @@ trait DynamoDBHelper {
   def setReporter(ref: ActorRef): Unit = reporter = ref
 
   private def send[In <: AmazonWebServiceRequest, Out](aws: In, func: AsyncHandler[In, Out] => juc.Future[Out])(implicit
-      d: Describe[_ >: In]): Future[Out] = {
+      d: Describe[? >: In]): Future[Out] = {
 
     def name = d.desc(aws)
 
