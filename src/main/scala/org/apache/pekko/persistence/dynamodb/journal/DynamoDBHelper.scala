@@ -74,7 +74,7 @@ trait DynamoDBHelper {
 
   def shutdown(): Unit = dynamoDB.shutdown()
 
-  private var reporter: ActorRef = _
+  private var reporter: ActorRef = null
   def setReporter(ref: ActorRef): Unit = reporter = ref
 
   private def send[In <: AmazonWebServiceRequest, Out](aws: In, func: AsyncHandler[In, Out] => juc.Future[Out])(implicit

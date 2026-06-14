@@ -50,7 +50,7 @@ class SnapshotTooBigSpec extends TestKit(ActorSystem("SnapshotTooBigSpec"))
     client.shutdown()
   }
 
-  private var senderProbe: TestProbe = _
+  private var senderProbe: TestProbe = null
   val persistenceId = "SnapshotTooBigSpec"
   val snapshotStore = Persistence(system).snapshotStoreFor("")
 
