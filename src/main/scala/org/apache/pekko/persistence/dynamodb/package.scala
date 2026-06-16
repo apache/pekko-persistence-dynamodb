@@ -18,8 +18,9 @@ import java.util.concurrent.Executors
 import org.apache.pekko.actor.{ ActorSystem, Scheduler }
 import org.apache.pekko.event.{ Logging, LoggingAdapter }
 import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
+import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
+import com.amazonaws.client.builder.AwsClientBuilder
+import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDBAsyncClient, AmazonDynamoDBAsyncClientBuilder }
 import com.amazonaws.services.dynamodbv2.model.{ AttributeValue, AttributeValueUpdate }
 
 import java.util.{ Map => JMap }
@@ -64,16 +65,26 @@ package object dynamodb {
     }.map(_.result())
 
   def dynamoClient(system: ActorSystem, settings: DynamoDBConfig): DynamoDBHelper = {
+    val endpointConfig = new AwsClientBuilder.EndpointConfiguration(settings.Endpoint, null)
     val client =
       if (settings.AwsKey.nonEmpty && settings.AwsSecret.nonEmpty) {
         val conns = settings.client.config.getMaxConnections
         val executor = Executors.newFixedThreadPool(conns)
         val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
-        new AmazonDynamoDBAsyncClient(creds, settings.client.config, executor)
+        AmazonDynamoDBAsyncClientBuilder.standard()
+          .withClientConfiguration(settings.client.config)
+          .withCredentials(new AWSStaticCredentialsProvider(creds))
+          .withEndpointConfiguration(endpointConfig)
+          .withExecutorFactory(() => executor)
+          .build()
+          .asInstanceOf[AmazonDynamoDBAsyncClient]
       } else {
-        new AmazonDynamoDBAsyncClient(settings.client.config)
+        AmazonDynamoDBAsyncClientBuilder.standard()
+          .withClientConfiguration(settings.client.config)
+          .withEndpointConfiguration(endpointConfig)
+          .build()
+          .asInstanceOf[AmazonDynamoDBAsyncClient]
       }
-    client.setEndpoint(settings.Endpoint)
     val dispatcher = system.dispatchers.lookup(settings.ClientDispatcher)
 
     class DynamoDBClient(
