@@ -17,4 +17,4 @@ addSbtPlugin("com.github.sbt" % "sbt-dynver" % "5.1.1")
 addSbtPlugin("net.bzzt" % "sbt-reproducible-builds" % "0.32")
 
 // https://eed3si9n.com/reducing-scaladoc-file-size-with-sbt-salad-days/
-addSbtPlugin("com.eed3si9n" % "sbt-salad-days" % "0.1.0")
+addSbtPlugin("com.eed3si9n" % "sbt-salad-days" % "0.2.0")
