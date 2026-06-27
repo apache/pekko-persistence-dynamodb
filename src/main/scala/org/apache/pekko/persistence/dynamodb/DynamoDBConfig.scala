@@ -16,6 +16,7 @@ package org.apache.pekko.persistence.dynamodb
 import java.net.InetAddress
 import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
 import org.apache.pekko.serialization.Serialization
+import scala.annotation.nowarn
 import com.amazonaws.{ ClientConfiguration, Protocol }
 import com.typesafe.config.Config
 
@@ -82,5 +83,6 @@ class DynamoDBClientConfig(c: Config) extends ClientConfig {
   get("use-gzip", _.getBoolean(_), config.setUseExpectContinue)
   get("use-reaper", _.getBoolean(_), config.setUseReaper)
   get("use-tcp-keepalive", _.getBoolean(_), config.setUseTcpKeepAlive)
-  get("user-agent", _.getString(_), config.setUserAgent)
+  @nowarn("msg=is deprecated")
+  private val userAgentSetting: Unit = get("user-agent", _.getString(_), config.setUserAgent)
 }
