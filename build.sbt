@@ -56,10 +56,11 @@ lazy val root = Project(
       "commons-io" % "commons-io" % "2.22.0" % Test,
       "org.hdrhistogram" % "HdrHistogram" % "2.2.2" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test),
-    scalacOptions ++= Seq("-deprecation", "-feature"),
+    scalacOptions ++= Seq("-deprecation", "-feature", "-Xfatal-warnings"),
     scalacOptions ++= {
       if (scalaBinaryVersion.value == "3")
         Seq(
+          "-Werror",
           "-Yfuture-lazy-vals",
           "-release:17",
           "-Wconf:msg=Implicit parameters should be provided with a `using` clause:s",
@@ -68,9 +69,11 @@ lazy val root = Project(
           "-Wconf:msg=with as a type operator has been deprecated:s",
           "-Wconf:msg=Unreachable case except for null:s",
           "-Wconf:msg=is no longer supported for vararg splices:s",
-          "-Wconf:msg=bad option.*-Yfuture-lazy-vals:s")
+          "-Wconf:msg=bad option.*-Yfuture-lazy-vals:s",
+          "-Wconf:msg=bad option.*-Xfatal-warnings:s")
       else Seq.empty
     },
+    Compile / doc / scalacOptions --= Seq("-Xfatal-warnings"),
     Test / parallelExecution := false,
     // required by test-containers-scala
     Test / fork := true,
