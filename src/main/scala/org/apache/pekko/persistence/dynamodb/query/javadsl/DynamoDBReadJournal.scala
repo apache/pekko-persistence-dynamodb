@@ -51,7 +51,7 @@ class DynamoDBReadJournal(scaladslReadJournal: scaladsl.DynamoDBReadJournal)
     {
 
   /**
-   * Same type of query as [[org.apache.pekko.persistence.query.javadsl.EventsByPersistenceIdQuery.eventsByPersistenceId]]
+   * Same type of query as `org.apache.pekko.persistence.query.javadsl.EventsByPersistenceIdQuery.eventsByPersistenceId`
    * but the event stream is completed immediately when it reaches the end of
    * the results. Events that are stored after the query is completed are
    * not included in the event stream.
@@ -67,7 +67,7 @@ class DynamoDBReadJournal(scaladslReadJournal: scaladsl.DynamoDBReadJournal)
     scaladslReadJournal.currentEventsByPersistenceId(persistenceId, fromSequenceNr, toSequenceNr).asJava
 
   /**
-   * Same type of query as [[org.apache.pekko.persistence.query.javadsl.PersistenceIdsQuery.persistenceIds()]] but the stream
+   * Same type of query as `org.apache.pekko.persistence.query.javadsl.PersistenceIdsQuery.persistenceIds()` but the stream
    * is completed immediately when it reaches the end of the "result set". Persistent
    * actors that are created after the query is completed are not included in the stream.
    *

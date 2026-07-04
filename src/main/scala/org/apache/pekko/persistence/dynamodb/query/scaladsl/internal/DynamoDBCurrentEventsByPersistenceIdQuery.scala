@@ -40,7 +40,7 @@ trait DynamoDBCurrentEventsByPersistenceIdQuery
     with SerializationProvider =>
 
   /**
-   * Same type of query as [[org.apache.pekko.persistence.query.scaladsl.EventsByPersistenceIdQuery.eventsByPersistenceId]]
+   * Same type of query as `org.apache.pekko.persistence.query.scaladsl.EventsByPersistenceIdQuery.eventsByPersistenceId`
    * but the event stream is completed immediately when it reaches the end of
    * the results. Events that are stored after the query is completed are
    * not included in the event stream.
