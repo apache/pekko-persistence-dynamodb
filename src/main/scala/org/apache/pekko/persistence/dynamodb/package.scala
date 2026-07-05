@@ -18,8 +18,10 @@ import java.util.concurrent.Executors
 import org.apache.pekko.actor.{ ActorSystem, Scheduler }
 import org.apache.pekko.event.{ Logging, LoggingAdapter }
 import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
+import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
+import com.amazonaws.client.builder.ExecutorFactory
+import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDBAsync, AmazonDynamoDBAsyncClientBuilder }
 import com.amazonaws.services.dynamodbv2.model.{ AttributeValue, AttributeValueUpdate }
 
 import java.util.{ Map => JMap }
@@ -64,21 +66,26 @@ package object dynamodb {
     }.map(_.result())
 
   def dynamoClient(system: ActorSystem, settings: DynamoDBConfig): DynamoDBHelper = {
-    val client =
+    val client = {
+      val builder = AmazonDynamoDBAsyncClientBuilder.standard()
+        .withClientConfiguration(settings.client.config)
+        .withEndpointConfiguration(new EndpointConfiguration(settings.Endpoint, "us-east-1"))
       if (settings.AwsKey.nonEmpty && settings.AwsSecret.nonEmpty) {
         val conns = settings.client.config.getMaxConnections
         val executor = Executors.newFixedThreadPool(conns)
         val creds = new BasicAWSCredentials(settings.AwsKey, settings.AwsSecret)
-        new AmazonDynamoDBAsyncClient(creds, settings.client.config, executor)
+        builder.withCredentials(new AWSStaticCredentialsProvider(creds))
+          .withExecutorFactory(new ExecutorFactory { override def newExecutor() = executor })
+          .build()
       } else {
-        new AmazonDynamoDBAsyncClient(settings.client.config)
+        builder.build()
       }
-    client.setEndpoint(settings.Endpoint)
+    }
     val dispatcher = system.dispatchers.lookup(settings.ClientDispatcher)
 
     class DynamoDBClient(
         override val ec: ExecutionContext,
-        override val dynamoDB: AmazonDynamoDBAsyncClient,
+        override val dynamoDB: AmazonDynamoDBAsync,
         override val settings: DynamoDBConfig,
         override val scheduler: Scheduler,
         override val log: LoggingAdapter)
