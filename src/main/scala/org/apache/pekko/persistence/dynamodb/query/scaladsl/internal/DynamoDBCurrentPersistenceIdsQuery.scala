@@ -39,7 +39,7 @@ trait DynamoDBCurrentPersistenceIdsQuery extends PublicDynamoDBCurrentPersistenc
     with JournalKeys =>
 
   /**
-   * Same type of query as [[org.apache.pekko.persistence.query.scaladsl.PersistenceIdsQuery.persistenceIds()]] but the stream
+   * Same type of query as `org.apache.pekko.persistence.query.scaladsl.PersistenceIdsQuery.persistenceIds()` but the stream
    * is completed immediately when it reaches the end of the "result set". Persistent
    * actors that are created after the query is completed are not included in the stream.
    *
