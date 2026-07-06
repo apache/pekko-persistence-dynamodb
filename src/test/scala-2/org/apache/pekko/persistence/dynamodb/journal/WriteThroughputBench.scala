@@ -128,8 +128,7 @@ writer-dispatcher {
       .withFallback(ConfigFactory.load())
 
   implicit val system: ActorSystem = ActorSystem("WriteThroughputBench", config)
-  implicit val materializer: Materializer =
-    ActorMaterializer(ActorMaterializerSettings(system).withInputBuffer(1, 1))
+  implicit val materializer: Materializer = Materializer(system)
 
   /*
    * You will want to make sure that the table is deployed with the proper values for
@@ -179,6 +178,7 @@ writer-dispatcher {
         zip.out                             ~> Sink.foreach(printStats)
         ClosedShape
       })
+      .withAttributes(Attributes.inputBuffer(1, 1))
       .run()
 
   println(s"starting $writers writers")

@@ -82,5 +82,5 @@ class DynamoDBClientConfig(c: Config) extends ClientConfig {
   get("use-gzip", _.getBoolean(_), config.setUseExpectContinue)
   get("use-reaper", _.getBoolean(_), config.setUseReaper)
   get("use-tcp-keepalive", _.getBoolean(_), config.setUseTcpKeepAlive)
-  get("user-agent", _.getString(_), config.setUserAgent)
+  get("user-agent", _.getString(_), config.setUserAgentPrefix)
 }

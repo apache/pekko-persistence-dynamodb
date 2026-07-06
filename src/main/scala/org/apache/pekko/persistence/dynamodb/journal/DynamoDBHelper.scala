@@ -15,7 +15,7 @@ package org.apache.pekko.persistence.dynamodb.journal
 
 import com.amazonaws.{ AmazonServiceException, AmazonWebServiceRequest }
 import com.amazonaws.handlers.AsyncHandler
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsyncClient
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBAsync
 import com.amazonaws.services.dynamodbv2.model._
 import org.apache.pekko
 import pekko.actor.{ ActorRef, Scheduler }
@@ -67,7 +67,7 @@ trait DynamoDBHelper {
 
   implicit val ec: ExecutionContext
   val scheduler: Scheduler
-  val dynamoDB: AmazonDynamoDBAsyncClient
+  val dynamoDB: AmazonDynamoDBAsync
   val log: LoggingAdapter
   val settings: DynamoDBConfig
   import settings._
