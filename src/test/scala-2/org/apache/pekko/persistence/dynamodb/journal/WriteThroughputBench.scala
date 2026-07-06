@@ -27,10 +27,52 @@ import java.util.concurrent.ThreadLocalRandom
 import scala.concurrent.duration._
 
 object WriteThroughputBench extends DynamoDBUtils {
+
+  private lazy val config =
+    ConfigFactory
+      .systemProperties()
+      .withFallback(
+        ConfigFactory
+          .parseString("""
+my-dynamodb-journal {
+  journal-table = "WriteThroughputBench"
+  endpoint = ${?AWS_DYNAMODB_ENDPOINT}
+  aws-access-key-id = ${?AWS_ACCESS_KEY_ID}
+  aws-secret-access-key = ${?AWS_SECRET_ACCESS_KEY}
+  aws-client-config {
+    max-connections = 100
+  }
+  plugin-dispatcher = "dispatcher"
+  replay-dispatcher = "dispatcher"
+  client-dispatcher = "dispatcher"
+}
+dispatcher {
+  type = Dispatcher
+  executor = "fork-join-executor"
+  fork-join-executor {
+    parallelism-min = 4
+    parallelism-max = 8
+  }
+}
+pekko.actor.default-dispatcher.fork-join-executor.parallelism-max = 4
+writers = 1000
+writer-dispatcher {
+  type = Dispatcher
+  executor = "fork-join-executor"
+  fork-join-executor {
+    parallelism-min = 2
+    parallelism-max = 2
+  }
+}
+""").resolve)
+      .withFallback(ConfigFactory.load())
+
+  lazy val system: ActorSystem = ActorSystem("WriteThroughputBench", config)
+
   def main(args: Array[String]): Unit = {
 
     def rnd = ThreadLocalRandom.current()
-    final val oneBillion = 1000L * 1000 * 1000
+    val oneBillion = 1000L * 1000 * 1000
 
     class H private (private val entries: Map[Int, Int]) {
       def this(i: Int) = this(Map(i -> 1))
@@ -89,46 +131,6 @@ object WriteThroughputBench extends DynamoDBUtils {
       def receiveRecover = Actor.emptyBehavior
     }
 
-    val config =
-      ConfigFactory
-        .systemProperties()
-        .withFallback(
-          ConfigFactory
-            .parseString("""
-my-dynamodb-journal {
-  journal-table = "WriteThroughputBench"
-  endpoint = ${?AWS_DYNAMODB_ENDPOINT}
-  aws-access-key-id = ${?AWS_ACCESS_KEY_ID}
-  aws-secret-access-key = ${?AWS_SECRET_ACCESS_KEY}
-  aws-client-config {
-    max-connections = 100
-  }
-  plugin-dispatcher = "dispatcher"
-  replay-dispatcher = "dispatcher"
-  client-dispatcher = "dispatcher"
-}
-dispatcher {
-  type = Dispatcher
-  executor = "fork-join-executor"
-  fork-join-executor {
-    parallelism-min = 4
-    parallelism-max = 8
-  }
-}
-pekko.actor.default-dispatcher.fork-join-executor.parallelism-max = 4
-writers = 1000
-writer-dispatcher {
-  type = Dispatcher
-  executor = "fork-join-executor"
-  fork-join-executor {
-    parallelism-min = 2
-    parallelism-max = 2
-  }
-}
-""").resolve)
-        .withFallback(ConfigFactory.load())
-
-    implicit val system: ActorSystem = ActorSystem("WriteThroughputBench", config)
     implicit val materializer: Materializer = Materializer(system)
 
     /*
@@ -169,6 +171,14 @@ writer-dispatcher {
       .expand(Iterator.continually(_))
       .withAttributes(Attributes.asyncBoundary)
 
+    def printStats(r: Report): Unit = {
+      def p(h: Histogram, pc: Double) = h.getValueAtPercentile(pc) / 1000000d
+      def perc(h: Histogram) =
+        f"50=${p(h, 0.5)}%5.1f 90=${p(h, 0.9)}%5.1f 99=${p(h, 0.99)}%5.1f 99.9=${p(h, 0.999)}%5.1f 99.99=${p(h, 0.9999)}%5.1f"
+      println(f"count ${r.endToEnd.getTotalCount}%6d/s  percentiles: endToEnd(${perc(r.endToEnd)}) calls(${perc(
+          r.calls)}) retries: ${r.retries}")
+    }
+
     val (eRef, cRef) =
       RunnableGraph
         .fromGraph(GraphDSL.createGraph(endToEnd, calls)(Keep.both) { implicit b => (e, c) =>
@@ -193,13 +203,5 @@ writer-dispatcher {
 
     system.terminate()
     dynamo.shutdown()
-
-    def printStats(r: Report): Unit = {
-      def p(h: Histogram, pc: Double) = h.getValueAtPercentile(pc) / 1000000d
-      def perc(h: Histogram) =
-        f"50=${p(h, 0.5)}%5.1f 90=${p(h, 0.9)}%5.1f 99=${p(h, 0.99)}%5.1f 99.9=${p(h, 0.999)}%5.1f 99.99=${p(h, 0.9999)}%5.1f"
-      println(f"count ${r.endToEnd.getTotalCount}%6d/s  percentiles: endToEnd(${perc(r.endToEnd)}) calls(${perc(
-          r.calls)}) retries: ${r.retries}")
-    }
   }
 }
