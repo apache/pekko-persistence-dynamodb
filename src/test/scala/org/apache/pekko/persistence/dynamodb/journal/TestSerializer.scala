@@ -13,6 +13,8 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import java.lang.invoke.MethodHandles
+
 import org.apache.pekko.actor.ExtendedActorSystem
 import org.apache.pekko.serialization.{ AsyncSerializerWithStringManifest, JavaSerializer }
 
@@ -29,7 +31,12 @@ class TestSerializer(system: ExtendedActorSystem) extends AsyncSerializerWithStr
   val javaSerializer: JavaSerializer = new JavaSerializer(system)
 
   override def fromBinaryAsync(bytes: Array[Byte], manifest: String): Future[AnyRef] =
-    Future.successful(javaSerializer.fromBinary(bytes, Class.forName(manifest)))
+    Future.successful {
+      val lookup = MethodHandles.lookup()
+      val clazz = lookup.findClass(manifest)
+      lookup.ensureInitialized(clazz)
+      javaSerializer.fromBinary(bytes, clazz)
+    }
 
   override def toBinaryAsync(obj: AnyRef): Future[Array[Byte]] =
     Future.successful(javaSerializer.toBinary(obj))
