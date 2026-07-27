@@ -6,10 +6,17 @@ A replicated Pekko Persistence journal backed by
 - This plugin implements both a journal as well as a snapshot store,
 - This includes a Pekko Persistence Query plugin. However, this requires an additional GSI for efficient usage.
 
-Supported versions:
-- Scala: `2.13.x`, `3.3.0+`
+Apache Pekko Persistence DynamoDB 1.x Supported versions:
+- Scala: `2.12.x`, `2.13.x`, `3.3.0+`
 - Pekko: `1.0.x+`
+- Java: `8+`
+- Amazon SDK for Java v1
+
+Apache Pekko Persistence DynamoDB 2.x Supported versions:
+- Scala: `2.13.x`, `3.3.0+`
+- Pekko: `2.0.x+`
 - Java: `17+`
+- Amazon SDK for Java v2
 
 [![Build Status](https://github.com/apache/pekko-persistence-dynamodb/actions/workflows/check-build-test.yml/badge.svg?branch=main)](https://github.com/apache/pekko-persistence-dynamodb/actions)
 
@@ -115,13 +122,9 @@ In the second case each event is treated in isolation and may or may not be repl
 
 ## Performance Considerations
 
-This plugin uses the AWS Java SDK which means that the number of requests that can be made concurrently is limited by the number of connections to DynamoDB and by the number of threads in the thread-pool that is used by the AWS HTTP client. The default setting is 50 connections which for a deployment that is used from the same EC2 region allows roughly 5000 requests per second (where every persisted event batch is roughly one request). If a single ActorSystem needs to persist more than this number of events per second then you may want to tune the parameter
+This plugin uses the AWS SDK for Java v2 which means that the number of requests that can be made concurrently is limited by the number of connections to DynamoDB and by the number of threads in the thread-pool that is used by the AWS HTTP client. The default SDK configuration allows roughly 5000 requests per second (where every persisted event batch is roughly one request) from the same EC2 region. If a single ActorSystem needs to persist more than this number of events per second then you may want to provide a custom `DynamoDbAsyncClient` with a tuned HTTP client configuration.
 
-~~~
-my-dynamodb-journal.aws-client-config.max-connections = <your value here>
-~~~
-
-Changing this number changes both the number of concurrent connections and the used thread-pool size.
+For advanced HTTP client settings (e.g. max connections, timeouts), provide a custom `DynamoDbAsyncClient`. See the [AWS SDK v2 HTTP configuration documentation](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/http-configuration.html) for details.
 
 ## Retry behavior
 
