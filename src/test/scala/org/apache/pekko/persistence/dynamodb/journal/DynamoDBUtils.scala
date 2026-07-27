@@ -43,7 +43,8 @@ trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
     val create =
       schema
         .tableName(journalSettings.JournalTable)
-        .provisionedThroughput(ProvisionedThroughput.builder().readCapacityUnits(read).writeCapacityUnits(write).build())
+        .provisionedThroughput(
+          ProvisionedThroughput.builder().readCapacityUnits(read).writeCapacityUnits(write).build())
         .build()
     implicit val dispatcher = system.dispatcher
 

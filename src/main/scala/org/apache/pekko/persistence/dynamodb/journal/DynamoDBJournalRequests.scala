@@ -198,7 +198,8 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
 
         val itemSize = keyLength(
           repr.persistenceId,
-          repr.sequenceNr) + eventData.b.asByteArray.length + serializerId.n.getBytes.length + manifestLength + fieldLength
+          repr.sequenceNr) + eventData.b.asByteArray.length + serializerId.n.getBytes.length + manifestLength +
+          fieldLength
 
         if (itemSize > MaxItemSize) {
           throw new DynamoDBJournalRejection(s"MaxItemSize exceeded: $itemSize > $MaxItemSize")

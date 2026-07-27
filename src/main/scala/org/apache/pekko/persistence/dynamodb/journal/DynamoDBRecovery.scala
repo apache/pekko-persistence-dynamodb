@@ -485,7 +485,8 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
     if (unprocessed == 0) {
       // Build a response with all accumulated items
       val responseMap = Map(JournalTable -> accumulated.asJava).asJava
-      Future.successful(result.toBuilder.responses(responseMap).unprocessedKeys(Map.empty[String, KeysAndAttributes].asJava).build())
+      Future.successful(result.toBuilder.responses(responseMap).unprocessedKeys(Map.empty[String,
+        KeysAndAttributes].asJava).build())
     } else if (retriesRemaining == 0) {
       Future.failed(
         new DynamoDBJournalFailure(
@@ -498,7 +499,8 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
     }
   }
 
-  private[dynamodb] def getAllRemainingQueryItems(request: QueryRequest, result: QueryResponse): Future[QueryResponse] = {
+  private[dynamodb] def getAllRemainingQueryItems(request: QueryRequest, result: QueryResponse)
+      : Future[QueryResponse] = {
     val last = result.lastEvaluatedKey
     if (!result.hasLastEvaluatedKey || last.isEmpty || last.get(Sort).n.toLong == 99) Future.successful(result)
     else {
