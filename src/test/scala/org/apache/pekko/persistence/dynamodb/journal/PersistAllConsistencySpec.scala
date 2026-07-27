@@ -26,6 +26,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import scala.concurrent.duration._
+
 class PersistAllConsistencySpec
     extends TestKit(ActorSystem("PersistAllConsistencySpec"))
     with ImplicitSender
@@ -36,6 +38,8 @@ class PersistAllConsistencySpec
     with TypeCheckedTripleEquals
     with DynamoDBUtils
     with IntegSpec {
+
+  implicit val patience: PatienceConfig = PatienceConfig(5.seconds)
 
   override def beforeAll(): Unit = {
     super.beforeAll()

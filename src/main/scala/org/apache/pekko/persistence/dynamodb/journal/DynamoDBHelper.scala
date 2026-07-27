@@ -22,6 +22,7 @@ import pekko.event.LoggingAdapter
 import pekko.pattern.after
 import pekko.persistence.dynamodb.{ DynamoDBConfig, Item }
 
+import java.util.concurrent.CompletionException
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
@@ -84,6 +85,15 @@ trait DynamoDBHelper {
           Future.failed(new DynamoDBJournalFailure("failure while executing " + n, ex))
         case ex: DynamoDbException =>
           Future.failed(ex)
+        case ex: CompletionException if ex.getCause.isInstanceOf[DynamoDbException] =>
+          val cause = ex.getCause.asInstanceOf[DynamoDbException]
+          if (DynamoRetriableException.unapply(cause).isEmpty) {
+            val n = name
+            log.error(cause, "failure while executing {}", n)
+            Future.failed(new DynamoDBJournalFailure("failure while executing " + n, cause))
+          } else {
+            Future.failed(cause)
+          }
       }
     }
 
