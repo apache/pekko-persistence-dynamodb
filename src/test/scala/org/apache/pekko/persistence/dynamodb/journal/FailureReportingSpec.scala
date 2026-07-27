@@ -55,7 +55,7 @@ class FailureReportingSpec
     (rej.cause.getMessage should include).regex(msg)
   }
 
-  def expectFailure[T: Manifest](msg: String, repr: PersistentRepr) = {
+  def expectFailure[T: scala.reflect.ClassTag](msg: String, repr: PersistentRepr) = {
     val rej = expectMsgType[WriteMessageFailure]
     rej.message should ===(repr)
     rej.cause shouldBe a[T]
