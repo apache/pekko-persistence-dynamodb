@@ -79,7 +79,7 @@ trait DynamoDBHelper {
 
     def sendSingle(): Future[Out] = {
       call.recoverWith {
-        case ex: DynamoDbException if DynamoRetriableException.unapply(ex).isEmpty =>
+        case DynamoRetriableException(ex) =>
           val n = name
           log.error(ex, "failure while executing {}", n)
           Future.failed(new DynamoDBJournalFailure("failure while executing " + n, ex))
