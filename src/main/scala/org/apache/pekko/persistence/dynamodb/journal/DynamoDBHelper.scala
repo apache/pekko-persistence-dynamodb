@@ -168,8 +168,15 @@ trait DynamoDBHelper {
   def deleteItem(aws: DeleteItemRequest): Future[DeleteItemResponse] =
     send(s"DeleteItemRequest(${aws.tableName},${formatKey(aws.key)})", dynamoDB.deleteItem(aws).asScala)
 
-  def batchWriteItem(aws: BatchWriteItemRequest): Future[BatchWriteItemResponse] =
-    send(s"BatchWriteItemRequest(${aws.requestItems.keySet.iterator.next})", dynamoDB.batchWriteItem(aws).asScala)
+  def batchWriteItem(aws: BatchWriteItemRequest): Future[BatchWriteItemResponse] = {
+    val entry = aws.requestItems.entrySet.iterator.next()
+    val table = entry.getKey
+    val keys = entry.getValue.asScala.map { write =>
+      if (write.deleteRequest != null) "del" + formatKey(write.deleteRequest.key)
+      else "put" + formatKey(write.putRequest.item)
+    }
+    send(s"BatchWriteItemRequest($table, ${keys.mkString("(", ",", ")")})", dynamoDB.batchWriteItem(aws).asScala)
+  }
 
   def batchGetItem(aws: BatchGetItemRequest): Future[BatchGetItemResponse] = {
     val entry = aws.requestItems.entrySet.iterator.next()
