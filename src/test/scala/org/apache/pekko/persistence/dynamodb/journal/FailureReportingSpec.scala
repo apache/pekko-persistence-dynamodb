@@ -210,24 +210,24 @@ pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
       "reporting table problems" in {
         val aws = DescribeTableRequest.builder().tableName("TheTable").build()
         dynamo.describeTable(aws).failed.futureValue.getMessage should
-        (include("DescribeTable").or(include("TheTable")))
+        (include("DescribeTable").and(include("TheTable")))
       }
 
       "reporting putItem problems" in {
         val aws = PutItemRequest.builder().tableName("TheTable").item(keyItem).build()
-        dynamo.putItem(aws).failed.futureValue.getMessage should (include("PutItem").or(include("TheTable")))
+        dynamo.putItem(aws).failed.futureValue.getMessage should (include("PutItem").and(include("TheTable")))
       }
 
       "reporting deleteItem problems" in {
         val aws = DeleteItemRequest.builder().tableName("TheTable").key(keyItem).build()
-        dynamo.deleteItem(aws).failed.futureValue.getMessage should (include("DeleteItem").or(include("TheTable")))
+        dynamo.deleteItem(aws).failed.futureValue.getMessage should (include("DeleteItem").and(include("TheTable")))
       }
 
       "reporting query problems" in {
         val aws = QueryRequest.builder().tableName("TheTable")
           .keyConditionExpression(":kkey = par")
           .expressionAttributeValues(Map(":kkey" -> S("TheKey")).asJava).build()
-        dynamo.query(aws).failed.futureValue.getMessage should (include("Query").or(include("TheTable")))
+        dynamo.query(aws).failed.futureValue.getMessage should (include("Query").and(include("TheTable")))
       }
 
       "reporting batch write problems" in {
@@ -236,13 +236,13 @@ pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
         val aws = BatchWriteItemRequest.builder()
           .requestItems(Map("TheTable" -> Seq(write, remove).asJava).asJava).build()
         dynamo.batchWriteItem(aws).failed.futureValue.getMessage should
-        (include("BatchWriteItem").or(include("TheTable")))
+        (include("BatchWriteItem").and(include("TheTable")))
       }
 
       "reporting batch read problems" in {
         val ka = KeysAndAttributes.builder().keys(keyItem, key2Item).build()
         val aws = BatchGetItemRequest.builder().requestItems(Map("TheTable" -> ka).asJava).build()
-        dynamo.batchGetItem(aws).failed.futureValue.getMessage should (include("BatchGetItem").or(include("TheTable")))
+        dynamo.batchGetItem(aws).failed.futureValue.getMessage should (include("BatchGetItem").and(include("TheTable")))
       }
     }
 
