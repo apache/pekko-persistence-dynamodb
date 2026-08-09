@@ -13,17 +13,12 @@
 
 package org.apache.pekko.persistence.dynamodb
 
-import com.typesafe.config.Config
-
-trait ClientConfig
-
 trait DynamoDBConfig {
   val AwsKey: String
   val AwsSecret: String
   val Endpoint: String
   val Region: String
   val ClientDispatcher: String
-  val client: ClientConfig
   val Tracing: Boolean
   val MaxBatchGet: Int
   val MaxBatchWrite: Int
@@ -32,5 +27,3 @@ trait DynamoDBConfig {
   val JournalName: String
 
 }
-
-class DynamoDBClientConfig(c: Config) extends ClientConfig
