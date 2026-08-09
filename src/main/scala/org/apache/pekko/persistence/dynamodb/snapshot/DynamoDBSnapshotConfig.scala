@@ -13,7 +13,7 @@
 
 package org.apache.pekko.persistence.dynamodb.snapshot
 
-import org.apache.pekko.persistence.dynamodb.{ ClientConfig, DynamoDBClientConfig, DynamoDBConfig }
+import org.apache.pekko.persistence.dynamodb.DynamoDBConfig
 import com.typesafe.config.Config
 
 class DynamoDBSnapshotConfig(c: Config) extends DynamoDBConfig {
@@ -29,12 +29,10 @@ class DynamoDBSnapshotConfig(c: Config) extends DynamoDBConfig {
   val MaxItemSize = c.getInt("aws-api-limits.max-item-size")
 
   override def toString: String =
-    "DynamoDBJournalConfig(" +
+    "DynamoDBSnapshotConfig(" +
     "SnapshotTable:" + Table +
     ",AwsKey:" + AwsKey +
     ",Endpoint:" + Endpoint + ")"
-
-  override val client: ClientConfig = new DynamoDBClientConfig(c)
 
   override val ClientDispatcher = c.getString("client-dispatcher")
   override val Tracing = c.getBoolean("tracing")

@@ -11,7 +11,7 @@ package org.apache.pekko.persistence.dynamodb.query
 
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
-import org.apache.pekko.persistence.dynamodb.{ ClientConfig, DynamoDBClientConfig, DynamoDBConfig }
+import org.apache.pekko.persistence.dynamodb.DynamoDBConfig
 import com.typesafe.config.Config
 
 class DynamoDBReadJournalConfig(c: Config) extends DynamoDBConfig {
@@ -33,8 +33,6 @@ class DynamoDBReadJournalConfig(c: Config) extends DynamoDBConfig {
     "Table:" + Table +
     ",AwsKey:" + AwsKey +
     ",Endpoint:" + Endpoint + ")"
-
-  override val client: ClientConfig = new DynamoDBClientConfig(c)
 
   override val ClientDispatcher: String = c.getString("client-dispatcher")
   override val Tracing: Boolean = c.getBoolean("tracing")

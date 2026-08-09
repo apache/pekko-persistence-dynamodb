@@ -15,7 +15,7 @@ package org.apache.pekko.persistence.dynamodb.journal
 
 import com.typesafe.config.Config
 
-import org.apache.pekko.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
+import org.apache.pekko.persistence.dynamodb.DynamoDBConfig
 
 class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
   val JournalTable = c.getString("journal-table")
@@ -40,7 +40,6 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
     val HighDistrust = c.getBoolean("fixes.high-distrust")
   }
 
-  val client = new DynamoDBClientConfig(c)
   override def toString: String =
     "DynamoDBJournalConfig(" +
     "JournalTable:" + JournalTable +
@@ -56,7 +55,6 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
     ",MaxBatchWrite:" + MaxBatchWrite +
     ",MaxItemSize:" + MaxItemSize +
     ",Fixes.HighDistrust:" + Fixes.HighDistrust +
-    ",client.config:" + client +
     ")"
 }
 
