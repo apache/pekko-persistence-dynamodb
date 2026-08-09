@@ -216,7 +216,7 @@ private[query] object PersistenceIdsResult {
         result.items.asScala.map(item => item.get("par").s).toSeq
 
       override def nextEvaluatedKey(result: QueryResponse): Option[util.Map[String, AttributeValue]] =
-        if (result.hasLastEvaluatedKey && !result.lastEvaluatedKey.isEmpty) Some(result.lastEvaluatedKey)
+        if (result.hasLastEvaluatedKey) Some(result.lastEvaluatedKey)
         else None
     }
 
@@ -226,7 +226,7 @@ private[query] object PersistenceIdsResult {
         result.items.asScala.map(item => item.get("par").s).toSeq
 
       override def nextEvaluatedKey(result: ScanResponse): Option[util.Map[String, AttributeValue]] =
-        if (result.hasLastEvaluatedKey && !result.lastEvaluatedKey.isEmpty) Some(result.lastEvaluatedKey)
+        if (result.hasLastEvaluatedKey) Some(result.lastEvaluatedKey)
         else None
     }
 

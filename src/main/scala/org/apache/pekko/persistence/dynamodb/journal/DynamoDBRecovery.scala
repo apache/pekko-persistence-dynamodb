@@ -270,7 +270,7 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
     def dynamoSummingPager(queryReq: QueryRequest, acc: Seq[Item]): Future[Seq[Item]] = {
       dynamo.query(queryReq).flatMap { result =>
         val currentPageItems = result.items.asScala.toSeq
-        if (!result.hasLastEvaluatedKey || result.lastEvaluatedKey.isEmpty)
+        if (!result.hasLastEvaluatedKey)
           Future.successful(acc ++ currentPageItems)
         else
           dynamoSummingPager(queryRequestBuilder(Some(result.lastEvaluatedKey)), acc ++ currentPageItems)
@@ -502,7 +502,7 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
   private[dynamodb] def getAllRemainingQueryItems(request: QueryRequest, result: QueryResponse)
       : Future[QueryResponse] = {
     val last = result.lastEvaluatedKey
-    if (!result.hasLastEvaluatedKey || last.isEmpty || last.get(Sort).n.toLong == 99) Future.successful(result)
+    if (!result.hasLastEvaluatedKey || last.get(Sort).n.toLong == 99) Future.successful(result)
     else {
       val nextRequest = request.toBuilder.exclusiveStartKey(last).build()
       dynamo.query(nextRequest).flatMap { next =>
