@@ -80,11 +80,13 @@ trait DynamoDBHelper {
     def sendSingle(): Future[Out] = {
       call.recoverWith {
         case DynamoRetriableException(ex) =>
+          // don't log at ERROR here — the retry handler will log at WARNING and retry;
+          // only log at ERROR if retries are eventually exhausted
+          Future.failed(ex)
+        case ex: DynamoDbException =>
           val n = name
           log.error(ex, "failure while executing {}", n)
           Future.failed(new DynamoDBJournalFailure("failure while executing " + n, ex))
-        case ex: DynamoDbException =>
-          Future.failed(ex)
         case ex: CompletionException if ex.getCause.isInstanceOf[DynamoDbException] =>
           val cause = ex.getCause.asInstanceOf[DynamoDbException]
           if (DynamoRetriableException.unapply(cause).isEmpty) {
