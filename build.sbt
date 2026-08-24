@@ -55,8 +55,9 @@ lazy val root = Project(
       "commons-io" % "commons-io" % "2.22.0" % Test,
       "org.hdrhistogram" % "HdrHistogram" % "2.2.2" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test),
-    // OrganizeImports needs unused-import diagnostics only while SemanticDB is enabled.
-    scalacOptions ++= (if (semanticdbEnabled.value) Seq("-Wunused:imports") else Nil),
+    // no 2.x artifact has been released yet, and 2.0.0 deliberately breaks binary compatibility
+    // with 1.x by moving from the AWS SDK for Java v1 to v2. Restore this once 2.0.0 is out.
+    mimaPreviousArtifacts := Set.empty,
     scalacOptions ++= Seq("-deprecation", "-feature"),
     scalacOptions ++= {
       if (scalaBinaryVersion.value == "3")
