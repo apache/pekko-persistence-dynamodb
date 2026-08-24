@@ -270,10 +270,10 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
     def dynamoSummingPager(queryReq: QueryRequest, acc: Seq[Item]): Future[Seq[Item]] = {
       dynamo.query(queryReq).flatMap { result =>
         val currentPageItems = result.items.asScala.toSeq
-        if (!result.hasLastEvaluatedKey)
-          Future.successful(acc ++ currentPageItems)
-        else
-          dynamoSummingPager(queryRequestBuilder(Some(result.lastEvaluatedKey)), acc ++ currentPageItems)
+        nonEmptyKey(result.lastEvaluatedKey) match {
+          case None       => Future.successful(acc ++ currentPageItems)
+          case lastKeyOpt => dynamoSummingPager(queryRequestBuilder(lastKeyOpt), acc ++ currentPageItems)
+        }
       }
     }
 
@@ -501,18 +501,18 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
 
   private[dynamodb] def getAllRemainingQueryItems(request: QueryRequest, result: QueryResponse)
       : Future[QueryResponse] = {
-    val last = result.lastEvaluatedKey
-    if (!result.hasLastEvaluatedKey || last.get(Sort).n.toLong == 99) Future.successful(result)
-    else {
-      val nextRequest = request.toBuilder.exclusiveStartKey(last).build()
-      dynamo.query(nextRequest).flatMap { next =>
-        val merged = new ArrayList[Item](result.items.size + next.items.size)
-        merged.addAll(result.items)
-        merged.addAll(next.items)
+    nonEmptyKey(result.lastEvaluatedKey) match {
+      case Some(last) if last.get(Sort).n.toLong != 99 =>
+        val nextRequest = request.toBuilder.exclusiveStartKey(last).build()
+        dynamo.query(nextRequest).flatMap { next =>
+          val merged = new ArrayList[Item](result.items.size + next.items.size)
+          merged.addAll(result.items)
+          merged.addAll(next.items)
 
-        // need to keep on reading until there's nothing more to read
-        getAllRemainingQueryItems(nextRequest, next.toBuilder.items(merged).build())
-      }
+          // need to keep on reading until there's nothing more to read
+          getAllRemainingQueryItems(nextRequest, next.toBuilder.items(merged).build())
+        }
+      case _ => Future.successful(result)
     }
   }
 

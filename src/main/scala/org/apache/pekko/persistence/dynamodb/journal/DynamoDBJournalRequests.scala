@@ -14,7 +14,7 @@
 package org.apache.pekko.persistence.dynamodb.journal
 
 import java.nio.ByteBuffer
-import java.util.{ Collections, Map => JMap }
+import java.util.Collections
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._

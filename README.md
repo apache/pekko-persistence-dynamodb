@@ -122,9 +122,15 @@ In the second case each event is treated in isolation and may or may not be repl
 
 ## Performance Considerations
 
-This plugin uses the AWS SDK for Java v2 which means that the number of requests that can be made concurrently is limited by the number of connections to DynamoDB and by the number of threads in the thread-pool that is used by the AWS HTTP client. The default SDK configuration allows roughly 5000 requests per second (where every persisted event batch is roughly one request) from the same EC2 region. If a single ActorSystem needs to persist more than this number of events per second then you may want to provide a custom `DynamoDbAsyncClient` with a tuned HTTP client configuration.
+This plugin uses the AWS SDK for Java v2, which means that the number of requests that can be made concurrently is limited by the concurrency of the SDK's asynchronous HTTP client. The default of 50 concurrent requests allows roughly 5000 requests per second (where every persisted event batch is roughly one request) for a deployment used from the same EC2 region.
 
-For advanced HTTP client settings (e.g. max connections, timeouts), provide a custom `DynamoDbAsyncClient`. See the [AWS SDK v2 HTTP configuration documentation](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/http-configuration.html) for details.
+The plugin builds its own `DynamoDbAsyncClient` from the settings documented in `reference.conf`, and does not currently expose the SDK's HTTP client settings. In version 1.x these could be tuned through the `aws-client-config` block, for example:
+
+~~~
+my-dynamodb-journal.aws-client-config.max-connections = <your value here>
+~~~
+
+That block was tied to the SDK v1 `ClientConfiguration` class and has been **removed in 2.x**. It is not an error to leave it in `application.conf`, but it no longer has any effect, so remove it when migrating. There is currently no replacement setting; if you need to raise the concurrency limit, please open an issue. See the [AWS SDK v2 HTTP configuration documentation](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/http-configuration.html) for what the SDK itself supports.
 
 ## Retry behavior
 

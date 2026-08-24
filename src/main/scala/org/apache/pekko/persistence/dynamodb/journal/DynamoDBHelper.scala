@@ -72,7 +72,7 @@ trait DynamoDBHelper {
 
   def shutdown(): Unit = dynamoDB.close()
 
-  private var reporter: ActorRef = _
+  private var reporter: ActorRef = null
   def setReporter(ref: ActorRef): Unit = reporter = ref
 
   private def send[Out](name: => String, call: => Future[Out]): Future[Out] = {
@@ -138,7 +138,7 @@ trait DynamoDBHelper {
   }
 
   def listTables(aws: ListTablesRequest): Future[ListTablesResponse] =
-    send(s"ListTablesRequest", dynamoDB.listTables(aws).asScala)
+    send("ListTablesRequest", dynamoDB.listTables(aws).asScala)
 
   def describeTable(aws: DescribeTableRequest): Future[DescribeTableResponse] =
     send(s"DescribeTableRequest(${aws.tableName})", dynamoDB.describeTable(aws).asScala)
