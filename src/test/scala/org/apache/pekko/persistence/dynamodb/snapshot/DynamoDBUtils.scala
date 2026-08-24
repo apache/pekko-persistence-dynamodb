@@ -41,7 +41,8 @@ trait DynamoDBUtils {
 
   implicit val timeout: Timeout = Timeout(5.seconds)
 
-  val schema = CreateTableRequest.builder()
+  // a def, not a val: CreateTableRequest.Builder is mutable, so each caller needs its own
+  def schema: CreateTableRequest.Builder = CreateTableRequest.builder()
     .attributeDefinitions(
       AttributeDefinition.builder().attributeName(Key).attributeType(ScalarAttributeType.S).build(),
       AttributeDefinition.builder().attributeName(SequenceNr).attributeType(ScalarAttributeType.N).build(),
