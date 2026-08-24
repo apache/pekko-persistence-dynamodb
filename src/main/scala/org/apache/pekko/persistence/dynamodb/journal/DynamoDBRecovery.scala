@@ -427,18 +427,20 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
       val wU = item.get(WriterUuid).s
       val reprManifest = getValueOrEmptyString(item, Manifest)
 
+      // asByteArrayUnsafe avoids copying the payload: deserialization only reads the array,
+      // and the response it belongs to is discarded once the event has been read
       val eventPayload = item.get(Event).b
       val serId = item.get(SerializerId).n.toInt
 
       val fut = serialization.serializerByIdentity.get(serId) match {
         case Some(asyncSerializer: AsyncSerializer) =>
           Serialization.withTransportInformation(system.asInstanceOf[ExtendedActorSystem]) { () =>
-            asyncSerializer.fromBinaryAsync(eventPayload.asByteArray(), serializerManifest)
+            asyncSerializer.fromBinaryAsync(eventPayload.asByteArrayUnsafe(), serializerManifest)
           }
         case _ =>
           def deserializedEvent: AnyRef = {
             // Serialization.deserialize adds transport info
-            serialization.deserialize(eventPayload.asByteArray(), serId, serializerManifest).get
+            serialization.deserialize(eventPayload.asByteArrayUnsafe(), serId, serializerManifest).get
           }
           if (async) Future(deserializedEvent)
           else
@@ -459,7 +461,7 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
 
       def deserializedEvent: PersistentRepr = {
         // Serialization.deserialize adds transport info
-        serialization.deserialize(item.get(Payload).b.asByteArray(), clazz).get
+        serialization.deserialize(item.get(Payload).b.asByteArrayUnsafe(), clazz).get
       }
 
       if (async) Future(deserializedEvent)

@@ -199,6 +199,8 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
 
     if (item.containsKey(PayloadData)) {
 
+      // asByteArrayUnsafe avoids copying the payload: deserialization only reads the array,
+      // and the response it belongs to is discarded once the snapshot has been read
       val payloadData = item.get(PayloadData).b
       val serId = item.get(SerializerId).n.toInt
       val manifest = if (item.containsKey(SerializerManifest)) item.get(SerializerManifest).s else ""
@@ -206,10 +208,10 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       val serialized = serialization.serializerByIdentity(serId) match {
         case aS: AsyncSerializer =>
           Serialization.withTransportInformation(context.system.asInstanceOf[ExtendedActorSystem]) { () =>
-            aS.fromBinaryAsync(payloadData.asByteArray(), manifest)
+            aS.fromBinaryAsync(payloadData.asByteArrayUnsafe(), manifest)
           }
         case _ =>
-          Future.successful(serialization.deserialize(payloadData.asByteArray(), serId, manifest).get)
+          Future.successful(serialization.deserialize(payloadData.asByteArrayUnsafe(), serId, manifest).get)
       }
 
       serialized.map(data =>
@@ -222,7 +224,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       Future.successful(
         SelectedSnapshot(
           metadata = SnapshotMetadata(persistenceId, sequenceNr = seqNr, timestamp = timestamp),
-          snapshot = serialization.deserialize(payloadValue.asByteArray(), classOf[Snapshot]).get.data))
+          snapshot = serialization.deserialize(payloadValue.asByteArrayUnsafe(), classOf[Snapshot]).get.data))
     }
   }
 
