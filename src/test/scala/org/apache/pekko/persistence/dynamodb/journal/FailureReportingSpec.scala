@@ -28,6 +28,7 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
@@ -207,27 +208,43 @@ pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
       val keyItem = Map(Key -> S("TheKey"), Sort -> N("42")).asJava
       val key2Item = Map(Key -> S("The2Key"), Sort -> N("43")).asJava
 
+      // "TheTable" does not exist, so each request fails and the failure message is the request
+      // description that DynamoDBHelper builds - including the formatted keys.
+      def failureMessage(f: Future[?]): String = f.failed.futureValue.getMessage
+
       "reporting table problems" in {
         val aws = DescribeTableRequest.builder().tableName("TheTable").build()
-        dynamo.describeTable(aws).failed.futureValue.getMessage should
-        (include("DescribeTable").and(include("TheTable")))
+        val msg = failureMessage(dynamo.describeTable(aws))
+        msg should include("DescribeTable")
+        msg should include("TheTable")
       }
 
       "reporting putItem problems" in {
         val aws = PutItemRequest.builder().tableName("TheTable").item(keyItem).build()
-        dynamo.putItem(aws).failed.futureValue.getMessage should (include("PutItem").and(include("TheTable")))
+        val msg = failureMessage(dynamo.putItem(aws))
+        msg should include("PutItem")
+        msg should include("TheTable")
+        msg should include("TheKey")
+        msg should include("42")
       }
 
       "reporting deleteItem problems" in {
         val aws = DeleteItemRequest.builder().tableName("TheTable").key(keyItem).build()
-        dynamo.deleteItem(aws).failed.futureValue.getMessage should (include("DeleteItem").and(include("TheTable")))
+        val msg = failureMessage(dynamo.deleteItem(aws))
+        msg should include("DeleteItem")
+        msg should include("TheTable")
+        msg should include("TheKey")
+        msg should include("42")
       }
 
       "reporting query problems" in {
         val aws = QueryRequest.builder().tableName("TheTable")
           .keyConditionExpression(":kkey = par")
           .expressionAttributeValues(Map(":kkey" -> S("TheKey")).asJava).build()
-        dynamo.query(aws).failed.futureValue.getMessage should (include("Query").and(include("TheTable")))
+        val msg = failureMessage(dynamo.query(aws))
+        msg should include("Query")
+        msg should include("TheTable")
+        msg should include("TheKey")
       }
 
       "reporting batch write problems" in {
@@ -235,14 +252,21 @@ pekko.loggers = ["org.apache.pekko.testkit.TestEventListener"]
         val remove = WriteRequest.builder().deleteRequest(DeleteRequest.builder().key(key2Item).build()).build()
         val aws = BatchWriteItemRequest.builder()
           .requestItems(Map("TheTable" -> Seq(write, remove).asJava).asJava).build()
-        dynamo.batchWriteItem(aws).failed.futureValue.getMessage should
-        (include("BatchWriteItem").and(include("TheTable")))
+        val msg = failureMessage(dynamo.batchWriteItem(aws))
+        msg should include("BatchWriteItem")
+        msg should include("TheTable")
+        msg should include(s"put[$Key=TheKey,$Sort=42]")
+        msg should include(s"del[$Key=The2Key,$Sort=43]")
       }
 
       "reporting batch read problems" in {
         val ka = KeysAndAttributes.builder().keys(keyItem, key2Item).build()
         val aws = BatchGetItemRequest.builder().requestItems(Map("TheTable" -> ka).asJava).build()
-        dynamo.batchGetItem(aws).failed.futureValue.getMessage should (include("BatchGetItem").and(include("TheTable")))
+        val msg = failureMessage(dynamo.batchGetItem(aws))
+        msg should include("BatchGetItem")
+        msg should include("TheTable")
+        msg should include(s"[$Key=TheKey,$Sort=42]")
+        msg should include(s"[$Key=The2Key,$Sort=43]")
       }
     }
 
