@@ -42,7 +42,8 @@ package object journal {
   // This is the size of each partition used on DynamoDB. This value should never change as it will break backwards compatability.
   val PartitionSize: Int = 100
 
-  val schema = CreateTableRequest.builder()
+  // a def, not a val: CreateTableRequest.Builder is mutable, so each caller needs its own
+  def schema: CreateTableRequest.Builder = CreateTableRequest.builder()
     .keySchema(
       KeySchemaElement.builder().attributeName(Key).keyType(KeyType.HASH).build(),
       KeySchemaElement.builder().attributeName(Sort).keyType(KeyType.RANGE).build())

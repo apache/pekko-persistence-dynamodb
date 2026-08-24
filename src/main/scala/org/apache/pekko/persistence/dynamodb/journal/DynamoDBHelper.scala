@@ -27,6 +27,7 @@ import scala.concurrent.{ ExecutionContext, Future }
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.jdk.FutureConverters._
+import scala.util.control.NonFatal
 
 case class LatencyReport(nanos: Long, retries: Int)
 private class RetryStateHolder(var retries: Int = 10, var backoff: FiniteDuration = 1.millis)
@@ -78,23 +79,28 @@ trait DynamoDBHelper {
   private def send[Out](name: => String, call: => Future[Out]): Future[Out] = {
 
     def sendSingle(): Future[Out] = {
-      call.recoverWith {
-        case DynamoRetriableException(ex) =>
-          // don't log at ERROR here — the retry handler will log at WARNING and retry;
-          // only log at ERROR if retries are eventually exhausted
-          Future.failed(ex)
-        case ex: DynamoDbException =>
-          val n = name
-          log.error(ex, "failure while executing {}", n)
-          Future.failed(new DynamoDBJournalFailure("failure while executing " + n, ex))
-        case ex: CompletionException if ex.getCause.isInstanceOf[DynamoDbException] =>
-          val cause = ex.getCause.asInstanceOf[DynamoDbException]
-          if (DynamoRetriableException.unapply(cause).isEmpty) {
-            val n = name
-            log.error(cause, "failure while executing {}", n)
-            Future.failed(new DynamoDBJournalFailure("failure while executing " + n, cause))
-          } else {
-            Future.failed(cause)
+      // the client can also fail while preparing the request, before it returns a future
+      val started =
+        try call
+        catch { case NonFatal(ex) => Future.failed(ex) }
+
+      started.recoverWith {
+        case ex =>
+          // the SDK completes its CompletableFuture exceptionally, and the conversion to a Scala
+          // Future keeps the CompletionException that CompletableFuture wraps the cause in
+          val cause = ex match {
+            case ce: CompletionException if ce.getCause ne null => ce.getCause
+            case _                                              => ex
+          }
+          cause match {
+            case DynamoRetriableException(retriable) =>
+              // not logged here: the retry handler logs at WARNING and retries, and logs
+              // at ERROR once the retries are exhausted
+              Future.failed(retriable)
+            case _ =>
+              val n = name
+              log.error(cause, "failure while executing {}", n)
+              Future.failed(new DynamoDBJournalFailure("failure while executing " + n, cause))
           }
       }
     }
@@ -110,7 +116,10 @@ trait DynamoDBHelper {
         after(backoff, scheduler)(sendSingle().recoverWith(retry))
       case other: DynamoDBJournalFailure => Future.failed(other)
       case other                         =>
+        // only reached when the retries for a retriable failure are exhausted; anything else has
+        // already been logged and wrapped by sendSingle
         val n = name
+        log.error(other, "failure while executing {}, no retries left", n)
         Future.failed(new DynamoDBJournalFailure("failed retry " + n, other))
     }
 
