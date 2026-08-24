@@ -171,20 +171,26 @@ trait DynamoDBHelper {
     send(s"DeleteItemRequest(${aws.tableName},${formatKey(aws.key)})", dynamoDB.deleteItem(aws).asScala)
 
   def batchWriteItem(aws: BatchWriteItemRequest): Future[BatchWriteItemResponse] = {
-    val entry = aws.requestItems.entrySet.iterator.next()
-    val table = entry.getKey
-    val keys = entry.getValue.asScala.map { write =>
-      if (write.deleteRequest != null) "del" + formatKey(write.deleteRequest.key)
-      else "put" + formatKey(write.putRequest.item)
+    // by-name: only formatted when tracing is on or the request fails
+    def name = {
+      val entry = aws.requestItems.entrySet.iterator.next()
+      val keys = entry.getValue.asScala.map { write =>
+        if (write.deleteRequest != null) "del" + formatKey(write.deleteRequest.key)
+        else "put" + formatKey(write.putRequest.item)
+      }
+      s"BatchWriteItemRequest(${entry.getKey}, ${keys.mkString("(", ",", ")")})"
     }
-    send(s"BatchWriteItemRequest($table, ${keys.mkString("(", ",", ")")})", dynamoDB.batchWriteItem(aws).asScala)
+    send(name, dynamoDB.batchWriteItem(aws).asScala)
   }
 
   def batchGetItem(aws: BatchGetItemRequest): Future[BatchGetItemResponse] = {
-    val entry = aws.requestItems.entrySet.iterator.next()
-    val table = entry.getKey
-    val keys = entry.getValue.keys.asScala.map(formatKey)
-    send(s"BatchGetItemRequest($table, ${keys.mkString("(", ",", ")")})", dynamoDB.batchGetItem(aws).asScala)
+    // by-name: only formatted when tracing is on or the request fails
+    def name = {
+      val entry = aws.requestItems.entrySet.iterator.next()
+      val keys = entry.getValue.keys.asScala.map(formatKey)
+      s"BatchGetItemRequest(${entry.getKey}, ${keys.mkString("(", ",", ")")})"
+    }
+    send(name, dynamoDB.batchGetItem(aws).asScala)
   }
 
 }
