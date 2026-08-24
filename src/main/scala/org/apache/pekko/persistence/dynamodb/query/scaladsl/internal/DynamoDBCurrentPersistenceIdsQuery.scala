@@ -28,7 +28,7 @@ import org.apache.pekko.persistence.dynamodb.query.scaladsl.{
   DynamoDBCurrentPersistenceIdsQuery => PublicDynamoDBCurrentPersistenceIdsQuery
 }
 import org.apache.pekko.persistence.dynamodb.query.{ ReadJournalSettingsProvider, RichOption }
-import org.apache.pekko.persistence.dynamodb.{ ActorSystemProvider, DynamoProvider, LoggingProvider }
+import org.apache.pekko.persistence.dynamodb.{ nonEmptyKey, ActorSystemProvider, DynamoProvider, LoggingProvider }
 import org.apache.pekko.stream.scaladsl.Source
 import software.amazon.awssdk.services.dynamodb.model._
 
@@ -222,8 +222,7 @@ private[query] object PersistenceIdsResult {
         result.items.asScala.map(item => item.get("par").s).toSeq
 
       override def nextEvaluatedKey(result: QueryResponse): Option[util.Map[String, AttributeValue]] =
-        if (result.hasLastEvaluatedKey) Some(result.lastEvaluatedKey)
-        else None
+        nonEmptyKey(result.lastEvaluatedKey)
     }
 
   implicit val persistenceIdsScanResult: PersistenceIdsResult[ScanResponse] =
@@ -232,8 +231,7 @@ private[query] object PersistenceIdsResult {
         result.items.asScala.map(item => item.get("par").s).toSeq
 
       override def nextEvaluatedKey(result: ScanResponse): Option[util.Map[String, AttributeValue]] =
-        if (result.hasLastEvaluatedKey) Some(result.lastEvaluatedKey)
-        else None
+        nonEmptyKey(result.lastEvaluatedKey)
     }
 
   implicit class RichPersistenceIdsResult[Result](val result: Result) extends AnyVal {
