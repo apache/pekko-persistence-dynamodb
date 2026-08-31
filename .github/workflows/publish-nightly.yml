@@ -42,16 +42,13 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: sbt
 
       - name: Install sbt
         uses: sbt/setup-sbt@8feba82adc7f01ddcf8165b86f778bdb5b82cebc # v1.5.7
-
 
       - name: Publish to Apache Maven repo
         env:
           NEXUS_USER: ${{ secrets.NEXUS_USER }}
           NEXUS_PW: ${{ secrets.NEXUS_PW }}
         run: sbt +publish
-
-      - name: Cache Coursier cache
-        uses: coursier/cache-action@95e5b1029b6b86e7bac033ee44a0697d8a527d2d # v8.1.1
