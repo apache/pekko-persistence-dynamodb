@@ -32,12 +32,10 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          cache: sbt
 
       - name: Install sbt
         uses: sbt/setup-sbt@8feba82adc7f01ddcf8165b86f778bdb5b82cebc # v1.5.7
-
-      - name: Cache Coursier cache
-        uses: coursier/cache-action@95e5b1029b6b86e7bac033ee44a0697d8a527d2d # v8.1.1
 
       - name: Code style check
         run: sbt checkCodeStyle
@@ -63,13 +61,10 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-    
+          cache: sbt
+
       - name: Install sbt
         uses: sbt/setup-sbt@8feba82adc7f01ddcf8165b86f778bdb5b82cebc # v1.5.7
-
-
-      - name: Cache Coursier cache
-        uses: coursier/cache-action@95e5b1029b6b86e7bac033ee44a0697d8a527d2d # v8.1.1
 
       - name: Compile all code with default compiler
         run: sbt "Test/compile"
@@ -103,13 +98,10 @@ jobs:
         with:
           distribution: temurin
           java-version: ${{ matrix.java-version }}
+          cache: sbt
 
       - name: Install sbt
         uses: sbt/setup-sbt@8feba82adc7f01ddcf8165b86f778bdb5b82cebc # v1.5.7
-          
-
-      - name: Cache Coursier cache
-        uses: coursier/cache-action@95e5b1029b6b86e7bac033ee44a0697d8a527d2d # v8.1.1
 
       - name: Run tests with Scala ${{ matrix.scala-version }} and Java ${{ matrix.java-version }}
         run: sbt "++${{ matrix.scala-version }} test" ${{ matrix.sbt-opts }}
