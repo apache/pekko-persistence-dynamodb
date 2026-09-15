@@ -50,7 +50,7 @@ class DynamoPartitionGroupedSpec extends TestKit(ActorSystem("DynamoPartitionGro
         .request(1)
         .expectNext(PartitionKeys(2L, 200L to 299))
         .request(1)
-        .expectNext(PartitionKeys(3L, scala.collection.immutable.Seq(300L)))
+        .expectNext(PartitionKeys(3L, Seq(300L)))
         .expectComplete()
     }
 

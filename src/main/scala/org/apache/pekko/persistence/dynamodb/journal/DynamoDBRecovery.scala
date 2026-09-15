@@ -60,7 +60,7 @@ object DynamoDBRecovery {
  * @param partitionSeqNum - the partition sequence number for the given persistence id.
  * @param partitionEventNums - will be 0-99, representing the event ordering within the given partition sequence.
  */
-case class PartitionKeys(partitionSeqNum: Long, partitionEventNums: immutable.Seq[Long])
+case class PartitionKeys(partitionSeqNum: Long, partitionEventNums: Seq[Long])
 
 /**
  * Groups Longs from a stream into a [PartitionKeys] whereas each sequence shall contain the values that would be within the
