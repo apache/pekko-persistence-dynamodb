@@ -39,9 +39,6 @@ my-dynamodb-journal {
   endpoint = ${?AWS_DYNAMODB_ENDPOINT}
   aws-access-key-id = ${?AWS_ACCESS_KEY_ID}
   aws-secret-access-key = ${?AWS_SECRET_ACCESS_KEY}
-  aws-client-config {
-    max-connections = 100
-  }
   plugin-dispatcher = "dispatcher"
   replay-dispatcher = "dispatcher"
   client-dispatcher = "dispatcher"

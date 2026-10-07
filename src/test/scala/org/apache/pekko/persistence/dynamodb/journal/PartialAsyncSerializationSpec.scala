@@ -25,6 +25,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
+import scala.concurrent.duration._
+
 trait SerializeAsync
 
 case class TestAsyncMessage(sequence: Int) extends SerializeAsync
@@ -55,6 +57,8 @@ class PartialAsyncSerializationSpec
     with TypeCheckedTripleEquals
     with DynamoDBUtils
     with IntegSpec {
+
+  implicit val patience: PatienceConfig = PatienceConfig(5.seconds)
 
   override def beforeAll(): Unit = {
     super.beforeAll()
