@@ -25,7 +25,6 @@ import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
 import com.amazonaws.services.dynamodbv2.model._
 import com.typesafe.config.Config
 
-import scala.collection.immutable
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Success, Try }
 
@@ -107,7 +106,7 @@ class DynamoDBJournal(config: Config)
   private case class OpFinished(pid: String, f: Future[Done])
   private val opQueue: JMap[String, Future[Done]] = new JHMap
 
-  override def asyncWriteMessages(messages: immutable.Seq[AtomicWrite]): Future[immutable.Seq[Try[Unit]]] = {
+  override def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] = {
     val p = Promise[Done]()
     val pid = messages.head.persistenceId
     opQueue.put(pid, p.future)
