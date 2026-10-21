@@ -15,7 +15,7 @@ import org.apache.pekko.persistence.dynamodb.query.ReadJournalSettingsProvider
 import org.apache.pekko.persistence.dynamodb.query.scaladsl.CreatePersistenceIdsIndex.createPersistenceIdsIndexRequest
 import org.apache.pekko.persistence.query.scaladsl.CurrentPersistenceIdsQuery
 import org.apache.pekko.stream.scaladsl.Source
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 
 import scala.concurrent.Future
 
@@ -59,7 +59,7 @@ trait CreatePersistenceIdsIndex {
    * Update the journal table to add the Global Secondary Index 'persistence-ids-idx' that's required by [[DynamoDBCurrentPersistenceIdsQuery.currentPersistenceIdsByPageQuery]]
    * @param alphabetically sort persistence ids
    */
-  def createPersistenceIdsIndex(alphabetically: Boolean = false): Future[UpdateTableResult] =
+  def createPersistenceIdsIndex(alphabetically: Boolean = false): Future[UpdateTableResponse] =
     dynamo.updateTable(
       createPersistenceIdsIndexRequest(
         indexName = readJournalSettings.PersistenceIdsIndexName,
@@ -81,21 +81,23 @@ object CreatePersistenceIdsIndex {
       indexName: String,
       tableName: String,
       alphabetically: Boolean = false): UpdateTableRequest = {
-    val createIndex = new CreateGlobalSecondaryIndexAction()
-      .withIndexName(indexName)
-      .withProjection(new Projection().withProjectionType(ProjectionType.KEYS_ONLY))
-      .withProvisionedThroughput(new ProvisionedThroughput().withReadCapacityUnits(10).withWriteCapacityUnits(10))
+    val createIndexBuilder = CreateGlobalSecondaryIndexAction.builder()
+      .indexName(indexName)
+      .projection(Projection.builder().projectionType(ProjectionType.KEYS_ONLY).build())
+      .provisionedThroughput(ProvisionedThroughput.builder().readCapacityUnits(10).writeCapacityUnits(10).build())
     if (alphabetically) {
-      createIndex.withKeySchema(
-        new KeySchemaElement().withAttributeName("num").withKeyType(KeyType.HASH),
-        new KeySchemaElement().withAttributeName("par").withKeyType(KeyType.RANGE))
+      createIndexBuilder.keySchema(
+        KeySchemaElement.builder().attributeName("num").keyType(KeyType.HASH).build(),
+        KeySchemaElement.builder().attributeName("par").keyType(KeyType.RANGE).build())
     } else {
-      createIndex.withKeySchema(new KeySchemaElement().withAttributeName("num").withKeyType(KeyType.HASH))
+      createIndexBuilder.keySchema(KeySchemaElement.builder().attributeName("num").keyType(KeyType.HASH).build())
     }
-    new UpdateTableRequest()
-      .withTableName(tableName)
-      .withGlobalSecondaryIndexUpdates(new GlobalSecondaryIndexUpdate().withCreate(createIndex))
-      .withAttributeDefinitions(new AttributeDefinition().withAttributeName("num").withAttributeType("N"))
+    UpdateTableRequest.builder()
+      .tableName(tableName)
+      .globalSecondaryIndexUpdates(GlobalSecondaryIndexUpdate.builder().create(createIndexBuilder.build()).build())
+      .attributeDefinitions(
+        AttributeDefinition.builder().attributeName("num").attributeType(ScalarAttributeType.N).build())
+      .build()
   }
 
   /** required by [[DynamoDBCurrentPersistenceIdsQuery.currentPersistenceIdsAlphabeticallyByPageQuery]] */

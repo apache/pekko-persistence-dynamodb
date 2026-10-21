@@ -22,7 +22,7 @@ import org.apache.pekko.persistence.query.PersistenceQuery
 import org.apache.pekko.stream.scaladsl.Sink
 import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
 import org.apache.pekko.testkit._
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 import org.scalactic.TypeCheckedTripleEquals
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
@@ -189,6 +189,6 @@ class RecoveryConsistencySpec
     val key: Item = new JHMap
     key.put(Key, S(s"$JournalName-P-$persistenceId-${num / PartitionSize}"))
     key.put(Sort, N(num % PartitionSize))
-    dynamo.deleteItem(new DeleteItemRequest().withTableName(JournalTable).withKey(key)).futureValue
+    dynamo.deleteItem(DeleteItemRequest.builder().tableName(JournalTable).key(key).build()).futureValue
   }
 }

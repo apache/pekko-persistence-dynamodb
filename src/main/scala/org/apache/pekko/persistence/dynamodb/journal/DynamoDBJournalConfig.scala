@@ -15,7 +15,7 @@ package org.apache.pekko.persistence.dynamodb.journal
 
 import com.typesafe.config.Config
 
-import org.apache.pekko.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
+import org.apache.pekko.persistence.dynamodb.DynamoDBConfig
 
 class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
   val JournalTable = c.getString("journal-table")
@@ -24,6 +24,7 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
   val AwsKey = c.getString("aws-access-key-id")
   val AwsSecret = c.getString("aws-secret-access-key")
   val Endpoint = c.getString("endpoint")
+  val Region = c.getString("region")
   val ReplayDispatcher = c.getString("replay-dispatcher")
   val ClientDispatcher = c.getString("client-dispatcher")
   val SequenceShards = c.getInt("sequence-shards")
@@ -39,7 +40,6 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
     val HighDistrust = c.getBoolean("fixes.high-distrust")
   }
 
-  val client = new DynamoDBClientConfig(c)
   override def toString: String =
     "DynamoDBJournalConfig(" +
     "JournalTable:" + JournalTable +
@@ -55,7 +55,6 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
     ",MaxBatchWrite:" + MaxBatchWrite +
     ",MaxItemSize:" + MaxItemSize +
     ",Fixes.HighDistrust:" + Fixes.HighDistrust +
-    ",client.config:" + client +
     ")"
 }
 
