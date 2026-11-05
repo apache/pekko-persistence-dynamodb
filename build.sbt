@@ -18,7 +18,6 @@ sourceDistName := "apache-pekko-persistence-dynamodb"
 sourceDistIncubating := false
 
 ThisBuild / reproducibleBuildsCheckResolver := Resolver.ApacheMavenStagingRepo
-ThisBuild / resolvers += Resolver.ApacheMavenStagingRepo
 
 ThisBuild / javafmtFormatterCompatibleJavaVersion := 17
 
