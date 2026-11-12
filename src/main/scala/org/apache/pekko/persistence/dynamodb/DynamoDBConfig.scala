@@ -14,9 +14,9 @@
 package org.apache.pekko.persistence.dynamodb
 
 import java.net.InetAddress
-import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
-import org.apache.pekko.serialization.Serialization
+
 import com.amazonaws.{ ClientConfiguration, Protocol }
+
 import com.typesafe.config.Config
 
 trait ClientConfig {

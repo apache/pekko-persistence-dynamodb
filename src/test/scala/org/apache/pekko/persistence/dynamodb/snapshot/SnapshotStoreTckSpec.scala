@@ -15,6 +15,7 @@ package org.apache.pekko.persistence.dynamodb.snapshot
 
 import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.persistence.snapshot.SnapshotStoreSpec
+
 import com.typesafe.config.ConfigFactory
 
 class SnapshotStoreTckSpec extends SnapshotStoreSpec(ConfigFactory.load()) with DynamoDBUtils with IntegSpec {

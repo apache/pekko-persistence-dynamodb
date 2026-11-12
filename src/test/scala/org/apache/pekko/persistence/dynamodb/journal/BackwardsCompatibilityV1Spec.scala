@@ -13,23 +13,26 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import java.util.Base64
+
+import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
+import com.amazonaws.services.dynamodbv2.document.{ DynamoDB, Item }
+import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClientBuilder }
+import org.scalactic.TypeCheckedTripleEquals
+
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.persistence.JournalProtocol._
 import org.apache.pekko.persistence._
 import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.testkit._
-import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.services.dynamodbv2.document.{ DynamoDB, Item }
-import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClientBuilder }
-import com.typesafe.config.ConfigFactory
-import org.scalactic.TypeCheckedTripleEquals
+
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.util.Base64
+import com.typesafe.config.ConfigFactory
 
 class BackwardsCompatibilityV1Spec
     extends TestKit(ActorSystem("BackwardsCompatibilityV1Spec"))

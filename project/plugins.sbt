@@ -18,3 +18,5 @@ addSbtPlugin("net.bzzt" % "sbt-reproducible-builds" % "0.35")
 
 // https://eed3si9n.com/reducing-scaladoc-file-size-with-sbt-salad-days/
 addSbtPlugin("com.eed3si9n" % "sbt-salad-days" % "0.2.0")
+
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.10")

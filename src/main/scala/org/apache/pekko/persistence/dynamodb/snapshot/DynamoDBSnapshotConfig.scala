@@ -14,6 +14,7 @@
 package org.apache.pekko.persistence.dynamodb.snapshot
 
 import org.apache.pekko.persistence.dynamodb.{ ClientConfig, DynamoDBClientConfig, DynamoDBConfig }
+
 import com.typesafe.config.Config
 
 class DynamoDBSnapshotConfig(c: Config) extends DynamoDBConfig {

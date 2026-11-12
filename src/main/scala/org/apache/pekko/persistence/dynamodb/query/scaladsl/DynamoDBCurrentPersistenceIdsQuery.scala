@@ -9,15 +9,16 @@
 
 package org.apache.pekko.persistence.dynamodb.query.scaladsl
 
+import scala.concurrent.Future
+
+import com.amazonaws.services.dynamodbv2.model._
+
 import org.apache.pekko.NotUsed
 import org.apache.pekko.persistence.dynamodb.DynamoProvider
 import org.apache.pekko.persistence.dynamodb.query.ReadJournalSettingsProvider
 import org.apache.pekko.persistence.dynamodb.query.scaladsl.CreatePersistenceIdsIndex.createPersistenceIdsIndexRequest
 import org.apache.pekko.persistence.query.scaladsl.CurrentPersistenceIdsQuery
 import org.apache.pekko.stream.scaladsl.Source
-import com.amazonaws.services.dynamodbv2.model._
-
-import scala.concurrent.Future
 
 trait DynamoDBCurrentPersistenceIdsQuery extends CurrentPersistenceIdsQuery {
 

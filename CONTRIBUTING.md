@@ -121,3 +121,19 @@ Example:
 ## Source style
 
 Apache Pekko uses [scalafmt](https://scalameta.org/scalafmt/) to enforce some of the code style rules.
+
+### Organizing Scala imports
+
+Run `sbt sortImports` using the default Scala 2.13 version to organize imports.
+This enables SemanticDB for the sbt session, applies Scalafix `OrganizeImports`
+to all compile and test sources, then runs Scalafmt. Import organization is
+separate from `applyCodeStyle` because it requires compilation.
+
+The configuration preserves relative imports, groups imports by their resolved
+package and removes unused imports using compiler diagnostics. Scalafmt no
+longer sorts imports independently.
+
+Run `scripts/check-organize-imports.sh` for a focused regression check of
+grouping, relative imports, unused import removal and idempotence. It creates
+an isolated temporary build and accepts an alternative sbt launcher as arguments.
+Set `SCALA_VERSION` to exercise another supported Scala version.

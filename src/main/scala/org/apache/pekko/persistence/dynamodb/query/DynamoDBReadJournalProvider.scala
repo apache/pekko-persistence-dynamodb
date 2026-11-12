@@ -15,6 +15,7 @@ import org.apache.pekko.persistence.dynamodb.query.scaladsl.internal.{ DynamoDBR
 import org.apache.pekko.persistence.query.ReadJournalProvider
 import org.apache.pekko.persistence.query.javadsl.{ ReadJournal => JavaReadJournal }
 import org.apache.pekko.persistence.query.scaladsl.{ ReadJournal => ScalaReadJournal }
+
 import com.typesafe.config.Config
 
 class DynamoDBReadJournalProvider(system: ExtendedActorSystem, config: Config, configPath: String)
