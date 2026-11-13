@@ -13,14 +13,15 @@
 
 package org.apache.pekko.persistence.dynamodb.snapshot
 
+import scala.concurrent.Future
+
 import org.apache.pekko.actor.ActorLogging
-import org.apache.pekko.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import org.apache.pekko.persistence.dynamodb._
 import org.apache.pekko.persistence.snapshot.SnapshotStore
+import org.apache.pekko.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import org.apache.pekko.serialization.SerializationExtension
-import com.typesafe.config.Config
 
-import scala.concurrent.Future
+import com.typesafe.config.Config
 
 class DynamoDBSnapshotRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
 
@@ -28,7 +29,6 @@ class DynamoDBSnapshotStore(config: Config) extends SnapshotStore with DynamoDBS
   val journalSettings = new DynamoDBSnapshotConfig(config)
   val dynamo = dynamoClient(context.system, journalSettings)
   val serialization = SerializationExtension(context.system)
-  import journalSettings._
 
   override def preStart(): Unit = {
     // eager initialization, but not from constructor

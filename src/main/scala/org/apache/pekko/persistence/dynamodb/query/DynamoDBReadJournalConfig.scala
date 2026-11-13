@@ -12,6 +12,7 @@ package org.apache.pekko.persistence.dynamodb.query
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
 import org.apache.pekko.persistence.dynamodb.{ ClientConfig, DynamoDBClientConfig, DynamoDBConfig }
+
 import com.typesafe.config.Config
 
 class DynamoDBReadJournalConfig(c: Config) extends DynamoDBConfig {

@@ -14,19 +14,22 @@
 package org.apache.pekko.persistence.dynamodb.journal
 
 import java.util.{ HashMap => JHMap, Map => JMap }
-import org.apache.pekko.Done
-import org.apache.pekko.actor.{ ActorLogging, ActorRef, ExtendedActorSystem }
-import org.apache.pekko.pattern.pipe
-import org.apache.pekko.persistence.journal.AsyncWriteJournal
-import org.apache.pekko.persistence.{ AtomicWrite, Persistence }
-import org.apache.pekko.persistence.dynamodb._
-import org.apache.pekko.serialization.{ Serialization, SerializationExtension }
-import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
-import com.amazonaws.services.dynamodbv2.model._
-import com.typesafe.config.Config
 
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Success, Try }
+
+import com.amazonaws.services.dynamodbv2.model._
+
+import org.apache.pekko.Done
+import org.apache.pekko.actor.{ ActorLogging, ActorRef, ExtendedActorSystem }
+import org.apache.pekko.pattern.pipe
+import org.apache.pekko.persistence.dynamodb._
+import org.apache.pekko.persistence.journal.AsyncWriteJournal
+import org.apache.pekko.persistence.{ AtomicWrite, Persistence }
+import org.apache.pekko.serialization.{ Serialization, SerializationExtension }
+import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
+
+import com.typesafe.config.Config
 
 class DynamoDBJournalFailure(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
 class DynamoDBJournalRejection(message: String, cause: Throwable = null) extends RuntimeException(message, cause)
@@ -81,7 +84,6 @@ class DynamoDBJournal(config: Config)
     with LoggingProvider
     with JournalKeys
     with SerializationProvider {
-  import context.dispatcher
 
   protected implicit val system: ExtendedActorSystem = context.system.asInstanceOf[ExtendedActorSystem]
   implicit val materializer: Materializer = SystemMaterializer(context.system).materializer

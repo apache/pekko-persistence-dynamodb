@@ -12,6 +12,7 @@ package org.apache.pekko.persistence.dynamodb.query.scaladsl.internal
 import org.apache.pekko.actor.ExtendedActorSystem
 import org.apache.pekko.persistence.dynamodb._
 import org.apache.pekko.persistence.dynamodb.journal._
+import org.apache.pekko.persistence.dynamodb.journal.{ DynamoDBHelper, JournalSettingsProvider }
 import org.apache.pekko.persistence.dynamodb.query.scaladsl.internal.{
   DynamoDBCurrentEventsByPersistenceIdQuery => InternalDynamoDBCurrentEventsByPersistenceIdQuery,
   DynamoDBCurrentPersistenceIdsQuery => InternalDynamoDBCurrentPersistenceIdsQuery
@@ -21,8 +22,8 @@ import org.apache.pekko.persistence.dynamodb.query.{ DynamoDBReadJournalConfig, 
 import org.apache.pekko.persistence.query.scaladsl.ReadJournal
 import org.apache.pekko.serialization.{ Serialization, SerializationExtension }
 import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
+
 import com.typesafe.config.Config
-import org.apache.pekko.persistence.dynamodb.journal.{ DynamoDBHelper, JournalSettingsProvider }
 
 class DynamoDBReadJournal(config: Config, configPath: String)(implicit val system: ExtendedActorSystem)
     extends ReadJournal

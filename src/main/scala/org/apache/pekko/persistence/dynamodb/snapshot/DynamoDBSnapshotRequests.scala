@@ -13,18 +13,20 @@
 
 package org.apache.pekko.persistence.dynamodb.snapshot
 
-import com.amazonaws.services.dynamodbv2.model._
+import java.util.{ HashMap => JHMap }
+
+import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
+
 import com.amazonaws.services.dynamodbv2.model.Select.ALL_ATTRIBUTES
+import com.amazonaws.services.dynamodbv2.model._
+
 import org.apache.pekko
 import pekko.actor.ExtendedActorSystem
 import pekko.persistence.dynamodb._
-import pekko.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import pekko.persistence.serialization.Snapshot
+import pekko.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
 import pekko.serialization.{ AsyncSerializer, Serialization, Serializers }
-
-import java.util.{ HashMap => JHMap }
-import scala.concurrent.Future
-import scala.jdk.CollectionConverters._
 
 trait DynamoDBSnapshotRequests extends DynamoDBRequests {
   this: DynamoDBSnapshotStore =>

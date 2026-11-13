@@ -13,16 +13,18 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import java.util.UUID
+
 import org.apache.pekko.actor._
 import org.apache.pekko.persistence._
 import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.testkit._
-import com.typesafe.config.ConfigFactory
+
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.util.UUID
+import com.typesafe.config.ConfigFactory
 
 /**
  * This class is pulled from https://github.com/krasserm/akka-persistence-cassandra/

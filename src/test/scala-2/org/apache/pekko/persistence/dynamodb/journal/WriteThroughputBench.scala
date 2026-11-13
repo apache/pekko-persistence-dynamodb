@@ -13,18 +13,21 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import java.util.UUID
+import java.util.concurrent.ThreadLocalRandom
+
+import scala.concurrent.duration._
+
+import org.HdrHistogram.Histogram
+
 import org.apache.pekko
 import pekko.actor._
 import pekko.persistence._
 import pekko.stream._
 import pekko.stream.scaladsl.GraphDSL.Implicits._
 import pekko.stream.scaladsl._
-import com.typesafe.config.ConfigFactory
-import org.HdrHistogram.Histogram
 
-import java.util.UUID
-import java.util.concurrent.ThreadLocalRandom
-import scala.concurrent.duration._
+import com.typesafe.config.ConfigFactory
 
 object WriteThroughputBench extends DynamoDBUtils {
 

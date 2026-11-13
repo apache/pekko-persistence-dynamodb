@@ -9,25 +9,28 @@
 
 package org.apache.pekko.persistence.dynamodb.query
 
+import java.util.UUID
+
+import scala.concurrent.duration.DurationInt
+
+import org.scalactic.TypeCheckedTripleEquals
+
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.persistence.JournalProtocol._
 import org.apache.pekko.persistence._
 import org.apache.pekko.persistence.dynamodb.journal.DynamoDBUtils
+import CurrentPersistenceIdsSpec.{ RichSeq, toPersistenceId }
 import org.apache.pekko.persistence.dynamodb.query.scaladsl.{ CreatePersistenceIdsIndex, DynamoDBReadJournal }
 import org.apache.pekko.persistence.dynamodb.{ DynamoProvider, IntegSpec }
 import org.apache.pekko.persistence.query.PersistenceQuery
 import org.apache.pekko.stream.scaladsl.Sink
 import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
 import org.apache.pekko.testkit._
-import org.scalactic.TypeCheckedTripleEquals
+
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-
-import java.util.UUID
-import scala.concurrent.duration.DurationInt
-import CurrentPersistenceIdsSpec.{ toPersistenceId, RichSeq }
 
 class CurrentPersistenceIdsSpec
     extends TestKit(ActorSystem("CurrentPersistenceIdsSpec"))

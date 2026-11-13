@@ -15,10 +15,10 @@ package org.apache.pekko.persistence.dynamodb.journal
 
 import java.lang.invoke.MethodHandles
 
+import scala.concurrent.{ ExecutionContext, Future }
+
 import org.apache.pekko.actor.ExtendedActorSystem
 import org.apache.pekko.serialization.{ AsyncSerializerWithStringManifest, JavaSerializer }
-
-import scala.concurrent.{ ExecutionContext, Future }
 
 class TestSerializer(system: ExtendedActorSystem) extends AsyncSerializerWithStringManifest(system) {
 

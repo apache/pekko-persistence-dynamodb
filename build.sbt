@@ -56,6 +56,8 @@ lazy val root = Project(
       "commons-io" % "commons-io" % "2.22.0" % Test,
       "org.hdrhistogram" % "HdrHistogram" % "2.2.2" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test),
+    // OrganizeImports needs unused-import diagnostics only while SemanticDB is enabled.
+    scalacOptions ++= (if (semanticdbEnabled.value) Seq("-Wunused:imports") else Nil),
     scalacOptions ++= Seq("-deprecation", "-feature"),
     scalacOptions ++= {
       if (scalaBinaryVersion.value == "3")
@@ -82,3 +84,6 @@ lazy val root = Project(
       onLoad.value
     }
   )
+
+// Enable SemanticDB only for import organization, not for ordinary builds.
+addCommandAlias("sortImports", ";scalafixEnable; scalafixAll OrganizeImports; scalafmtAll")

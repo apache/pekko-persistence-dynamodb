@@ -13,17 +13,20 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import org.scalactic.TypeCheckedTripleEquals
+
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.persistence.JournalProtocol._
 import org.apache.pekko.persistence._
 import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.testkit._
-import com.typesafe.config.ConfigFactory
-import org.scalactic.TypeCheckedTripleEquals
+
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+
+import com.typesafe.config.ConfigFactory
 
 trait SerializeAsync
 

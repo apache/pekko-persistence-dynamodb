@@ -10,10 +10,10 @@
 package org.apache.pekko.persistence.dynamodb.query.javadsl
 
 import org.apache.pekko.NotUsed
-import org.apache.pekko.persistence.query.EventEnvelope
-import org.apache.pekko.stream.javadsl.Source
 import org.apache.pekko.persistence.dynamodb.query.scaladsl
+import org.apache.pekko.persistence.query.EventEnvelope
 import org.apache.pekko.persistence.query.javadsl.{ CurrentEventsByPersistenceIdQuery, CurrentPersistenceIdsQuery }
+import org.apache.pekko.stream.javadsl.Source
 
 object DynamoDBReadJournal {
 

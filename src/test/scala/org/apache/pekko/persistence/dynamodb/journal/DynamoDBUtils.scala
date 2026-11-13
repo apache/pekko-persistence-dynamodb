@@ -13,17 +13,19 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import java.util.UUID
+
+import scala.concurrent.duration._
+import scala.concurrent.{ Await, Future }
+import scala.jdk.CollectionConverters._
+
 import com.amazonaws.services.dynamodbv2.model._
+
 import org.apache.pekko
 import pekko.actor.ActorSystem
 import pekko.persistence.PersistentRepr
 import pekko.persistence.dynamodb._
 import pekko.util.Timeout
-
-import java.util.UUID
-import scala.concurrent.{ Await, Future }
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
 
 trait DynamoDBUtils extends JournalSettingsProvider with DynamoProvider {
 

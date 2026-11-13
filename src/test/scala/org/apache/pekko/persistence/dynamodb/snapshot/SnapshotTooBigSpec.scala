@@ -17,12 +17,12 @@
 
 package org.apache.pekko.persistence.dynamodb.snapshot
 
-import com.typesafe.config.ConfigFactory
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.testkit._
-import org.apache.pekko.persistence._
 import org.apache.pekko.persistence.SnapshotProtocol._
+import org.apache.pekko.persistence._
 import org.apache.pekko.persistence.dynamodb.IntegSpec
+import org.apache.pekko.testkit._
+
 import org.scalatest._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike

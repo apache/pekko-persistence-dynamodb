@@ -13,15 +13,16 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
 import org.apache.pekko.actor.ActorRef
 import org.apache.pekko.pattern.extended.ask
 import org.apache.pekko.persistence.CapabilityFlag
 import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.persistence.journal.JournalSpec
-import com.typesafe.config.ConfigFactory
 
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import com.typesafe.config.ConfigFactory
 
 class DynamoDBJournalSpec extends JournalSpec(ConfigFactory.load()) with DynamoDBUtils with IntegSpec {
 

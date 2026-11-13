@@ -10,8 +10,9 @@
 package org.apache.pekko.persistence.dynamodb
 
 import com.dimafeng.testcontainers.{ FixedHostPortGenericContainer, ForAllTestContainer }
-import org.scalatest.Suite
 import org.testcontainers.containers.wait.strategy.HttpWaitStrategy
+
+import org.scalatest.Suite
 
 /**
  * Base spec for tests that verify integration with DynamoDB.

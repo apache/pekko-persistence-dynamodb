@@ -13,9 +13,9 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import com.typesafe.config.Config
-
 import org.apache.pekko.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
+
+import com.typesafe.config.Config
 
 class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
   val JournalTable = c.getString("journal-table")

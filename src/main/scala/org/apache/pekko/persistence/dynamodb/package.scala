@@ -15,19 +15,21 @@ package org.apache.pekko.persistence
 
 import java.nio.ByteBuffer
 import java.util.concurrent.Executors
-import org.apache.pekko.actor.{ ActorSystem, Scheduler }
-import org.apache.pekko.event.{ Logging, LoggingAdapter }
-import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
-import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.client.builder.ExecutorFactory
-import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDBAsync, AmazonDynamoDBAsyncClientBuilder }
-import com.amazonaws.services.dynamodbv2.model.{ AttributeValue, AttributeValueUpdate }
-
 import java.util.{ Map => JMap }
+
 import scala.collection.BuildFrom
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Failure, Success, Try }
+
+import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
+import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
+import com.amazonaws.client.builder.ExecutorFactory
+import com.amazonaws.services.dynamodbv2.model.{ AttributeValue, AttributeValueUpdate }
+import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDBAsync, AmazonDynamoDBAsyncClientBuilder }
+
+import org.apache.pekko.actor.{ ActorSystem, Scheduler }
+import org.apache.pekko.event.{ Logging, LoggingAdapter }
+import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
 
 package object dynamodb {
   type Item = JMap[String, AttributeValue]
