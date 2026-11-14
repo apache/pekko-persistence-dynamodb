@@ -13,7 +13,13 @@
 
 package org.apache.pekko.persistence.dynamodb.snapshot
 
+import java.util.{ HashMap => JHMap }
+
+import scala.concurrent.Future
+import scala.jdk.CollectionConverters._
+
 import software.amazon.awssdk.services.dynamodb.model._
+
 import org.apache.pekko
 import pekko.actor.ExtendedActorSystem
 import pekko.persistence.dynamodb._

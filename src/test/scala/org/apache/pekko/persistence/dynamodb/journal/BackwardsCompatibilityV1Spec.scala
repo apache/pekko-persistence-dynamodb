@@ -13,34 +13,30 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import java.net.URI
 import java.util.Base64
 
-import com.amazonaws.auth.{ AWSStaticCredentialsProvider, BasicAWSCredentials }
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.services.dynamodbv2.document.{ DynamoDB, Item }
-import com.amazonaws.services.dynamodbv2.{ AmazonDynamoDB, AmazonDynamoDBClientBuilder }
+import scala.jdk.CollectionConverters._
+
 import org.scalactic.TypeCheckedTripleEquals
+import software.amazon.awssdk.auth.credentials.{ AwsBasicCredentials, StaticCredentialsProvider }
+import software.amazon.awssdk.core.SdkBytes
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient
+import software.amazon.awssdk.services.dynamodb.model.{ AttributeValue, PutItemRequest }
 
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.persistence.JournalProtocol._
 import org.apache.pekko.persistence._
 import org.apache.pekko.persistence.dynamodb.IntegSpec
 import org.apache.pekko.testkit._
-import software.amazon.awssdk.auth.credentials.{ AwsBasicCredentials, StaticCredentialsProvider }
-import software.amazon.awssdk.core.SdkBytes
-import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.dynamodb.DynamoDbClient
-import software.amazon.awssdk.services.dynamodb.model.{ AttributeValue, PutItemRequest }
-import com.typesafe.config.ConfigFactory
-import org.scalactic.TypeCheckedTripleEquals
+
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.net.URI
-import java.util.Base64
-import scala.jdk.CollectionConverters._
+import com.typesafe.config.ConfigFactory
 
 class BackwardsCompatibilityV1Spec
     extends TestKit(ActorSystem("BackwardsCompatibilityV1Spec"))

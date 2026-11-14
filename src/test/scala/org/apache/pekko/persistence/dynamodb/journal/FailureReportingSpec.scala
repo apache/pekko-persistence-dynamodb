@@ -13,11 +13,12 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
-import com.amazonaws.services.dynamodbv2.model._
 import org.scalactic.TypeCheckedTripleEquals
+import software.amazon.awssdk.services.dynamodb.model._
 
 import org.apache.pekko
 import pekko.actor._
@@ -26,17 +27,13 @@ import pekko.persistence.JournalProtocol._
 import pekko.persistence._
 import pekko.persistence.dynamodb._
 import pekko.testkit._
-import software.amazon.awssdk.services.dynamodb.model._
-import com.typesafe.config.ConfigFactory
-import org.scalactic.TypeCheckedTripleEquals
+
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import scala.concurrent.Future
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
+import com.typesafe.config.ConfigFactory
 
 class FailureReportingSpec
     extends TestKit(ActorSystem("FailureReportingSpec"))

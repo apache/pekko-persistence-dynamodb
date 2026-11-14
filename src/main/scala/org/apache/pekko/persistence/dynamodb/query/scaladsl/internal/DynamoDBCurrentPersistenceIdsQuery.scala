@@ -15,7 +15,7 @@ import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
 import scala.util.control.NonFatal
 
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 
 import org.apache.pekko.NotUsed
 import org.apache.pekko.persistence.dynamodb.journal.JournalKeys
@@ -28,14 +28,8 @@ import org.apache.pekko.persistence.dynamodb.query.scaladsl.{
   DynamoDBCurrentPersistenceIdsQuery => PublicDynamoDBCurrentPersistenceIdsQuery
 }
 import org.apache.pekko.persistence.dynamodb.query.{ ReadJournalSettingsProvider, RichOption }
-import org.apache.pekko.persistence.dynamodb.{ nonEmptyKey, ActorSystemProvider, DynamoProvider, LoggingProvider }
+import org.apache.pekko.persistence.dynamodb.{ ActorSystemProvider, DynamoProvider, LoggingProvider, nonEmptyKey }
 import org.apache.pekko.stream.scaladsl.Source
-import software.amazon.awssdk.services.dynamodb.model._
-
-import java.util
-import scala.concurrent.Future
-import scala.jdk.CollectionConverters._
-import scala.util.control.NonFatal
 
 trait DynamoDBCurrentPersistenceIdsQuery extends PublicDynamoDBCurrentPersistenceIdsQuery {
   self: ReadJournalSettingsProvider

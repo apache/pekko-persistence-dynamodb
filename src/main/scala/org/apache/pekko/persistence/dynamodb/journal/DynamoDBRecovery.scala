@@ -13,14 +13,13 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import java.util.function.Consumer
-import java.util.{ ArrayList, Collections, Map => JMap }
+import java.util.{ ArrayList, Map => JMap }
 
 import scala.collection.immutable
 import scala.concurrent.Future
 import scala.jdk.CollectionConverters._
 
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 
 import org.apache.pekko
 import pekko.NotUsed
@@ -32,12 +31,6 @@ import pekko.serialization.{ AsyncSerializer, Serialization }
 import pekko.stream._
 import pekko.stream.scaladsl._
 import pekko.stream.stage._
-import software.amazon.awssdk.services.dynamodb.model._
-
-import java.util.{ ArrayList, Map => JMap }
-import scala.collection.immutable
-import scala.concurrent.Future
-import scala.jdk.CollectionConverters._
 
 object DynamoDBRecovery {
   val ItemAttributesForReplay: Seq[String] = Seq(

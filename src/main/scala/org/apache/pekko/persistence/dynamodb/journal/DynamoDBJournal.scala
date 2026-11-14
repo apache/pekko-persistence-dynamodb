@@ -18,7 +18,7 @@ import java.util.{ HashMap => JHMap, Map => JMap }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Success, Try }
 
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 
 import org.apache.pekko.Done
 import org.apache.pekko.actor.{ ActorLogging, ActorRef, ExtendedActorSystem }
@@ -28,8 +28,6 @@ import org.apache.pekko.persistence.journal.AsyncWriteJournal
 import org.apache.pekko.persistence.{ AtomicWrite, Persistence }
 import org.apache.pekko.serialization.{ Serialization, SerializationExtension }
 import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
-import software.amazon.awssdk.services.dynamodb.model._
-import com.typesafe.config.Config
 
 import com.typesafe.config.Config
 

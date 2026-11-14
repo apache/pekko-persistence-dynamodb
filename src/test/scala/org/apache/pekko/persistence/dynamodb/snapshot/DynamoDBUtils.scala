@@ -13,20 +13,13 @@
 
 package org.apache.pekko.persistence.dynamodb.snapshot
 
-import software.amazon.awssdk.services.dynamodb.model._
-import org.apache.pekko
-import pekko.persistence.dynamodb.dynamoClient
-import pekko.persistence.dynamodb.journal.DynamoDBHelper
-import pekko.actor.ActorSystem
-import pekko.util.Timeout
-
 import java.util.UUID
 
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.jdk.CollectionConverters._
 
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 
 import org.apache.pekko
 import pekko.actor.ActorSystem

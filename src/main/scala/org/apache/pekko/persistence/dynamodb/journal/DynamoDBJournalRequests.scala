@@ -15,7 +15,7 @@ package org.apache.pekko.persistence.dynamodb.journal
 
 import java.nio.ByteBuffer
 import java.util.Collections
-import scala.concurrent.{ ExecutionContext, Future }
+
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.jdk.CollectionConverters._
@@ -23,6 +23,7 @@ import scala.util.control.NonFatal
 import scala.util.{ Failure, Success, Try }
 
 import software.amazon.awssdk.services.dynamodb.model._
+
 import org.apache.pekko
 import pekko.Done
 import pekko.actor.ExtendedActorSystem

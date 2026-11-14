@@ -13,8 +13,6 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import com.typesafe.config.Config
-
 import org.apache.pekko.persistence.dynamodb.DynamoDBConfig
 
 import com.typesafe.config.Config

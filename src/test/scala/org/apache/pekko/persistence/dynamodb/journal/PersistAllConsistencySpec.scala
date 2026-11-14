@@ -13,6 +13,8 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import scala.concurrent.duration._
+
 import org.scalactic.TypeCheckedTripleEquals
 
 import org.apache.pekko.actor.ActorSystem
@@ -25,8 +27,6 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-
-import scala.concurrent.duration._
 
 class PersistAllConsistencySpec
     extends TestKit(ActorSystem("PersistAllConsistencySpec"))
