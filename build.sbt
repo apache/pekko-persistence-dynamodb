@@ -51,6 +51,8 @@ lazy val root = Project(
     crossVersion := CrossVersion.binary,
     libraryDependencies ++= Seq(
       "software.amazon.awssdk" % "dynamodb" % amzV2Version,
+      // the dynamodb module only has the Netty client as a runtime dependency, but its settings are configured here
+      "software.amazon.awssdk" % "netty-nio-client" % amzV2Version,
       "org.scalatest" %% "scalatest" % "3.2.20" % "test",
       "commons-io" % "commons-io" % "2.22.0" % Test,
       "org.hdrhistogram" % "HdrHistogram" % "2.2.2" % Test,

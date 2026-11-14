@@ -13,7 +13,7 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import org.apache.pekko.persistence.dynamodb.DynamoDBConfig
+import org.apache.pekko.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
 
 import com.typesafe.config.Config
 
@@ -25,6 +25,7 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
   val AwsSecret = c.getString("aws-secret-access-key")
   val Endpoint = c.getString("endpoint")
   val Region = c.getString("region")
+  val client = new DynamoDBClientConfig(c)
   val ReplayDispatcher = c.getString("replay-dispatcher")
   val ClientDispatcher = c.getString("client-dispatcher")
   val SequenceShards = c.getInt("sequence-shards")
@@ -46,6 +47,7 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
     ",JournalName:" + JournalName +
     ",AwsKey:" + AwsKey +
     ",Endpoint:" + Endpoint +
+    ",Region:" + Region +
     ",ReplayDispatcher:" + ReplayDispatcher +
     ",ClientDispatcher:" + ClientDispatcher +
     ",SequenceShards:" + SequenceShards +
@@ -55,6 +57,7 @@ class DynamoDBJournalConfig(c: Config) extends DynamoDBConfig {
     ",MaxBatchWrite:" + MaxBatchWrite +
     ",MaxItemSize:" + MaxItemSize +
     ",Fixes.HighDistrust:" + Fixes.HighDistrust +
+    ",client:" + client +
     ")"
 }
 

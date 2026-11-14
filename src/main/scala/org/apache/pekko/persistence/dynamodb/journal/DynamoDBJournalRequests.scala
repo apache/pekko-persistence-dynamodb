@@ -13,7 +13,6 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import java.nio.ByteBuffer
 import java.util.Collections
 
 import scala.concurrent.duration._
@@ -184,12 +183,12 @@ trait DynamoDBJournalRequests extends DynamoDBRequests {
           }
         case _ =>
           Future {
-            ByteBuffer.wrap(serialization.serialize(reprPayload).get).array()
+            serialization.serialize(reprPayload).get
           }
       }
 
       fut.map { serialized =>
-        val eventData = B(serialized)
+        val eventData = unsafeB(serialized)
         val serializerId = N(serializer.identifier)
 
         val fieldLength = repr.persistenceId.getBytes.length + repr.sequenceNr.toString.getBytes.length +

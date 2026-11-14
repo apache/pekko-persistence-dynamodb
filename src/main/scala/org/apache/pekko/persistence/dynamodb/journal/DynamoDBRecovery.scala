@@ -13,18 +13,20 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import java.util.{ ArrayList, Map => JMap }
+import java.util.{ ArrayList, Collections, HashMap => JHashMap, List => JList, Map => JMap }
 
 import scala.collection.immutable
-import scala.concurrent.Future
+import scala.concurrent.duration._
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.jdk.CollectionConverters._
 
 import software.amazon.awssdk.services.dynamodb.model._
 
 import org.apache.pekko
 import pekko.NotUsed
-import pekko.actor.ExtendedActorSystem
+import pekko.actor.{ ExtendedActorSystem, Scheduler }
 import pekko.dispatch.MessageDispatcher
+import pekko.pattern.after
 import pekko.persistence.PersistentRepr
 import pekko.persistence.dynamodb._
 import pekko.serialization.{ AsyncSerializer, Serialization }
@@ -33,6 +35,59 @@ import pekko.stream.scaladsl._
 import pekko.stream.stage._
 
 object DynamoDBRecovery {
+
+  /**
+   * Re-requests the keys that a batch get left unprocessed - DynamoDB does that when the request is
+   * throttled or the response gets too big - and merges the items of all rounds into one response.
+   * Like the write side, the retries back off exponentially, since unprocessed keys usually mean
+   * the table is being throttled.
+   */
+  private[journal] def collectUnprocessedItems(
+      table: String,
+      first: BatchGetItemResponse,
+      fetch: JMap[String, KeysAndAttributes] => Future[BatchGetItemResponse],
+      scheduler: Scheduler,
+      retries: Int = 10,
+      initialBackoff: FiniteDuration = 1.millis)(implicit ec: ExecutionContext): Future[BatchGetItemResponse] = {
+
+    def unprocessed(r: BatchGetItemResponse): Option[KeysAndAttributes] =
+      if (!r.hasUnprocessedKeys) None
+      else Option(r.unprocessedKeys.get(table)).filter(ka => ka.hasKeys && !ka.keys.isEmpty)
+
+    unprocessed(first) match {
+      case None    => Future.successful(first)
+      case Some(_) =>
+        // only touched by one round at a time, each round running after the previous one completed
+        val items = new ArrayList[Item]
+        def addItems(r: BatchGetItemResponse): Unit =
+          if (r.hasResponses) {
+            val its = r.responses.get(table)
+            if (its ne null) items.addAll(its)
+          }
+
+        def loop(r: BatchGetItemResponse, remaining: Int, backoff: FiniteDuration): Future[BatchGetItemResponse] =
+          unprocessed(r) match {
+            case None =>
+              val responses = new JHashMap[String, JList[Item]](first.responses)
+              responses.put(table, items)
+              Future.successful(
+                first.toBuilder.responses(responses).unprocessedKeys(Collections.emptyMap[String,
+                  KeysAndAttributes]).build())
+            case Some(keys) if remaining == 0 =>
+              Future.failed(new DynamoDBJournalFailure(s"unable to batch get ${keys.keys} after $retries tries"))
+            case Some(keys) =>
+              after(backoff, scheduler) {
+                fetch(Collections.singletonMap(table, keys)).flatMap { next =>
+                  addItems(next)
+                  loop(next, remaining - 1, backoff * 2)
+                }
+              }
+          }
+
+        addItems(first)
+        loop(first, retries, initialBackoff)
+    }
+  }
   val ItemAttributesForReplay: Seq[String] = Seq(
     Key,
     Sort,
@@ -473,35 +528,13 @@ trait DynamoDBRecovery extends AsyncReplayMessages {
     }
   }
 
-  def getUnprocessedItems(
-      result: BatchGetItemResponse,
-      allItems: List[Item] = Nil,
-      retriesRemaining: Int = 10): Future[BatchGetItemResponse] = {
-    val currentItems = if (result.hasResponses && result.responses.containsKey(JournalTable))
-      result.responses.get(JournalTable).asScala.toList
-    else Nil
-    val accumulated = allItems ++ currentItems
-
-    val unprocessed = if (result.hasUnprocessedKeys && result.unprocessedKeys.containsKey(JournalTable))
-      result.unprocessedKeys.get(JournalTable).keys.size
-    else 0
-
-    if (unprocessed == 0) {
-      // Build a response with all accumulated items
-      val responseMap = Map(JournalTable -> accumulated.asJava).asJava
-      Future.successful(result.toBuilder.responses(responseMap).unprocessedKeys(Map.empty[String,
-        KeysAndAttributes].asJava).build())
-    } else if (retriesRemaining == 0) {
-      Future.failed(
-        new DynamoDBJournalFailure(
-          s"unable to batch get ${result.unprocessedKeys.get(JournalTable).keys} after 10 tries"))
-    } else {
-      val rest = batchGetReq(result.unprocessedKeys)
-      dynamo
-        .batchGetItem(rest)
-        .flatMap(getUnprocessedItems(_, accumulated, retriesRemaining - 1))
-    }
-  }
+  def getUnprocessedItems(result: BatchGetItemResponse, retriesRemaining: Int = 10): Future[BatchGetItemResponse] =
+    DynamoDBRecovery.collectUnprocessedItems(
+      JournalTable,
+      result,
+      keys => dynamo.batchGetItem(batchGetReq(keys)),
+      system.scheduler,
+      retriesRemaining)
 
   private[dynamodb] def getAllRemainingQueryItems(request: QueryRequest, result: QueryResponse)
       : Future[QueryResponse] = {

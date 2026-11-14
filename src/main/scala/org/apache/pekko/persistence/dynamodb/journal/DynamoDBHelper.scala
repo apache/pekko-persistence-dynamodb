@@ -13,6 +13,7 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
+import java.io.IOException
 import java.util.concurrent.CompletionException
 
 import scala.concurrent.duration._
@@ -21,6 +22,7 @@ import scala.jdk.CollectionConverters._
 import scala.jdk.FutureConverters._
 import scala.util.control.NonFatal
 
+import software.amazon.awssdk.core.exception.{ ApiCallAttemptTimeoutException, SdkClientException }
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model._
 
@@ -36,15 +38,18 @@ private class RetryStateHolder(var retries: Int = 10, var backoff: FiniteDuratio
 
 /**
  * Auxiliary object to help determining whether we should retry on a certain throwable.
+ *
+ * The AWS SDK client does not retry by default (see `aws-client-config.max-error-retry`), so this also
+ * covers the transient client-side failures that the SDK would otherwise retry itself.
  */
 @InternalApi
-private object DynamoRetriableException {
-  def unapply(ex: DynamoDbException) = {
+private[journal] object DynamoRetriableException {
+  def unapply(ex: Throwable): Option[Throwable] = {
     ex match {
       // 50x network glitches
       case _: InternalServerErrorException =>
         Some(ex)
-      case dbe if dbe.statusCode() >= 502 && dbe.statusCode() <= 504 =>
+      case dbe: DynamoDbException if dbe.statusCode() >= 502 && dbe.statusCode() <= 504 =>
         // retry on more common server errors
         Some(ex)
 
@@ -55,8 +60,15 @@ private object DynamoRetriableException {
         // rate of on-demand requests exceeds the allowed account throughput
         // and the table cannot be scaled further
         Some(ex)
-      case dbe if dbe.awsErrorDetails != null && dbe.awsErrorDetails.errorCode == "ThrottlingException" =>
+      case dbe: DynamoDbException
+          if dbe.awsErrorDetails != null && dbe.awsErrorDetails.errorCode == "ThrottlingException" =>
         // rate of AWS requests exceeds the allowed throughput
+        Some(ex)
+
+      // client-side failures: a single attempt timed out, or the connection failed
+      case _: ApiCallAttemptTimeoutException =>
+        Some(ex)
+      case sce: SdkClientException if sce.retryable() || sce.getCause.isInstanceOf[IOException] =>
         Some(ex)
       case _ =>
         None

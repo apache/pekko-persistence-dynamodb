@@ -10,8 +10,8 @@
 package org.apache.pekko.persistence.dynamodb.query
 
 import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.persistence.dynamodb.DynamoDBConfig
 import org.apache.pekko.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
+import org.apache.pekko.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
 
 import com.typesafe.config.Config
 
@@ -22,6 +22,7 @@ class DynamoDBReadJournalConfig(c: Config) extends DynamoDBConfig {
   val AwsSecret: String = c.getString("aws-secret-access-key")
   val Endpoint: String = c.getString("endpoint")
   val Region: String = c.getString("region")
+  val client: DynamoDBClientConfig = new DynamoDBClientConfig(c)
 
   val MaxBatchGet: Int = c.getInt("aws-api-limits.max-batch-get")
   val MaxBatchWrite: Int = c.getInt("aws-api-limits.max-batch-write")
@@ -33,7 +34,9 @@ class DynamoDBReadJournalConfig(c: Config) extends DynamoDBConfig {
     "DynamoDBReadJournalConfig(" +
     "Table:" + Table +
     ",AwsKey:" + AwsKey +
-    ",Endpoint:" + Endpoint + ")"
+    ",Endpoint:" + Endpoint +
+    ",Region:" + Region +
+    ",client:" + client + ")"
 
   override val ClientDispatcher: String = c.getString("client-dispatcher")
   override val Tracing: Boolean = c.getBoolean("tracing")

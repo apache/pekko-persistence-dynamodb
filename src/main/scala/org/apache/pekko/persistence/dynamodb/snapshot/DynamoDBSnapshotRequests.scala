@@ -186,7 +186,7 @@ trait DynamoDBSnapshotRequests extends DynamoDBRequests {
       if (size > MaxItemSize)
         throw new DynamoDBSnapshotRejection(s"MaxItemSize exceeded: $size > $MaxItemSize")
 
-      item.put(PayloadData, B(data))
+      item.put(PayloadData, unsafeB(data))
       if (manifest.nonEmpty) {
         item.put(SerializerManifest, S(manifest))
       }
