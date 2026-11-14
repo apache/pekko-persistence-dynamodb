@@ -84,7 +84,7 @@ class DynamoDBClientConfigSpec extends AnyWordSpec with Matchers {
     "never show the proxy password" in {
       val client = journalClient("""dynamodb-journal.aws-client-config.proxy-password = "secret"""")
       client.toString should include("proxy-password:<redacted>")
-      client.toString should not include "secret"
+      (client.toString should not).include("secret")
     }
 
     "report 1.x keys that have no AWS SDK v2 equivalent" in {
@@ -97,7 +97,8 @@ class DynamoDBClientConfigSpec extends AnyWordSpec with Matchers {
     }
 
     "disable the AWS SDK retries unless max-error-retry is set, so they do not multiply with the plugin's" in {
-      journalClient("").configure(ClientOverrideConfiguration.builder()).build().retryStrategy().get.maxAttempts shouldBe 1
+      journalClient("").configure(
+        ClientOverrideConfiguration.builder()).build().retryStrategy().get.maxAttempts shouldBe 1
 
       val overrides =
         journalClient("""
@@ -123,12 +124,10 @@ class DynamoDBClientConfigSpec extends AnyWordSpec with Matchers {
       val config = configWith("""
         dynamodb-journal.region = "eu-west-1"
         dynamodb-journal.aws-client-config.max-connections = 200""")
-      for (
-        str <- Seq(
+      for (str <- Seq(
           new DynamoDBJournalConfig(config.getConfig("dynamodb-journal")).toString,
           new DynamoDBSnapshotConfig(config.getConfig("dynamodb-snapshot-store")).toString,
-          new DynamoDBReadJournalConfig(config.getConfig("dynamodb-read-journal")).toString)
-      ) {
+          new DynamoDBReadJournalConfig(config.getConfig("dynamodb-read-journal")).toString)) {
         str should include("Region:eu-west-1")
         str should include("max-connections:200")
       }

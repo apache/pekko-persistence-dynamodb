@@ -9,22 +9,18 @@
 
 package org.apache.pekko.persistence.dynamodb.query.scaladsl.internal
 
-import org.apache.pekko.NotUsed
-import org.apache.pekko.persistence.PersistentRepr
-import org.apache.pekko.persistence.dynamodb.journal._
-import org.apache.pekko.persistence.dynamodb.query.ReadJournalSettingsProvider
-import org.apache.pekko.persistence.dynamodb.query.scaladsl.internal.DynamoDBCurrentEventsByPersistenceIdQuery.RichPersistenceRepr
-import org.apache.pekko.persistence.dynamodb.query.scaladsl.{
+import org.apache.pekko
+import pekko.NotUsed
+import pekko.persistence.PersistentRepr
+import pekko.persistence.dynamodb.journal._
+import pekko.persistence.dynamodb.query.ReadJournalSettingsProvider
+import pekko.persistence.dynamodb.query.scaladsl.internal.DynamoDBCurrentEventsByPersistenceIdQuery.RichPersistenceRepr
+import pekko.persistence.dynamodb.query.scaladsl.{
   DynamoDBCurrentEventsByPersistenceIdQuery => PublicDynamoDBCurrentEventsByPersistenceIdQuery
 }
-import org.apache.pekko.persistence.dynamodb.{
-  ActorSystemProvider,
-  DynamoProvider,
-  LoggingProvider,
-  MaterializerProvider
-}
-import org.apache.pekko.persistence.query.{ EventEnvelope, Sequence }
-import org.apache.pekko.stream.scaladsl.Source
+import pekko.persistence.dynamodb.{ ActorSystemProvider, DynamoProvider, LoggingProvider, MaterializerProvider }
+import pekko.persistence.query.{ EventEnvelope, Sequence }
+import pekko.stream.scaladsl.Source
 
 trait DynamoDBCurrentEventsByPersistenceIdQuery
     extends PublicDynamoDBCurrentEventsByPersistenceIdQuery

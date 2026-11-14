@@ -13,7 +13,8 @@
 
 package org.apache.pekko.persistence.dynamodb.snapshot
 
-import org.apache.pekko.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
+import org.apache.pekko
+import pekko.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
 
 import com.typesafe.config.Config
 

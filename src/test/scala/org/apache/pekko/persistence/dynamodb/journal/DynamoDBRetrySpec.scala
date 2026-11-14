@@ -65,7 +65,7 @@ class DynamoDBRetrySpec extends TestKit(ActorSystem("DynamoDBRetrySpec")) with A
     "return a fully processed response as it is" in {
       val first = response(Seq(1, 2), Nil)
       val result = collectUnprocessedItems(Table, first, _ => fail("should not fetch"), system.scheduler)
-      Await.result(result, 3.seconds) should be theSameInstanceAs first
+      (Await.result(result, 3.seconds) should be).theSameInstanceAs(first)
     }
 
     "re-request the unprocessed keys with backoff and merge the items of every round" in {

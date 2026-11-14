@@ -9,9 +9,10 @@
 
 package org.apache.pekko.persistence.dynamodb.query
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
-import org.apache.pekko.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
+import org.apache.pekko
+import pekko.actor.ActorSystem
+import pekko.persistence.dynamodb.query.scaladsl.DynamoDBReadJournal
+import pekko.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
 
 import com.typesafe.config.Config
 

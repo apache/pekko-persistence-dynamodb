@@ -30,9 +30,10 @@ import software.amazon.awssdk.regions.providers.DefaultAwsRegionProviderChain
 import software.amazon.awssdk.services.dynamodb.DynamoDbAsyncClient
 import software.amazon.awssdk.services.dynamodb.model.{ AttributeValue, AttributeValueUpdate }
 
-import org.apache.pekko.actor.{ ActorSystem, Scheduler }
-import org.apache.pekko.event.{ Logging, LoggingAdapter }
-import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
+import org.apache.pekko
+import pekko.actor.{ ActorSystem, Scheduler }
+import pekko.event.{ Logging, LoggingAdapter }
+import pekko.persistence.dynamodb.journal.DynamoDBHelper
 
 package object dynamodb {
   type Item = JMap[String, AttributeValue]

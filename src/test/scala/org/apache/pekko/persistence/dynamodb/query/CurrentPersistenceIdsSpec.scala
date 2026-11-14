@@ -15,17 +15,18 @@ import scala.concurrent.duration.DurationInt
 
 import org.scalactic.TypeCheckedTripleEquals
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.persistence.JournalProtocol._
-import org.apache.pekko.persistence._
-import org.apache.pekko.persistence.dynamodb.journal.DynamoDBUtils
+import org.apache.pekko
+import pekko.actor.ActorSystem
+import pekko.persistence.JournalProtocol._
+import pekko.persistence._
+import pekko.persistence.dynamodb.journal.DynamoDBUtils
 import CurrentPersistenceIdsSpec.{ RichSeq, toPersistenceId }
-import org.apache.pekko.persistence.dynamodb.query.scaladsl.{ CreatePersistenceIdsIndex, DynamoDBReadJournal }
-import org.apache.pekko.persistence.dynamodb.{ DynamoProvider, IntegSpec }
-import org.apache.pekko.persistence.query.PersistenceQuery
-import org.apache.pekko.stream.scaladsl.Sink
-import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
-import org.apache.pekko.testkit._
+import pekko.persistence.dynamodb.query.scaladsl.{ CreatePersistenceIdsIndex, DynamoDBReadJournal }
+import pekko.persistence.dynamodb.{ DynamoProvider, IntegSpec }
+import pekko.persistence.query.PersistenceQuery
+import pekko.stream.scaladsl.Sink
+import pekko.stream.{ Materializer, SystemMaterializer }
+import pekko.testkit._
 
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures

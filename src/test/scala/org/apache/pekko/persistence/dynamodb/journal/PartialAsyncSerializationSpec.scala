@@ -17,11 +17,12 @@ import scala.concurrent.duration._
 
 import org.scalactic.TypeCheckedTripleEquals
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.persistence.JournalProtocol._
-import org.apache.pekko.persistence._
-import org.apache.pekko.persistence.dynamodb.IntegSpec
-import org.apache.pekko.testkit._
+import org.apache.pekko
+import pekko.actor.ActorSystem
+import pekko.persistence.JournalProtocol._
+import pekko.persistence._
+import pekko.persistence.dynamodb.IntegSpec
+import pekko.testkit._
 
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.ScalaFutures

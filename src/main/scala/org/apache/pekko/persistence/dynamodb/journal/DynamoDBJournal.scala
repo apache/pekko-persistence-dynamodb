@@ -20,14 +20,15 @@ import scala.util.{ Success, Try }
 
 import software.amazon.awssdk.services.dynamodb.model._
 
-import org.apache.pekko.Done
-import org.apache.pekko.actor.{ ActorLogging, ActorRef, ExtendedActorSystem }
-import org.apache.pekko.pattern.pipe
-import org.apache.pekko.persistence.dynamodb._
-import org.apache.pekko.persistence.journal.AsyncWriteJournal
-import org.apache.pekko.persistence.{ AtomicWrite, Persistence }
-import org.apache.pekko.serialization.{ Serialization, SerializationExtension }
-import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
+import org.apache.pekko
+import pekko.Done
+import pekko.actor.{ ActorLogging, ActorRef, ExtendedActorSystem }
+import pekko.pattern.pipe
+import pekko.persistence.dynamodb._
+import pekko.persistence.journal.AsyncWriteJournal
+import pekko.persistence.{ AtomicWrite, Persistence }
+import pekko.serialization.{ Serialization, SerializationExtension }
+import pekko.stream.{ Materializer, SystemMaterializer }
 
 import com.typesafe.config.Config
 

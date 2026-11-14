@@ -15,11 +15,12 @@ package org.apache.pekko.persistence.dynamodb.snapshot
 
 import scala.concurrent.Future
 
-import org.apache.pekko.actor.ActorLogging
-import org.apache.pekko.persistence.dynamodb._
-import org.apache.pekko.persistence.snapshot.SnapshotStore
-import org.apache.pekko.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
-import org.apache.pekko.serialization.SerializationExtension
+import org.apache.pekko
+import pekko.actor.ActorLogging
+import pekko.persistence.dynamodb._
+import pekko.persistence.snapshot.SnapshotStore
+import pekko.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
+import pekko.serialization.SerializationExtension
 
 import com.typesafe.config.Config
 

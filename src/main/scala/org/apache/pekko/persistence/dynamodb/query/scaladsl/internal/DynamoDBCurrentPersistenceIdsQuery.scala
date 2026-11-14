@@ -17,19 +17,17 @@ import scala.util.control.NonFatal
 
 import software.amazon.awssdk.services.dynamodb.model._
 
-import org.apache.pekko.NotUsed
-import org.apache.pekko.persistence.dynamodb.journal.JournalKeys
-import org.apache.pekko.persistence.dynamodb.query.scaladsl.internal.DynamoDBCurrentPersistenceIdsQuery.{
-  RichNumber,
-  RichString
-}
-import org.apache.pekko.persistence.dynamodb.query.scaladsl.internal.PersistenceIdsResult.RichPersistenceIdsResult
-import org.apache.pekko.persistence.dynamodb.query.scaladsl.{
+import org.apache.pekko
+import pekko.NotUsed
+import pekko.persistence.dynamodb.journal.JournalKeys
+import pekko.persistence.dynamodb.query.scaladsl.internal.DynamoDBCurrentPersistenceIdsQuery.{ RichNumber, RichString }
+import pekko.persistence.dynamodb.query.scaladsl.internal.PersistenceIdsResult.RichPersistenceIdsResult
+import pekko.persistence.dynamodb.query.scaladsl.{
   DynamoDBCurrentPersistenceIdsQuery => PublicDynamoDBCurrentPersistenceIdsQuery
 }
-import org.apache.pekko.persistence.dynamodb.query.{ ReadJournalSettingsProvider, RichOption }
-import org.apache.pekko.persistence.dynamodb.{ ActorSystemProvider, DynamoProvider, LoggingProvider, nonEmptyKey }
-import org.apache.pekko.stream.scaladsl.Source
+import pekko.persistence.dynamodb.query.{ ReadJournalSettingsProvider, RichOption }
+import pekko.persistence.dynamodb.{ ActorSystemProvider, DynamoProvider, LoggingProvider, nonEmptyKey }
+import pekko.stream.scaladsl.Source
 
 trait DynamoDBCurrentPersistenceIdsQuery extends PublicDynamoDBCurrentPersistenceIdsQuery {
   self: ReadJournalSettingsProvider
