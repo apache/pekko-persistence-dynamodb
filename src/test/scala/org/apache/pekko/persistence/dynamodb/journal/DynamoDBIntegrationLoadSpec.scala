@@ -15,10 +15,11 @@ package org.apache.pekko.persistence.dynamodb.journal
 
 import java.util.UUID
 
-import org.apache.pekko.actor._
-import org.apache.pekko.persistence._
-import org.apache.pekko.persistence.dynamodb.IntegSpec
-import org.apache.pekko.testkit._
+import org.apache.pekko
+import pekko.actor._
+import pekko.persistence._
+import pekko.persistence.dynamodb.IntegSpec
+import pekko.testkit._
 
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
@@ -128,7 +129,7 @@ pekko.persistence.snapshot-store.plugin = ""
   }
 }
 
-import org.apache.pekko.persistence.dynamodb.journal.DynamoDBIntegrationLoadSpec._
+import pekko.persistence.dynamodb.journal.DynamoDBIntegrationLoadSpec._
 
 class DynamoDBIntegrationLoadSpec
     extends TestKit(ActorSystem("test", config))

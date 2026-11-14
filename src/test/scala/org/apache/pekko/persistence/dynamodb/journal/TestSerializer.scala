@@ -17,8 +17,9 @@ import java.lang.invoke.MethodHandles
 
 import scala.concurrent.{ ExecutionContext, Future }
 
-import org.apache.pekko.actor.ExtendedActorSystem
-import org.apache.pekko.serialization.{ AsyncSerializerWithStringManifest, JavaSerializer }
+import org.apache.pekko
+import pekko.actor.ExtendedActorSystem
+import pekko.serialization.{ AsyncSerializerWithStringManifest, JavaSerializer }
 
 class TestSerializer(system: ExtendedActorSystem) extends AsyncSerializerWithStringManifest(system) {
 

@@ -18,16 +18,17 @@ import java.util.{ HashMap => JHMap, Map => JMap }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Success, Try }
 
-import com.amazonaws.services.dynamodbv2.model._
+import software.amazon.awssdk.services.dynamodb.model._
 
-import org.apache.pekko.Done
-import org.apache.pekko.actor.{ ActorLogging, ActorRef, ExtendedActorSystem }
-import org.apache.pekko.pattern.pipe
-import org.apache.pekko.persistence.dynamodb._
-import org.apache.pekko.persistence.journal.AsyncWriteJournal
-import org.apache.pekko.persistence.{ AtomicWrite, Persistence }
-import org.apache.pekko.serialization.{ Serialization, SerializationExtension }
-import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
+import org.apache.pekko
+import pekko.Done
+import pekko.actor.{ ActorLogging, ActorRef, ExtendedActorSystem }
+import pekko.pattern.pipe
+import pekko.persistence.dynamodb._
+import pekko.persistence.journal.AsyncWriteJournal
+import pekko.persistence.{ AtomicWrite, Persistence }
+import pekko.serialization.{ Serialization, SerializationExtension }
+import pekko.stream.{ Materializer, SystemMaterializer }
 
 import com.typesafe.config.Config
 
@@ -98,7 +99,7 @@ class DynamoDBJournal(config: Config)
 
   val dynamo = dynamoClient(context.system, journalSettings)
 
-  dynamo.describeTable(new DescribeTableRequest().withTableName(JournalTable)).onComplete {
+  dynamo.describeTable(DescribeTableRequest.builder().tableName(JournalTable).build()).onComplete {
     case Success(result) => log.info("using DynamoDB table {}", result)
     case _               => log.error("persistent actor requests will fail until the table '{}' is accessible", JournalTable)
   }

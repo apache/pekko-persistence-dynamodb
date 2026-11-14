@@ -9,11 +9,12 @@
 
 package org.apache.pekko.persistence.dynamodb.journal
 
-import org.apache.pekko.actor.ActorSystem
-import org.apache.pekko.stream.scaladsl.Source
-import org.apache.pekko.stream.testkit.scaladsl.TestSink
-import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
-import org.apache.pekko.testkit.TestKit
+import org.apache.pekko
+import pekko.actor.ActorSystem
+import pekko.stream.scaladsl.Source
+import pekko.stream.testkit.scaladsl.TestSink
+import pekko.stream.{ Materializer, SystemMaterializer }
+import pekko.testkit.TestKit
 
 import org.scalatest.wordspec.AnyWordSpecLike
 
