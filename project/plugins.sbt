@@ -8,7 +8,7 @@
  */
 
 addSbtPlugin("com.github.sbt" % "sbt-header" % "5.11.0")
-addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.3.2")
+addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.4.0")
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.6.2")
 addSbtPlugin("com.github.sbt" % "sbt-java-formatter" % "0.14.0")
 addSbtPlugin("com.github.pjfanning" % "sbt-source-dist" % "0.2.0")
