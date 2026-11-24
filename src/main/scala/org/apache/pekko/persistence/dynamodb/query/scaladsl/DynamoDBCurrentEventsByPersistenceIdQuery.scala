@@ -9,10 +9,11 @@
 
 package org.apache.pekko.persistence.dynamodb.query.scaladsl
 
-import org.apache.pekko.NotUsed
-import org.apache.pekko.persistence.query.EventEnvelope
-import org.apache.pekko.persistence.query.scaladsl.CurrentEventsByPersistenceIdQuery
-import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko
+import pekko.NotUsed
+import pekko.persistence.query.EventEnvelope
+import pekko.persistence.query.scaladsl.CurrentEventsByPersistenceIdQuery
+import pekko.stream.scaladsl.Source
 
 trait DynamoDBCurrentEventsByPersistenceIdQuery extends CurrentEventsByPersistenceIdQuery {
 

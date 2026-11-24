@@ -9,12 +9,13 @@
 
 package org.apache.pekko.persistence.dynamodb.query
 
-import org.apache.pekko.actor.ExtendedActorSystem
-import org.apache.pekko.persistence.dynamodb.query.javadsl.{ DynamoDBReadJournal => JavaDynamoDBReadJournal }
-import org.apache.pekko.persistence.dynamodb.query.scaladsl.internal.{ DynamoDBReadJournal => ScalaDynamoDBReadJournal }
-import org.apache.pekko.persistence.query.ReadJournalProvider
-import org.apache.pekko.persistence.query.javadsl.{ ReadJournal => JavaReadJournal }
-import org.apache.pekko.persistence.query.scaladsl.{ ReadJournal => ScalaReadJournal }
+import org.apache.pekko
+import pekko.actor.ExtendedActorSystem
+import pekko.persistence.dynamodb.query.javadsl.{ DynamoDBReadJournal => JavaDynamoDBReadJournal }
+import pekko.persistence.dynamodb.query.scaladsl.internal.{ DynamoDBReadJournal => ScalaDynamoDBReadJournal }
+import pekko.persistence.query.ReadJournalProvider
+import pekko.persistence.query.javadsl.{ ReadJournal => JavaReadJournal }
+import pekko.persistence.query.scaladsl.{ ReadJournal => ScalaReadJournal }
 
 import com.typesafe.config.Config
 

@@ -10,7 +10,7 @@
 import com.github.pjfanning.pekkobuild._
 import net.bzzt.reproduciblebuilds.ReproducibleBuildsPlugin.reproducibleBuildsCheckResolver
 
-val amzVersion = "1.12.797"
+val amzV2Version = "2.59.1"
 val testcontainersScalaVersion = "0.44.1"
 
 ThisBuild / versionScheme := Some(VersionScheme.SemVerSpec)
@@ -50,15 +50,18 @@ lazy val root = Project(
     crossScalaVersions := Seq("2.13.18", "3.3.9", "3.9.0"),
     crossVersion := CrossVersion.binary,
     libraryDependencies ++= Seq(
-      "com.amazonaws" % "aws-java-sdk-core" % amzVersion,
-      "com.amazonaws" % "aws-java-sdk-dynamodb" % amzVersion,
-      "javax.xml.bind" % "jaxb-api" % "2.3.1", // see https://github.com/seek-oss/gradle-aws-plugin/issues/15
+      "software.amazon.awssdk" % "dynamodb" % amzV2Version,
+      // the dynamodb module only has the Netty client as a runtime dependency, but its settings are configured here
+      "software.amazon.awssdk" % "netty-nio-client" % amzV2Version,
       "org.scalatest" %% "scalatest" % "3.2.20" % "test",
       "commons-io" % "commons-io" % "2.22.0" % Test,
       "org.hdrhistogram" % "HdrHistogram" % "2.2.2" % Test,
       "com.dimafeng" %% "testcontainers-scala-scalatest" % testcontainersScalaVersion % Test),
     // OrganizeImports needs unused-import diagnostics only while SemanticDB is enabled.
     scalacOptions ++= (if (semanticdbEnabled.value) Seq("-Wunused:imports") else Nil),
+    // no 2.x artifact has been released yet, and 2.0.0 deliberately breaks binary compatibility
+    // with 1.x by moving from the AWS SDK for Java v1 to v2. Restore this once 2.0.0 is out.
+    mimaPreviousArtifacts := Set.empty,
     scalacOptions ++= Seq("-deprecation", "-feature"),
     scalacOptions ++= {
       if (scalaBinaryVersion.value == "3")

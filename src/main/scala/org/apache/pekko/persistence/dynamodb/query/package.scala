@@ -9,8 +9,9 @@
 
 package org.apache.pekko.persistence.dynamodb
 
-import org.apache.pekko.NotUsed
-import org.apache.pekko.stream.scaladsl.Source
+import org.apache.pekko
+import pekko.NotUsed
+import pekko.stream.scaladsl.Source
 
 package object query {
   private[dynamodb] implicit class RichOption[+A](val option: Option[A]) extends AnyVal {

@@ -13,8 +13,9 @@
 
 package org.apache.pekko.persistence.dynamodb.snapshot
 
-import org.apache.pekko.persistence.dynamodb.IntegSpec
-import org.apache.pekko.persistence.snapshot.SnapshotStoreSpec
+import org.apache.pekko
+import pekko.persistence.dynamodb.IntegSpec
+import pekko.persistence.snapshot.SnapshotStoreSpec
 
 import com.typesafe.config.ConfigFactory
 

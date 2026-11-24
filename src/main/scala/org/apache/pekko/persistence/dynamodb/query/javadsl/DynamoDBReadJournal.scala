@@ -9,11 +9,12 @@
 
 package org.apache.pekko.persistence.dynamodb.query.javadsl
 
-import org.apache.pekko.NotUsed
-import org.apache.pekko.persistence.dynamodb.query.scaladsl
-import org.apache.pekko.persistence.query.EventEnvelope
-import org.apache.pekko.persistence.query.javadsl.{ CurrentEventsByPersistenceIdQuery, CurrentPersistenceIdsQuery }
-import org.apache.pekko.stream.javadsl.Source
+import org.apache.pekko
+import pekko.NotUsed
+import pekko.persistence.dynamodb.query.scaladsl
+import pekko.persistence.query.EventEnvelope
+import pekko.persistence.query.javadsl.{ CurrentEventsByPersistenceIdQuery, CurrentPersistenceIdsQuery }
+import pekko.stream.javadsl.Source
 
 object DynamoDBReadJournal {
 
@@ -43,11 +44,11 @@ object DynamoDBReadJournal {
  * for the default [[DynamoDBReadJournal#Identifier]]. See `reference.conf`.
  */
 class DynamoDBReadJournal(scaladslReadJournal: scaladsl.DynamoDBReadJournal)
-    extends org.apache.pekko.persistence.query.javadsl.ReadJournal
-    //    with org.apache.pekko.persistence.query.javadsl.EventsByTagQuery
+    extends pekko.persistence.query.javadsl.ReadJournal
+    //    with pekko.persistence.query.javadsl.EventsByTagQuery
     with CurrentEventsByPersistenceIdQuery
     with CurrentPersistenceIdsQuery
-    // with org.apache.pekko.persistence.query.javadsl.CurrentPersistenceIdsQuery
+    // with pekko.persistence.query.javadsl.CurrentPersistenceIdsQuery
     {
 
   /**

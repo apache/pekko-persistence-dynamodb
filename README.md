@@ -6,10 +6,19 @@ A replicated Pekko Persistence journal backed by
 - This plugin implements both a journal as well as a snapshot store,
 - This includes a Pekko Persistence Query plugin. However, this requires an additional GSI for efficient usage.
 
-Supported versions:
-- Scala: `2.13.x`, `3.3.0+`
+Apache Pekko Persistence DynamoDB 1.x Supported versions:
+- Scala: `2.12.x`, `2.13.x`, `3.3.0+`
 - Pekko: `1.0.x+`
+- Java: `8+`
+- Amazon SDK for Java v1
+
+Apache Pekko Persistence DynamoDB 2.x Supported versions:
+- Scala: `2.13.x`, `3.3.0+`
+- Pekko: `2.0.x+`
 - Java: `17+`
+- Amazon SDK for Java v2
+
+Upgrading from 1.x? See the [1.x to 2.x migration guide](docs/migration-guide-1.x-to-2.x.md).
 
 [![Build Status](https://github.com/apache/pekko-persistence-dynamodb/actions/workflows/check-build-test.yml/badge.svg?branch=main)](https://github.com/apache/pekko-persistence-dynamodb/actions)
 
@@ -48,11 +57,11 @@ my-dynamodb-journal {                     # and add some overrides
     journal-name =  <prefix to be used for all keys stored by this plugin>
     aws-access-key-id =  <your key>
     aws-secret-access-key =  <your secret>
-    endpoint =  "https://dynamodb.us-east-1.amazonaws.com" # or where your deployment is
+    region = "us-east-1" # or where your deployment is
 }
 ~~~
 
-For details on the endpoint URL please refer to the [DynamoDB documentation](https://docs.aws.amazon.com/general/latest/gr/rande.html#ddb_region). There are many more settings that can be used for fine-tuning and adapting this journal plugin to your use-case, please refer to the [reference.conf](https://github.com/apache/pekko-persistence-dynamodb/blob/main/src/main/resources/reference.conf) file.
+When `region` is not set, the region is taken from the AWS SDK [default region provider chain](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/region-selection.html), e.g. the `AWS_REGION` environment variable. The `endpoint` setting is only needed for a non-standard endpoint, such as DynamoDB Local; if neither a region nor an AWS SDK default region is found, a custom endpoint is signed for `us-east-1`. For details on the endpoint URLs please refer to the [DynamoDB documentation](https://docs.aws.amazon.com/general/latest/gr/rande.html#ddb_region). There are many more settings that can be used for fine-tuning and adapting this journal plugin to your use-case, please refer to the [reference.conf](https://github.com/apache/pekko-persistence-dynamodb/blob/main/src/main/resources/reference.conf) file.
 
 Before you can use these settings you will have to create a table, e.g. using the AWS console, with the following schema:
 
@@ -115,17 +124,21 @@ In the second case each event is treated in isolation and may or may not be repl
 
 ## Performance Considerations
 
-This plugin uses the AWS Java SDK which means that the number of requests that can be made concurrently is limited by the number of connections to DynamoDB and by the number of threads in the thread-pool that is used by the AWS HTTP client. The default setting is 50 connections which for a deployment that is used from the same EC2 region allows roughly 5000 requests per second (where every persisted event batch is roughly one request). If a single ActorSystem needs to persist more than this number of events per second then you may want to tune the parameter
+This plugin uses the AWS SDK for Java v2, which means that the number of requests that can be made concurrently is limited by the concurrency of the SDK's asynchronous HTTP client. The default of 50 concurrent requests allows roughly 5000 requests per second (where every persisted event batch is roughly one request) for a deployment used from the same EC2 region.
+
+The limit can be raised with the `aws-client-config` block, which also has settings for timeouts and an HTTP proxy, for example:
 
 ~~~
 my-dynamodb-journal.aws-client-config.max-connections = <your value here>
 ~~~
 
-Changing this number changes both the number of concurrent connections and the used thread-pool size.
+See [reference.conf](https://github.com/apache/pekko-persistence-dynamodb/blob/main/src/main/resources/reference.conf) for all the settings, and the [migration guide](docs/migration-guide-1.x-to-2.x.md#aws-client-config) for how they compare to 1.x.
 
 ## Retry behavior
 
-This plugin uses exponential backoff when plausible and retriable errors from DynamoDB occur. This includes network glitches (50x; since Pekko 1.1.0) and throughput exceptions (400; extended in Pekko 1.1.0).
+This plugin uses exponential backoff when plausible and retriable errors from DynamoDB occur. This includes network glitches (50x; since Pekko 1.1.0), throughput exceptions (400; extended in Pekko 1.1.0), transient connection failures and per-attempt timeouts (since 2.0.0), and batch reads or writes that leave items unprocessed.
+
+Since 2.0.0 the AWS SDK does not retry by itself, so that its retries do not multiply with the plugin's. Set `aws-client-config.max-error-retry` to have the SDK retry as well.
 
 The backoff strategy is very simple. 
 - There are a maximum of 10 retries.

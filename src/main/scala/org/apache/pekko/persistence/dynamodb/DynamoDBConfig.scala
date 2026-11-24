@@ -13,21 +13,21 @@
 
 package org.apache.pekko.persistence.dynamodb
 
-import java.net.InetAddress
+import java.time.{ Duration => JDuration }
 
-import com.amazonaws.{ ClientConfiguration, Protocol }
+import software.amazon.awssdk.awscore.retry.AwsRetryStrategy
+import software.amazon.awssdk.core.client.config.{ ClientOverrideConfiguration, SdkAdvancedClientOption }
+import software.amazon.awssdk.http.nio.netty.{ NettyNioAsyncHttpClient, ProxyConfiguration }
 
-import com.typesafe.config.Config
+import com.typesafe.config.{ Config, ConfigFactory }
 
-trait ClientConfig {
-  val config: ClientConfiguration
-}
 trait DynamoDBConfig {
   val AwsKey: String
   val AwsSecret: String
   val Endpoint: String
+  val Region: String
   val ClientDispatcher: String
-  val client: ClientConfig
+  val client: DynamoDBClientConfig
   val Tracing: Boolean
   val MaxBatchGet: Int
   val MaxBatchWrite: Int
@@ -37,50 +37,118 @@ trait DynamoDBConfig {
 
 }
 
-class DynamoDBClientConfig(c: Config) extends ClientConfig {
-  private val cc = c.getConfig("aws-client-config")
-  private def get[T](path: String, extract: (Config, String) => T, set: T => Unit): Unit =
-    if (cc.getString(path) == "default") ()
-    else {
-      val value = extract(cc, path)
-      set(value)
-      foundSettings ::= s"$path:$value"
+/**
+ * The `aws-client-config` block. The keys are the ones used by the AWS SDK v1 `ClientConfiguration` in
+ * version 1.x of this plugin; the ones that have an AWS SDK v2 equivalent are mapped onto the Netty async
+ * HTTP client and the client override configuration. Every key defaults to `default`, which leaves the
+ * AWS SDK default in place.
+ */
+final class DynamoDBClientConfig(c: Config) {
+  private val cc: Config =
+    if (c.hasPath("aws-client-config")) c.getConfig("aws-client-config") else ConfigFactory.empty
+
+  private def isSet(path: String): Boolean =
+    cc.hasPath(path) && cc.getValue(path).unwrapped != "default"
+
+  private def opt[T](path: String)(extract: (Config, String) => T): Option[T] =
+    if (isSet(path)) Some(extract(cc, path)) else None
+
+  private def millis(path: String): Option[JDuration] = opt(path)((c, p) => JDuration.ofMillis(c.getLong(p)))
+
+  val maxConnections: Option[Int] = opt("max-connections")(_.getInt(_))
+  val connectionTimeout: Option[JDuration] = millis("connection-timeout")
+  val socketTimeout: Option[JDuration] = millis("socket-timeout")
+  val clientExecutionTimeout: Option[JDuration] = millis("client-execution-timeout")
+  val requestTimeout: Option[JDuration] = millis("request-timeout")
+  val connectionTtl: Option[JDuration] = millis("connection-ttl")
+  val connectionMaxIdle: Option[JDuration] = millis("connection-max-idle-millis")
+  val useReaper: Option[Boolean] = opt("use-reaper")(_.getBoolean(_))
+  val useTcpKeepAlive: Option[Boolean] = opt("use-tcp-keepalive")(_.getBoolean(_))
+
+  /**
+   * The number of retries the AWS SDK makes itself, on top of the first attempt. When this is not set the
+   * SDK does not retry at all, since the plugin retries throttling, server errors and transient I/O failures
+   * with its own exponential backoff and the two would otherwise multiply.
+   */
+  val maxErrorRetry: Option[Int] = opt("max-error-retry")(_.getInt(_))
+  val proxyHost: Option[String] = opt("proxy-host")(_.getString(_))
+  val proxyPort: Option[Int] = opt("proxy-port")(_.getInt(_))
+  val proxyUsername: Option[String] = opt("proxy-username")(_.getString(_))
+  val proxyPassword: Option[String] = opt("proxy-password")(_.getString(_))
+  val userAgent: Option[String] = opt("user-agent")(_.getString(_))
+
+  /**
+   * AWS SDK v1 settings that have no AWS SDK v2 equivalent, and are ignored even when they are set.
+   */
+  val ignoredSettings: List[String] = DynamoDBClientConfig.UnsupportedKeys.filter(isSet)
+
+  private[dynamodb] def configure(http: NettyNioAsyncHttpClient.Builder): NettyNioAsyncHttpClient.Builder = {
+    maxConnections.foreach(n => http.maxConcurrency(n))
+    connectionTimeout.foreach(http.connectionTimeout)
+    socketTimeout.foreach { d =>
+      http.readTimeout(d)
+      http.writeTimeout(d)
     }
+    connectionTtl.foreach(http.connectionTimeToLive)
+    connectionMaxIdle.foreach(http.connectionMaxIdleTime)
+    useReaper.foreach(b => http.useIdleConnectionReaper(b))
+    useTcpKeepAlive.foreach(b => http.tcpKeepAlive(b))
+    proxyHost.foreach { host =>
+      val proxy = ProxyConfiguration.builder().host(host)
+      proxyPort.foreach(p => proxy.port(p))
+      proxyUsername.foreach(proxy.username)
+      proxyPassword.foreach(proxy.password)
+      http.proxyConfiguration(proxy.build())
+    }
+    http
+  }
 
-  private var foundSettings = List.empty[String]
-  override lazy val toString: String = foundSettings.reverse.mkString("{", ",", "}")
-  val config = new ClientConfiguration
+  private[dynamodb] def configure(
+      overrides: ClientOverrideConfiguration.Builder): ClientOverrideConfiguration.Builder = {
+    clientExecutionTimeout.foreach(overrides.apiCallTimeout)
+    requestTimeout.foreach(overrides.apiCallAttemptTimeout)
+    userAgent.foreach(overrides.putAdvancedOption(SdkAdvancedClientOption.USER_AGENT_PREFIX, _))
+    overrides.retryStrategy(maxErrorRetry match {
+      case Some(n) => AwsRetryStrategy.standardRetryStrategy().toBuilder.maxAttempts(n + 1).build()
+      case None    => AwsRetryStrategy.doNotRetry()
+    })
+  }
 
-  get("client-execution-timeout", _.getInt(_), config.setClientExecutionTimeout)
-  get("connection-max-idle-millis", _.getLong(_), config.setConnectionMaxIdleMillis)
-  get("connection-timeout", _.getInt(_), config.setConnectionTimeout)
-  get("connection-ttl", _.getLong(_), config.setConnectionTTL)
-  get("local-address", (c, p) => InetAddress.getByName(c.getString(p)), config.setLocalAddress)
-  get("max-connections", _.getInt(_), config.setMaxConnections)
-  get("max-error-retry", _.getInt(_), config.setMaxErrorRetry)
-  get("preemptive-basic-proxy-auth", _.getBoolean(_), config.withPreemptiveBasicProxyAuth)
-  get("protocol", (c, p) => if (c.getString(p) == "HTTP") Protocol.HTTP else Protocol.HTTPS, config.setProtocol)
-  get("proxy-domain", _.getString(_), config.setProxyDomain)
-  get("proxy-host", _.getString(_), config.setProxyHost)
-  get("proxy-password", _.getString(_), config.setProxyPassword)
-  get("proxy-port", _.getInt(_), config.setProxyPort)
-  get("proxy-username", _.getString(_), config.setProxyUsername)
-  get("proxy-workstation", _.getString(_), config.setProxyWorkstation)
-  get("request-timeout", _.getInt(_), config.setRequestTimeout)
-  get("response-metadata-cache-size", _.getInt(_), config.setResponseMetadataCacheSize)
-  get("signer-override", _.getString(_), config.setSignerOverride)
-  get[(Int, Int)](
+  override def toString: String = {
+    val found =
+      maxConnections.map("max-connections:" + _) ++
+      connectionTimeout.map("connection-timeout:" + _) ++
+      socketTimeout.map("socket-timeout:" + _) ++
+      clientExecutionTimeout.map("client-execution-timeout:" + _) ++
+      requestTimeout.map("request-timeout:" + _) ++
+      connectionTtl.map("connection-ttl:" + _) ++
+      connectionMaxIdle.map("connection-max-idle-millis:" + _) ++
+      useReaper.map("use-reaper:" + _) ++
+      useTcpKeepAlive.map("use-tcp-keepalive:" + _) ++
+      maxErrorRetry.map("max-error-retry:" + _) ++
+      proxyHost.map("proxy-host:" + _) ++
+      proxyPort.map("proxy-port:" + _) ++
+      proxyUsername.map("proxy-username:" + _) ++
+      proxyPassword.map(_ => "proxy-password:<redacted>") ++
+      userAgent.map("user-agent:" + _)
+    found.mkString("{", ",", "}")
+  }
+}
+
+object DynamoDBClientConfig {
+
+  /**
+   * `aws-client-config` keys from version 1.x that have no AWS SDK v2 equivalent.
+   */
+  val UnsupportedKeys: List[String] = List(
+    "local-address",
+    "preemptive-basic-proxy-auth",
+    "protocol",
+    "proxy-domain",
+    "proxy-workstation",
+    "response-metadata-cache-size",
+    "signer-override",
     "socket-buffer-size-hints",
-    (c, p) => {
-      val tuple = c.getIntList(p)
-      require(tuple.size == 2, "socket-buffer-size-hints must be a list of two integers")
-      (tuple.get(0), tuple.get(1))
-    },
-    pair => config.setSocketBufferSizeHints(pair._1, pair._2))
-  get("socket-timeout", _.getInt(_), config.setSocketTimeout)
-  get("use-expect-continue", _.getBoolean(_), config.setUseExpectContinue)
-  get("use-gzip", _.getBoolean(_), config.setUseExpectContinue)
-  get("use-reaper", _.getBoolean(_), config.setUseReaper)
-  get("use-tcp-keepalive", _.getBoolean(_), config.setUseTcpKeepAlive)
-  get("user-agent", _.getString(_), config.setUserAgentPrefix)
+    "use-expect-continue",
+    "use-gzip")
 }

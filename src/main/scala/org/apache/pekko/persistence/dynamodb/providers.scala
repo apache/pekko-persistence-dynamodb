@@ -9,10 +9,11 @@
 
 package org.apache.pekko.persistence.dynamodb
 
-import org.apache.pekko.actor.ExtendedActorSystem
-import org.apache.pekko.event.LoggingAdapter
-import org.apache.pekko.persistence.dynamodb.journal.DynamoDBHelper
-import org.apache.pekko.stream.Materializer
+import org.apache.pekko
+import pekko.actor.ExtendedActorSystem
+import pekko.event.LoggingAdapter
+import pekko.persistence.dynamodb.journal.DynamoDBHelper
+import pekko.stream.Materializer
 
 trait LoggingProvider {
   protected def log: LoggingAdapter

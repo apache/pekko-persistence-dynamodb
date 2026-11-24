@@ -13,7 +13,8 @@
 
 package org.apache.pekko.persistence.dynamodb.snapshot
 
-import org.apache.pekko.persistence.dynamodb.{ ClientConfig, DynamoDBClientConfig, DynamoDBConfig }
+import org.apache.pekko
+import pekko.persistence.dynamodb.{ DynamoDBClientConfig, DynamoDBConfig }
 
 import com.typesafe.config.Config
 
@@ -23,18 +24,20 @@ class DynamoDBSnapshotConfig(c: Config) extends DynamoDBConfig {
   val AwsKey = c.getString("aws-access-key-id")
   val AwsSecret = c.getString("aws-secret-access-key")
   val Endpoint = c.getString("endpoint")
+  val Region = c.getString("region")
+  val client = new DynamoDBClientConfig(c)
 
   val MaxBatchGet = c.getInt("aws-api-limits.max-batch-get")
   val MaxBatchWrite = c.getInt("aws-api-limits.max-batch-write")
   val MaxItemSize = c.getInt("aws-api-limits.max-item-size")
 
   override def toString: String =
-    "DynamoDBJournalConfig(" +
+    "DynamoDBSnapshotConfig(" +
     "SnapshotTable:" + Table +
     ",AwsKey:" + AwsKey +
-    ",Endpoint:" + Endpoint + ")"
-
-  override val client: ClientConfig = new DynamoDBClientConfig(c)
+    ",Endpoint:" + Endpoint +
+    ",Region:" + Region +
+    ",client:" + client + ")"
 
   override val ClientDispatcher = c.getString("client-dispatcher")
   override val Tracing = c.getBoolean("tracing")

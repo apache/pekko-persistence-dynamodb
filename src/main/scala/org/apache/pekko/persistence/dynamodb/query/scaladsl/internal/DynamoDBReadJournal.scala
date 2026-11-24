@@ -9,19 +9,20 @@
 
 package org.apache.pekko.persistence.dynamodb.query.scaladsl.internal
 
-import org.apache.pekko.actor.ExtendedActorSystem
-import org.apache.pekko.persistence.dynamodb._
-import org.apache.pekko.persistence.dynamodb.journal._
-import org.apache.pekko.persistence.dynamodb.journal.{ DynamoDBHelper, JournalSettingsProvider }
-import org.apache.pekko.persistence.dynamodb.query.scaladsl.internal.{
+import org.apache.pekko
+import pekko.actor.ExtendedActorSystem
+import pekko.persistence.dynamodb._
+import pekko.persistence.dynamodb.journal._
+import pekko.persistence.dynamodb.journal.{ DynamoDBHelper, JournalSettingsProvider }
+import pekko.persistence.dynamodb.query.scaladsl.internal.{
   DynamoDBCurrentEventsByPersistenceIdQuery => InternalDynamoDBCurrentEventsByPersistenceIdQuery,
   DynamoDBCurrentPersistenceIdsQuery => InternalDynamoDBCurrentPersistenceIdsQuery
 }
-import org.apache.pekko.persistence.dynamodb.query.scaladsl.{ DynamoDBReadJournal => PublicDynamoDBReadJournal }
-import org.apache.pekko.persistence.dynamodb.query.{ DynamoDBReadJournalConfig, ReadJournalSettingsProvider }
-import org.apache.pekko.persistence.query.scaladsl.ReadJournal
-import org.apache.pekko.serialization.{ Serialization, SerializationExtension }
-import org.apache.pekko.stream.{ Materializer, SystemMaterializer }
+import pekko.persistence.dynamodb.query.scaladsl.{ DynamoDBReadJournal => PublicDynamoDBReadJournal }
+import pekko.persistence.dynamodb.query.{ DynamoDBReadJournalConfig, ReadJournalSettingsProvider }
+import pekko.persistence.query.scaladsl.ReadJournal
+import pekko.serialization.{ Serialization, SerializationExtension }
+import pekko.stream.{ Materializer, SystemMaterializer }
 
 import com.typesafe.config.Config
 
